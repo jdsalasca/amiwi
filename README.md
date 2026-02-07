@@ -2,6 +2,16 @@
 
 Amiwi is a desktop companion for study and work, built with Tauri + React + TypeScript.
 
+## v0.8.4 (mascot-only minimal mode + music ambience)
+- Ultra-minimal now behaves as mascot-only: no visible controls/chrome unless user opens settings.
+- Settings can be toggled directly from mascot via right-click.
+- Fast focus toggle via mascot double-click.
+- Timer bubble is optional and user-controlled (`showTimerBubble`).
+- Dynamic ambient color reacts to music energy:
+  - waveform energy from local track with `AnalyserNode`
+  - lightweight pulse fallback for system-music detection.
+- Performance-safe approach: throttled updates and low-cost analyzer settings.
+
 ## v0.8.3 (minimal widget value pass)
 - Ultra-minimal mode enabled by default to keep the companion unobtrusive.
 - Header/window chrome now appears contextually on hover/focus for cleaner daily use.

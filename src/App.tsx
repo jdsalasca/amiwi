@@ -1,4 +1,4 @@
-import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import "./App.css";
@@ -26,6 +26,8 @@ type Settings = {
   autoHideEnabled: boolean;
   autoHideSeconds: number;
   ultraMinimal: boolean;
+  showTimerBubble: boolean;
+  musicAmbient: boolean;
 };
 
 type MusicDetection = {
@@ -66,6 +68,8 @@ const copy = {
     autoHide: "Auto ocultar",
     autoHideSec: "Segundos para ocultar",
     ultraMinimal: "Ultra minimal",
+    showTimerBubble: "Burbuja de tiempo",
+    musicAmbient: "Color por musica",
     clickThroughPulse: "Click-through 8s",
     clickThroughHint: "modo pasivo activo",
     phraseStudy: [
@@ -135,6 +139,8 @@ const copy = {
     autoHide: "Auto hide",
     autoHideSec: "Seconds to hide",
     ultraMinimal: "Ultra minimal",
+    showTimerBubble: "Timer bubble",
+    musicAmbient: "Music ambient color",
     clickThroughPulse: "Click-through 8s",
     clickThroughHint: "passive mode enabled",
     phraseStudy: [
@@ -193,6 +199,8 @@ const defaultSettings: Settings = {
   autoHideEnabled: false,
   autoHideSeconds: 12,
   ultraMinimal: true,
+  showTimerBubble: true,
+  musicAmbient: true,
 };
 
 const assetByAvatarMood: Record<AvatarStyle, Record<Mood, string>> = {
@@ -329,6 +337,7 @@ function App() {
   const [musicTrackUrl, setMusicTrackUrl] = useState("");
   const [musicTrackName, setMusicTrackName] = useState("");
   const [musicPlaying, setMusicPlaying] = useState(false);
+  const [musicEnergy, setMusicEnergy] = useState(0);
 
   const durations = useMemo(() => getDurations(settings), [settings]);
   const [focusRunning, setFocusRunning] = useState(false);
@@ -340,9 +349,15 @@ function App() {
   const hideTimerRef = useRef<number | null>(null);
   const pollingRef = useRef(false);
   const interactionThrottleRef = useRef(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const dataArrayRef = useRef<Uint8Array | null>(null);
+  const audioSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const rafRef = useRef<number | null>(null);
 
   const t = copy[settings.language];
   const isMusicActive = settings.musicReactive && (musicPlaying || systemMusicActive);
+  const activeHue = Math.round(200 + musicEnergy * 110);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -478,6 +493,76 @@ function App() {
   }, [settings.systemMusicDetect]);
 
   useEffect(() => {
+    if (!settings.musicAmbient) {
+      setMusicEnergy(0);
+      if (rafRef.current !== null) {
+        window.cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      return;
+    }
+
+    if (!musicPlaying || !audioRef.current) {
+      if (!musicPlaying && systemMusicActive) {
+        const timer = window.setInterval(() => {
+          setMusicEnergy((prev) => {
+            const next = 0.35 + 0.2 * Math.sin(Date.now() / 600);
+            return Math.abs(next - prev) > 0.02 ? next : prev;
+          });
+        }, 240);
+        return () => window.clearInterval(timer);
+      }
+      setMusicEnergy(0);
+      return;
+    }
+
+    const w = window as Window & { __amiwiAudioCtx?: AudioContext };
+    const ctx = w.__amiwiAudioCtx ?? new window.AudioContext();
+    w.__amiwiAudioCtx = ctx;
+
+    if (!audioSourceRef.current) {
+      audioSourceRef.current = ctx.createMediaElementSource(audioRef.current);
+    }
+
+    if (!analyserRef.current) {
+      analyserRef.current = ctx.createAnalyser();
+      analyserRef.current.fftSize = 128;
+      analyserRef.current.smoothingTimeConstant = 0.72;
+      audioSourceRef.current.connect(analyserRef.current);
+      analyserRef.current.connect(ctx.destination);
+      dataArrayRef.current = new Uint8Array(analyserRef.current.frequencyBinCount);
+    }
+
+    let frameSkip = 0;
+    const loop = () => {
+      if (!analyserRef.current || !dataArrayRef.current) {
+        return;
+      }
+      frameSkip += 1;
+      if (frameSkip % 3 === 0) {
+        analyserRef.current.getByteFrequencyData(dataArrayRef.current);
+        let sum = 0;
+        for (let i = 0; i < dataArrayRef.current.length; i += 1) {
+          sum += dataArrayRef.current[i];
+        }
+        const avg = sum / dataArrayRef.current.length;
+        const normalized = clamp(avg / 255, 0, 1);
+        setMusicEnergy((prev) => (Math.abs(prev - normalized) > 0.03 ? normalized : prev));
+      }
+      rafRef.current = window.requestAnimationFrame(loop);
+    };
+
+    rafRef.current = window.requestAnimationFrame(loop);
+
+    return () => {
+      if (rafRef.current !== null) {
+        window.cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, [musicPlaying, settings.musicAmbient, systemMusicActive]);
+
+  useEffect(() => {
     if (!focusRunning) {
       return;
     }
@@ -610,10 +695,23 @@ function App() {
     setAvatarBroken(false);
   }, [settings.avatarStyle, mood]);
 
+  const toggleFocusFromMascot = () => {
+    quickStartFocus();
+  };
+
+  const toggleSettingsFromMascot = (event: ReactMouseEvent<HTMLImageElement | HTMLDivElement>) => {
+    event.preventDefault();
+    setShowPanel((prev) => !prev);
+  };
+
   return (
     <main
       className={`glass-shell ${dormant ? "dormant" : ""} ${settings.ultraMinimal ? "ultra-minimal" : ""}`}
-      style={{ opacity: settings.opacity }}
+      style={{
+        opacity: settings.opacity,
+        ["--accent-hue" as string]: `${activeHue}`,
+        ["--music-energy" as string]: `${musicEnergy.toFixed(2)}`
+      }}
       onMouseMove={registerInteraction}
       onMouseEnter={registerInteraction}
       onMouseDown={registerInteraction}
@@ -639,23 +737,38 @@ function App() {
             alt={`${settings.avatarStyle}-${mood}`}
             loading="eager"
             decoding="async"
+            onDoubleClick={toggleFocusFromMascot}
+            onContextMenu={toggleSettingsFromMascot}
             onError={() => setAvatarBroken(true)}
           />
         ) : (
-          <div className="avatar-fallback" aria-label="avatar-fallback">o(=^.^=)o</div>
+          <div
+            className="avatar-fallback"
+            aria-label="avatar-fallback"
+            onDoubleClick={toggleFocusFromMascot}
+            onContextMenu={toggleSettingsFromMascot}
+          >
+            o(=^.^=)o
+          </div>
         )}
 
         <div key={phraseTick} className="floating-phrase">
           {phrase}
         </div>
 
-        <div className={`quick-row ${settings.ultraMinimal ? "minimal-dock" : ""}`}>
-          <button type="button" className="chip" title={focusRunning ? t.stop : t.start} onClick={() => quickStartFocus()}>{focusRunning ? "■" : "▶"}</button>
-          <span className="timer-pill">{focusPhase === "focus" ? "🍅" : "☕"} {formatMMSS(remainingSeconds)}</span>
-          <button type="button" className="chip" title={t.feed} onClick={handleFeed}>🍪</button>
-        </div>
+        {!settings.ultraMinimal && (
+          <div className={`quick-row ${settings.ultraMinimal ? "minimal-dock" : ""}`}>
+            <button type="button" className="chip" title={focusRunning ? t.stop : t.start} onClick={() => quickStartFocus()}>{focusRunning ? "■" : "▶"}</button>
+            <span className="timer-pill">{focusPhase === "focus" ? "🍅" : "☕"} {formatMMSS(remainingSeconds)}</span>
+            <button type="button" className="chip" title={t.feed} onClick={handleFeed}>🍪</button>
+          </div>
+        )}
 
-        {(isMusicActive || showPanel || !settings.ultraMinimal) && (
+        {settings.showTimerBubble && focusRunning && (
+          <div className="timer-bubble">{focusPhase === "focus" ? "🍅" : "☕"} {formatMMSS(remainingSeconds)}</div>
+        )}
+
+        {(showPanel || (!settings.ultraMinimal && isMusicActive)) && (
           <div className="music-pill">
             {t.nowPlaying}: {isMusicActive ? (systemMusicSource || musicTrackName || "active") : t.noMusic}
           </div>
@@ -755,6 +868,16 @@ function App() {
             {t.ultraMinimal}
           </label>
 
+          <label className="toggle-row">
+            <input type="checkbox" checked={settings.showTimerBubble} onChange={(event) => update("showTimerBubble", event.currentTarget.checked)} />
+            {t.showTimerBubble}
+          </label>
+
+          <label className="toggle-row">
+            <input type="checkbox" checked={settings.musicAmbient} onChange={(event) => update("musicAmbient", event.currentTarget.checked)} />
+            {t.musicAmbient}
+          </label>
+
           {settings.autoHideEnabled && (
             <label>
               {t.autoHideSec}: {settings.autoHideSeconds}s
@@ -767,7 +890,14 @@ function App() {
             <input type="file" accept="audio/*" onChange={handleMusicFile} />
           </label>
 
-          <audio controls src={musicTrackUrl} onPlay={() => setMusicPlaying(true)} onPause={() => setMusicPlaying(false)} onEnded={() => setMusicPlaying(false)} />
+          <audio
+            ref={audioRef}
+            controls
+            src={musicTrackUrl}
+            onPlay={() => setMusicPlaying(true)}
+            onPause={() => setMusicPlaying(false)}
+            onEnded={() => setMusicPlaying(false)}
+          />
 
           <div className="panel-footer">
             <button type="button" className="chip" onClick={activateClickThroughPulse}>{t.clickThroughPulse}</button>

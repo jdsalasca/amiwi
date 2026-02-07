@@ -27,7 +27,11 @@ body {
   padding: 8px;
   border-radius: 18px;
   backdrop-filter: blur(8px) saturate(1.12);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(232, 245, 255, 0.6));
+  background: linear-gradient(
+    135deg,
+    hsla(var(--accent-hue, 210), 92%, 98%, 0.72),
+    hsla(calc(var(--accent-hue, 210) + 18), 88%, 92%, 0.6)
+  );
   border: 1px solid rgba(255, 255, 255, 0.65);
   box-shadow: 0 10px 24px rgba(34, 83, 127, 0.14);
   overflow: hidden;
@@ -97,12 +101,18 @@ body {
   min-height: 220px;
 }
 
+.ultra-minimal .widget-body {
+  min-height: 188px;
+}
+
 .avatar {
   width: 168px;
   max-width: 70%;
   display: block;
   margin: 4px auto;
-  filter: drop-shadow(0 8px 14px rgba(39, 72, 114, 0.24));
+  filter:
+    drop-shadow(0 8px 14px rgba(39, 72, 114, 0.24))
+    drop-shadow(0 0 calc(8px + var(--music-energy, 0) * 20px) hsla(var(--accent-hue, 210), 90%, 65%, 0.45));
   animation: avatarBob 4.4s ease-in-out infinite;
 }
 
@@ -159,6 +169,18 @@ body {
   padding: 6px 9px;
   box-shadow: 0 6px 18px rgba(42, 84, 125, 0.18);
   animation: bubbleIn 320ms ease;
+}
+
+.timer-bubble {
+  position: absolute;
+  right: 16px;
+  bottom: 10px;
+  font-size: 0.72rem;
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: #244067;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(181, 215, 250, 0.8);
 }
 
 @keyframes bubbleIn {

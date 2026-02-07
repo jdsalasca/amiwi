@@ -2,6 +2,13 @@
 
 Amiwi is a desktop companion for study and work, built with Tauri + React + TypeScript.
 
+## v0.8.6 (pure mascot + bubbles)
+- Transparent compact window with no visible app background canvas.
+- Mascot-only default surface with bubble actions (focus, snack, settings).
+- Auto-resize window: compact in mascot mode, expanded only for settings.
+- Pomodoro and phrase UX remain as bubbles.
+- Maintains music-reactive ambient color without heavy rendering overhead.
+
 ## v0.8.5 (global shortcut for settings)
 - Added global shortcut to toggle settings panel and focus app window:
   - Windows/Linux: `Ctrl+Shift+A`

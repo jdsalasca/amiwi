@@ -2,6 +2,7 @@ import { ChangeEvent, MouseEvent as ReactMouseEvent, useCallback, useEffect, use
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { LogicalSize } from "@tauri-apps/api/dpi";
 import "./App.css";
 
 type Lang = "es" | "en";
@@ -74,6 +75,9 @@ const copy = {
     globalShortcut: "Atajo global",
     clickThroughPulse: "Click-through 8s",
     clickThroughHint: "modo pasivo activo",
+    bubbleFocus: "Foco",
+    bubbleFeed: "Snack",
+    bubbleSettings: "Ajustes",
     phraseStudy: [
       "Vamos, paso a paso. Estoy contigo.",
       "Un bloque mas y celebramos.",
@@ -146,6 +150,9 @@ const copy = {
     globalShortcut: "Global shortcut",
     clickThroughPulse: "Click-through 8s",
     clickThroughHint: "passive mode enabled",
+    bubbleFocus: "Focus",
+    bubbleFeed: "Snack",
+    bubbleSettings: "Settings",
     phraseStudy: [
       "One step at a time. I am with you.",
       "One more block and we celebrate.",
@@ -370,6 +377,13 @@ function App() {
   useEffect(() => {
     void getCurrentWindow().setAlwaysOnTop(settings.alwaysOnTop).catch(() => undefined);
   }, [settings.alwaysOnTop]);
+
+  useEffect(() => {
+    const appWindow = getCurrentWindow();
+    const target = showPanel ? new LogicalSize(420, 520) : new LogicalSize(240, 260);
+    void appWindow.setSize(target).catch(() => undefined);
+    void appWindow.setResizable(showPanel).catch(() => undefined);
+  }, [showPanel]);
 
   useEffect(() => {
     if (!focusRunning) {
@@ -740,18 +754,19 @@ function App() {
       onMouseEnter={registerInteraction}
       onMouseDown={registerInteraction}
     >
-      <div className={`glass-header ${settings.ultraMinimal && !showPanel ? "hidden-chrome" : ""}`}>
-        <div className="drag-region" data-tauri-drag-region>
-          <strong>{t.title}</strong>
-          <small>{t.subtitle}</small>
+      {(!settings.ultraMinimal || showPanel) && (
+        <div className={`glass-header ${settings.ultraMinimal && !showPanel ? "hidden-chrome" : ""}`}>
+          <div className="drag-region" data-tauri-drag-region>
+            <strong>{t.title}</strong>
+            <small>{t.subtitle}</small>
+          </div>
+          <div className="window-controls">
+            <button type="button" className="chip" title={t.settings} onClick={() => setShowPanel((prev) => !prev)}>⚙</button>
+            <button type="button" className="win" onClick={() => void getCurrentWindow().minimize()}>_</button>
+            <button type="button" className="win" onClick={() => void getCurrentWindow().close()}>✕</button>
+          </div>
         </div>
-        <div className="window-controls">
-          <button type="button" className="chip" title={t.settings} onClick={() => setShowPanel((prev) => !prev)}>⚙</button>
-          <button type="button" className="win" onClick={() => void getCurrentWindow().minimize()}>_</button>
-          <button type="button" className="win" onClick={() => void getCurrentWindow().toggleMaximize()}>□</button>
-          <button type="button" className="win close" onClick={() => void getCurrentWindow().close()}>✕</button>
-        </div>
-      </div>
+      )}
 
       <section className="widget-body" style={{ transform: `scale(${settings.size})` }}>
         {!avatarBroken ? (
@@ -785,6 +800,20 @@ function App() {
             <button type="button" className="chip" title={focusRunning ? t.stop : t.start} onClick={() => quickStartFocus()}>{focusRunning ? "■" : "▶"}</button>
             <span className="timer-pill">{focusPhase === "focus" ? "🍅" : "☕"} {formatMMSS(remainingSeconds)}</span>
             <button type="button" className="chip" title={t.feed} onClick={handleFeed}>🍪</button>
+          </div>
+        )}
+
+        {settings.ultraMinimal && !showPanel && (
+          <div className="bubble-actions">
+            <button type="button" className="bubble-action" title={t.bubbleFocus} onClick={quickStartFocus}>
+              {focusRunning ? "■" : "▶"}
+            </button>
+            <button type="button" className="bubble-action" title={t.bubbleFeed} onClick={handleFeed}>
+              🍪
+            </button>
+            <button type="button" className="bubble-action" title={t.bubbleSettings} onClick={() => setShowPanel(true)}>
+              ⚙
+            </button>
           </div>
         )}
 

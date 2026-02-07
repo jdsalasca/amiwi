@@ -2,6 +2,12 @@
 
 Amiwi is a desktop companion for study and work, built with Tauri + React + TypeScript.
 
+## v0.8.7 (windows startup crash hotfix)
+- Fixed startup crash on Windows when global shortcut is already taken.
+- App no longer panics on shortcut registration failure.
+- Added safe fallback shortcut attempt (`Ctrl+Alt+A`) if primary (`Ctrl+Shift+A`) is unavailable.
+- Startup reliability prioritized: app opens even if no shortcut can be registered.
+
 ## v0.8.6 (pure mascot + bubbles)
 - Transparent compact window with no visible app background canvas.
 - Mascot-only default surface with bubble actions (focus, snack, settings).

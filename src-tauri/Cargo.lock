@@ -34,7 +34,7 @@ dependencies = [
 
 [[package]]
 name = "amiwi"
-version = "0.8.6"
+version = "0.8.7"
 dependencies = [
  "serde",
  "serde_json",

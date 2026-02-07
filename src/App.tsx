@@ -368,7 +368,9 @@ function App() {
   const t = copy[settings.language];
   const isMusicActive = settings.musicReactive && (musicPlaying || systemMusicActive);
   const activeHue = Math.round(200 + musicEnergy * 110);
-  const globalShortcutLabel = navigator.platform.toLowerCase().includes("mac") ? "Cmd+Shift+A" : "Ctrl+Shift+A";
+  const globalShortcutLabel = navigator.platform.toLowerCase().includes("mac")
+    ? "Cmd+Shift+A"
+    : "Ctrl+Shift+A (fallback Ctrl+Alt+A)";
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));

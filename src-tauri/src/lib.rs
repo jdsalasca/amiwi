@@ -87,13 +87,24 @@ pub fn run() {
             let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyA);
             let app_handle = app.handle().clone();
 
-            app.global_shortcut().on_shortcut(shortcut.clone(), move |_app, _shortcut, event| {
-                if event.state == ShortcutState::Pressed {
-                    let _ = app_handle.emit("amiwi://toggle-settings", ());
-                }
-            })?;
+            if let Err(error) = app.global_shortcut().on_shortcut(
+                shortcut.clone(),
+                move |_app, _shortcut, event| {
+                    if event.state == ShortcutState::Pressed {
+                        let _ = app_handle.emit("amiwi://toggle-settings", ());
+                    }
+                },
+            ) {
+                eprintln!("global shortcut listener unavailable: {error}");
+            }
 
-            app.global_shortcut().register(shortcut)?;
+            if let Err(error) = app.global_shortcut().register(shortcut.clone()) {
+                eprintln!("global shortcut registration failed for Ctrl+Shift+A: {error}");
+                let fallback = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::KeyA);
+                if let Err(fallback_error) = app.global_shortcut().register(fallback) {
+                    eprintln!("fallback global shortcut registration failed: {fallback_error}");
+                }
+            }
             Ok(())
         })
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())

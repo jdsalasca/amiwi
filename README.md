@@ -28,6 +28,11 @@ npm run tauri build
 
 Installers are generated in `src-tauri/target/release/bundle/`.
 
+## CI cross-platform builds
+- Workflow: `.github/workflows/release.yml`
+- Trigger: push tags `v*` (or manual run)
+- Output: Windows and macOS release artifacts uploaded to GitHub Releases.
+
 ## Product planning
 Main planning and prioritization document:
 - `MASTER_PLAN.md`

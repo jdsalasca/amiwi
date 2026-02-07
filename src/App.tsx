@@ -10,7 +10,7 @@ type Tone = "sweet" | "neutral" | "motivator";
 type Mode = "study" | "work" | "break";
 type Mood = "happy" | "focus" | "tired" | "break" | "celebrate";
 type FocusPhase = "focus" | "break";
-type AvatarStyle = "blob" | "cat" | "bunny" | "fox";
+type AvatarStyle = "blob" | "cat" | "bunny" | "fox" | "cloud" | "pixel";
 
 type Settings = {
   language: Lang;
@@ -68,7 +68,7 @@ const defaultSettings: Settings = {
   phrasesEnabled: true,
   onboarded: false,
   musicReactive: true,
-  minimalMode: false,
+  minimalMode: true,
   avatarStyle: "blob",
   occasionalSayings: true,
   systemMusicDetect: true,
@@ -102,6 +102,20 @@ const faceByAvatar: Record<AvatarStyle, Record<Mood, string>> = {
     tired: "🦊💤",
     break: "🦊☁",
     celebrate: "🦊🎉",
+  },
+  cloud: {
+    happy: "☁︎(◕‿◕)",
+    focus: "☁︎(•̀ᴗ•́)",
+    tired: "☁︎(˘･_･˘)",
+    break: "☁︎( ＾◡＾)",
+    celebrate: "☁︎✧٩(ˊᗜˋ*)و",
+  },
+  pixel: {
+    happy: "[ ^_^ ]",
+    focus: "[ >_< ]",
+    tired: "[ -_- ]",
+    break: "[ ~_~ ]",
+    celebrate: "[ +_+ ]",
   },
 };
 
@@ -181,7 +195,7 @@ function loadSettings(): Settings {
       opacity: clamp(parsed.opacity ?? 1, 0.4, 1),
       size: clamp(parsed.size ?? 1, 0.8, 1.4),
       musicReactive: parsed.musicReactive ?? true,
-      minimalMode: parsed.minimalMode ?? false,
+      minimalMode: parsed.minimalMode ?? true,
       occasionalSayings: parsed.occasionalSayings ?? true,
       systemMusicDetect: parsed.systemMusicDetect ?? true,
     };
@@ -277,10 +291,32 @@ function loadPetState(): PetState {
 
 async function minimizeWindow(): Promise<void> {
   try {
-    const window = getCurrentWindow();
-    await window.minimize();
+    await getCurrentWindow().minimize();
   } catch {
-    // No-op in environments that do not expose desktop APIs.
+    // No-op
+  }
+}
+
+async function toggleMaximizeWindow(): Promise<void> {
+  try {
+    const appWindow = getCurrentWindow();
+    const isMax = await appWindow.isMaximized();
+    if (isMax) {
+      await appWindow.unmaximize();
+      return;
+    }
+
+    await appWindow.maximize();
+  } catch {
+    // No-op
+  }
+}
+
+async function closeWindow(): Promise<void> {
+  try {
+    await getCurrentWindow().close();
+  } catch {
+    // No-op
   }
 }
 
@@ -292,7 +328,6 @@ function App() {
   const [mood, setMood] = useState<Mood>("happy");
   const [phrase, setPhrase] = useState("");
   const [musicSystemSource, setMusicSystemSource] = useState("");
-  const [musicSystemMethod, setMusicSystemMethod] = useState("");
 
   const [focusRunning, setFocusRunning] = useState(false);
   const [focusPhase, setFocusPhase] = useState<FocusPhase>("focus");
@@ -304,7 +339,6 @@ function App() {
   const [systemMusicActive, setSystemMusicActive] = useState(false);
 
   const locale = useMemo(() => localeByLang[settings.language], [settings.language]);
-
   const isMusicActive = settings.musicReactive && (musicPlaying || systemMusicActive);
 
   useEffect(() => {
@@ -371,13 +405,12 @@ function App() {
       return;
     }
 
-    let isCancelled = false;
+    let cancelled = false;
     let timeoutId = 0;
 
     const schedule = () => {
-      const nextMs = randomPick([120_000, 180_000, 240_000, 300_000]);
       timeoutId = window.setTimeout(() => {
-        if (isCancelled) {
+        if (cancelled) {
           return;
         }
 
@@ -387,13 +420,13 @@ function App() {
         }
 
         schedule();
-      }, nextMs);
+      }, randomPick([120_000, 180_000, 240_000, 300_000]));
     };
 
     schedule();
 
     return () => {
-      isCancelled = true;
+      cancelled = true;
       window.clearTimeout(timeoutId);
     };
   }, [isMusicActive, locale, settings.occasionalSayings]);
@@ -468,7 +501,6 @@ function App() {
     if (!settings.systemMusicDetect) {
       setSystemMusicActive(false);
       setMusicSystemSource("");
-      setMusicSystemMethod("");
       return;
     }
 
@@ -483,7 +515,6 @@ function App() {
 
         setSystemMusicActive(result.active);
         setMusicSystemSource(result.source);
-        setMusicSystemMethod(result.method);
       } catch {
         if (!active) {
           return;
@@ -491,7 +522,6 @@ function App() {
 
         setSystemMusicActive(false);
         setMusicSystemSource("");
-        setMusicSystemMethod("error");
       }
     };
 
@@ -506,16 +536,15 @@ function App() {
     };
   }, [settings.systemMusicDetect]);
 
-  const currentStatus = locale.status[mood];
-  const onboardingDone = settings.onboarded;
-
-  const totalFocusWeek = stats.focusMinutesByDay.reduce((sum, item) => sum + item, 0);
-  const todayFocus = stats.focusMinutesByDay[getWeekDayIndex(new Date())] ?? 0;
-  const streakDays = computeStreakDays(stats.activeDates);
-
   const applySetting = <K extends keyof Settings>(key: K, value: Settings[K]) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
+
+  const currentStatus = locale.status[mood];
+  const onboardingDone = settings.onboarded;
+  const totalFocusWeek = stats.focusMinutesByDay.reduce((sum, item) => sum + item, 0);
+  const todayFocus = stats.focusMinutesByDay[getWeekDayIndex(new Date())] ?? 0;
+  const streakDays = computeStreakDays(stats.activeDates);
 
   const startFocus = () => {
     setFocusRunning(true);
@@ -560,7 +589,7 @@ function App() {
   };
 
   return (
-    <main className="app-shell" style={{ opacity: settings.opacity }}>
+    <main className={`app-shell ${settings.minimalMode ? "widget-mode" : ""}`} style={{ opacity: settings.opacity }}>
       {!onboardingDone && (
         <section className="onboarding">
           <h2>{locale.ui.onboardingTitle}</h2>
@@ -577,21 +606,14 @@ function App() {
           </label>
 
           <label>
-            {locale.ui.tone}
-            <select value={settings.tone} onChange={(event) => applySetting("tone", event.currentTarget.value as Tone)}>
-              <option value="sweet">{locale.tones.sweet}</option>
-              <option value="neutral">{locale.tones.neutral}</option>
-              <option value="motivator">{locale.tones.motivator}</option>
-            </select>
-          </label>
-
-          <label>
             {locale.ui.avatar}
             <select
               value={settings.avatarStyle}
               onChange={(event) => applySetting("avatarStyle", event.currentTarget.value as AvatarStyle)}
             >
               <option value="blob">Blob</option>
+              <option value="cloud">Cloud</option>
+              <option value="pixel">Pixel</option>
               <option value="cat">Cat</option>
               <option value="bunny">Bunny</option>
               <option value="fox">Fox</option>
@@ -610,11 +632,17 @@ function App() {
           <button type="button" className="tiny" onClick={() => applySetting("minimalMode", !settings.minimalMode)}>
             {settings.minimalMode ? locale.ui.expand : locale.ui.minimal}
           </button>
-          <button type="button" className="tiny" onClick={() => void minimizeWindow()}>
-            {locale.ui.minimize}
-          </button>
           <button type="button" className="tiny" onClick={() => setShowSettings((prev) => !prev)}>
             {showSettings ? locale.ui.closeSettings : locale.ui.openSettings}
+          </button>
+          <button type="button" className="win-btn" onClick={() => void minimizeWindow()} title="Minimize">
+            _
+          </button>
+          <button type="button" className="win-btn" onClick={() => void toggleMaximizeWindow()} title="Maximize">
+            □
+          </button>
+          <button type="button" className="win-btn close" onClick={() => void closeWindow()} title="Close">
+            ✕
           </button>
         </div>
       </header>
@@ -622,7 +650,21 @@ function App() {
       <section className={`avatar-card ${settings.minimalMode ? "minimal-card" : ""}`} style={{ transform: `scale(${settings.size})` }}>
         <p className="face">{faceByAvatar[settings.avatarStyle][mood]}</p>
         <p className="status">{currentStatus}</p>
-        {!settings.minimalMode && (
+
+        {settings.minimalMode ? (
+          <>
+            <p className="widget-phrase">{phrase}</p>
+            <div className="pomodoro-chip">
+              <span>{focusPhase === "focus" ? "🍅" : "☕"}</span>
+              <span>{formatMMSS(remainingSeconds)}</span>
+              {!focusRunning ? (
+                <button type="button" onClick={startFocus}>Start</button>
+              ) : (
+                <button type="button" onClick={stopFocus}>Stop</button>
+              )}
+            </div>
+          </>
+        ) : (
           <>
             <p className="tagline">{locale.tagline}</p>
             <p className="boost">{locale.ui.todayBoost}</p>
@@ -678,31 +720,7 @@ function App() {
 
           <section className="music-card">
             <h4>{locale.ui.musicTitle}</h4>
-
-            <label className="checkbox-row">
-              <input
-                type="checkbox"
-                checked={settings.musicReactive}
-                onChange={(event) => applySetting("musicReactive", event.currentTarget.checked)}
-              />
-              {locale.ui.musicReactive}
-            </label>
-
-            <label className="checkbox-row">
-              <input
-                type="checkbox"
-                checked={settings.systemMusicDetect}
-                onChange={(event) => applySetting("systemMusicDetect", event.currentTarget.checked)}
-              />
-              {locale.ui.systemMusicDetect}
-            </label>
-
-            <p className="music-track">
-              {locale.ui.systemMusicState}: {systemMusicActive ? `${locale.ui.active} (${musicSystemSource || locale.ui.unknownSource})` : locale.ui.inactive}
-            </p>
-            <p className="music-track">
-              {locale.ui.systemMusicMethod}: {musicSystemMethod || locale.ui.na}
-            </p>
+            <p className="music-track">System: {systemMusicActive ? musicSystemSource || "active" : "inactive"}</p>
 
             <label>
               {locale.ui.musicPickFile}
@@ -716,47 +734,20 @@ function App() {
             <audio
               controls
               src={musicTrackUrl}
-              onPlay={() => {
-                setMusicPlaying(true);
-                if (settings.musicReactive) {
-                  setMood("celebrate");
-                  setPhrase(randomPick(locale.musicPhrases));
-                }
-              }}
-              onPause={() => {
-                setMusicPlaying(false);
-                if (settings.mode === "break") {
-                  setMood("break");
-                } else if (settings.mode === "study") {
-                  setMood("focus");
-                } else {
-                  setMood("happy");
-                }
-              }}
+              onPlay={() => setMusicPlaying(true)}
+              onPause={() => setMusicPlaying(false)}
               onEnded={() => setMusicPlaying(false)}
             />
           </section>
 
           <section className="stats-card">
             <h4>{locale.ui.weeklyStats}</h4>
-            <p>
-              {locale.ui.focusMinutesWeek}: {totalFocusWeek}
-            </p>
-            <p>
-              {locale.ui.focusMinutesToday}: {todayFocus}
-            </p>
-            <p>
-              {locale.ui.focusSessions}: {stats.focusSessions}
-            </p>
-            <p>
-              {locale.ui.musicMinutesWeek}: {stats.musicMinutes}
-            </p>
-            <p>
-              {locale.ui.feedCountWeek}: {stats.feedCount}
-            </p>
-            <p>
-              {locale.ui.streakDays}: {streakDays}
-            </p>
+            <p>{locale.ui.focusMinutesWeek}: {totalFocusWeek}</p>
+            <p>{locale.ui.focusMinutesToday}: {todayFocus}</p>
+            <p>{locale.ui.focusSessions}: {stats.focusSessions}</p>
+            <p>{locale.ui.musicMinutesWeek}: {stats.musicMinutes}</p>
+            <p>{locale.ui.feedCountWeek}: {stats.feedCount}</p>
+            <p>{locale.ui.streakDays}: {streakDays}</p>
           </section>
         </>
       )}
@@ -781,18 +772,11 @@ function App() {
               onChange={(event) => applySetting("avatarStyle", event.currentTarget.value as AvatarStyle)}
             >
               <option value="blob">Blob</option>
+              <option value="cloud">Cloud</option>
+              <option value="pixel">Pixel</option>
               <option value="cat">Cat</option>
               <option value="bunny">Bunny</option>
               <option value="fox">Fox</option>
-            </select>
-          </label>
-
-          <label>
-            {locale.ui.tone}
-            <select value={settings.tone} onChange={(event) => applySetting("tone", event.currentTarget.value as Tone)}>
-              <option value="sweet">{locale.tones.sweet}</option>
-              <option value="neutral">{locale.tones.neutral}</option>
-              <option value="motivator">{locale.tones.motivator}</option>
             </select>
           </label>
 
@@ -838,15 +822,6 @@ function App() {
               onChange={(event) => applySetting("phrasesEnabled", event.currentTarget.checked)}
             />
             {locale.ui.phrasesEnabled}
-          </label>
-
-          <label className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={settings.occasionalSayings}
-              onChange={(event) => applySetting("occasionalSayings", event.currentTarget.checked)}
-            />
-            {locale.ui.occasionalSayings}
           </label>
 
           <label className="checkbox-row">

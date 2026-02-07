@@ -39,9 +39,16 @@ body {
   height: 100%;
   padding: 10px;
   border: 1px solid #f6d8c5;
-  border-radius: 22px;
+  border-radius: 18px;
   background: linear-gradient(180deg, #fffcfae3 0%, #fff4ece3 100%);
   overflow: auto;
+}
+
+.app-shell.widget-mode {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 6px;
 }
 
 .drag-zone {
@@ -54,12 +61,17 @@ body {
   border-radius: 999px;
   background: #fff6ee;
   border: 1px solid var(--line);
-  box-shadow: inset 0 0 0 1px #ffefe3;
+}
+
+.app-shell.widget-mode .drag-zone {
+  margin-bottom: 6px;
+  background: #ffffffd8;
 }
 
 .header-actions {
   display: flex;
   gap: 6px;
+  align-items: center;
 }
 
 .drag-zone strong {
@@ -106,11 +118,13 @@ body {
 }
 
 .minimal-card {
+  border-radius: 999px;
   margin-bottom: 0;
+  background: #fffef0e0;
 }
 
 .face {
-  margin: 4px 0;
+  margin: 2px 0;
   font-size: 2rem;
   line-height: 1.1;
 }
@@ -118,6 +132,30 @@ body {
 .status {
   margin: 0;
   font-weight: 700;
+}
+
+.widget-phrase {
+  margin: 6px auto;
+  max-width: 90%;
+  font-size: 0.82rem;
+  line-height: 1.3;
+}
+
+.pomodoro-chip {
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff7df;
+  border: 1px solid #f6d8b4;
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+
+.pomodoro-chip button {
+  width: auto;
+  padding: 4px 8px;
+  font-size: 0.72rem;
 }
 
 .tagline,
@@ -213,10 +251,28 @@ button {
 
 button.tiny {
   width: auto;
-  padding: 6px 10px;
-  font-size: 0.75rem;
+  padding: 6px 8px;
+  font-size: 0.72rem;
   background: linear-gradient(180deg, #7acfb8 0%, var(--mint) 100%);
   color: #1d4e43;
+}
+
+.win-btn {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  line-height: 1;
+  padding: 0;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  background: #f8eadf;
+  color: #5f3b3b;
+  border: 1px solid #efcdb6;
+}
+
+.win-btn.close {
+  background: #ffded8;
+  color: #8b2c2c;
 }
 
 .checkbox-row {

@@ -50,6 +50,20 @@ body {
   background: rgba(255, 255, 255, 0.68);
   border: 1px solid rgba(196, 225, 255, 0.7);
   min-height: 40px;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.glass-header.hidden-chrome {
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+}
+
+.ultra-minimal:hover .glass-header.hidden-chrome,
+.ultra-minimal:focus-within .glass-header.hidden-chrome {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
 }
 
 .drag-region {
@@ -167,6 +181,14 @@ body {
   justify-content: center;
 }
 
+.minimal-dock {
+  margin-top: 2px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.64);
+  border: 1px solid rgba(189, 221, 255, 0.7);
+}
+
 .timer-pill {
   font-size: 0.74rem;
   padding: 6px 9px;
@@ -258,10 +280,11 @@ button:active {
 
 .chip {
   width: auto;
-  padding: 6px 10px;
+  padding: 6px 9px;
   border-radius: 999px;
   background: linear-gradient(180deg, #8fd8ff, #6ab9ff);
   font-size: 0.72rem;
+  min-width: 34px;
 }
 
 .win {

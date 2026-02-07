@@ -25,6 +25,7 @@ type Settings = {
   customBreakMin: number;
   autoHideEnabled: boolean;
   autoHideSeconds: number;
+  ultraMinimal: boolean;
 };
 
 type MusicDetection = {
@@ -64,6 +65,7 @@ const copy = {
     uploadTrack: "Cargar cancion",
     autoHide: "Auto ocultar",
     autoHideSec: "Segundos para ocultar",
+    ultraMinimal: "Ultra minimal",
     clickThroughPulse: "Click-through 8s",
     clickThroughHint: "modo pasivo activo",
     phraseStudy: [
@@ -132,6 +134,7 @@ const copy = {
     uploadTrack: "Load track",
     autoHide: "Auto hide",
     autoHideSec: "Seconds to hide",
+    ultraMinimal: "Ultra minimal",
     clickThroughPulse: "Click-through 8s",
     clickThroughHint: "passive mode enabled",
     phraseStudy: [
@@ -189,6 +192,7 @@ const defaultSettings: Settings = {
   customBreakMin: 5,
   autoHideEnabled: false,
   autoHideSeconds: 12,
+  ultraMinimal: true,
 };
 
 const assetByAvatarMood: Record<AvatarStyle, Record<Mood, string>> = {
@@ -608,19 +612,19 @@ function App() {
 
   return (
     <main
-      className={`glass-shell ${dormant ? "dormant" : ""}`}
+      className={`glass-shell ${dormant ? "dormant" : ""} ${settings.ultraMinimal ? "ultra-minimal" : ""}`}
       style={{ opacity: settings.opacity }}
       onMouseMove={registerInteraction}
       onMouseEnter={registerInteraction}
       onMouseDown={registerInteraction}
     >
-      <div className="glass-header">
+      <div className={`glass-header ${settings.ultraMinimal && !showPanel ? "hidden-chrome" : ""}`}>
         <div className="drag-region" data-tauri-drag-region>
           <strong>{t.title}</strong>
           <small>{t.subtitle}</small>
         </div>
         <div className="window-controls">
-          <button type="button" className="chip" onClick={() => setShowPanel((prev) => !prev)}>{t.settings}</button>
+          <button type="button" className="chip" title={t.settings} onClick={() => setShowPanel((prev) => !prev)}>⚙</button>
           <button type="button" className="win" onClick={() => void getCurrentWindow().minimize()}>_</button>
           <button type="button" className="win" onClick={() => void getCurrentWindow().toggleMaximize()}>□</button>
           <button type="button" className="win close" onClick={() => void getCurrentWindow().close()}>✕</button>
@@ -645,15 +649,17 @@ function App() {
           {phrase}
         </div>
 
-        <div className="quick-row">
-          <button type="button" className="chip" onClick={() => quickStartFocus()}>{focusRunning ? t.stop : t.start}</button>
+        <div className={`quick-row ${settings.ultraMinimal ? "minimal-dock" : ""}`}>
+          <button type="button" className="chip" title={focusRunning ? t.stop : t.start} onClick={() => quickStartFocus()}>{focusRunning ? "■" : "▶"}</button>
           <span className="timer-pill">{focusPhase === "focus" ? "🍅" : "☕"} {formatMMSS(remainingSeconds)}</span>
-          <button type="button" className="chip" onClick={handleFeed}>{t.feed}</button>
+          <button type="button" className="chip" title={t.feed} onClick={handleFeed}>🍪</button>
         </div>
 
-        <div className="music-pill">
-          {t.nowPlaying}: {isMusicActive ? (systemMusicSource || musicTrackName || "active") : t.noMusic}
-        </div>
+        {(isMusicActive || showPanel || !settings.ultraMinimal) && (
+          <div className="music-pill">
+            {t.nowPlaying}: {isMusicActive ? (systemMusicSource || musicTrackName || "active") : t.noMusic}
+          </div>
+        )}
       </section>
 
       {showPanel && (
@@ -742,6 +748,11 @@ function App() {
           <label className="toggle-row">
             <input type="checkbox" checked={settings.autoHideEnabled} onChange={(event) => update("autoHideEnabled", event.currentTarget.checked)} />
             {t.autoHide}
+          </label>
+
+          <label className="toggle-row">
+            <input type="checkbox" checked={settings.ultraMinimal} onChange={(event) => update("ultraMinimal", event.currentTarget.checked)} />
+            {t.ultraMinimal}
           </label>
 
           {settings.autoHideEnabled && (

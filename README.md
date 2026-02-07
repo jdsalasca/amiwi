@@ -2,6 +2,13 @@
 
 Amiwi is a desktop companion for study and work, built with Tauri + React + TypeScript.
 
+## v0.8.3 (minimal widget value pass)
+- Ultra-minimal mode enabled by default to keep the companion unobtrusive.
+- Header/window chrome now appears contextually on hover/focus for cleaner daily use.
+- Quick dock simplified (start/stop, timer, snack) with icon-first controls.
+- Music pill hidden in idle minimal state to reduce visual noise.
+- New toggle in settings: `Ultra minimal`.
+
 ## v0.8.2 (optimization + presentation + stability)
 - Reduced interaction overhead with throttled idle tracking and smarter timeout handling.
 - Improved responsiveness of primary actions and control buttons.

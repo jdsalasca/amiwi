@@ -1,0 +1,97 @@
+{
+  "appName": "Amiwi",
+  "tagline": "Your virtual friend for study and work",
+  "ui": {
+    "onboardingTitle": "Set up Amiwi in 1 minute",
+    "onboardingCta": "Start",
+    "language": "Language",
+    "tone": "Phrase style",
+    "mode": "Mode",
+    "openSettings": "Settings",
+    "closeSettings": "Close",
+    "frequency": "Phrase frequency",
+    "seconds": "seconds",
+    "opacity": "Opacity",
+    "size": "Size",
+    "phrasesEnabled": "Enable phrases",
+    "focusStart": "Start focus 25/5",
+    "focusStop": "Stop focus",
+    "focusRunning": "Focus running",
+    "breakRunning": "Break running",
+    "nextIn": "Next change in",
+    "mins": "min",
+    "save": "Save",
+    "todayBoost": "You are doing great today",
+    "currentPhrase": "Message"
+  },
+  "modes": {
+    "study": "Study",
+    "work": "Work",
+    "break": "Break"
+  },
+  "tones": {
+    "sweet": "Sweet",
+    "neutral": "Neutral",
+    "motivator": "Motivator"
+  },
+  "status": {
+    "happy": "Happy",
+    "focus": "Focused",
+    "tired": "A little tired",
+    "break": "Taking a break",
+    "celebrate": "Celebrating"
+  },
+  "phrases": {
+    "sweet": {
+      "study": [
+        "One step at a time, you got this.",
+        "One more exercise and we celebrate.",
+        "I am here with you in this block."
+      ],
+      "work": [
+        "Breathe and prioritize, great pace.",
+        "One task at a time, calm and clear.",
+        "Your focus is showing today."
+      ],
+      "break": [
+        "Resting is also progress.",
+        "Drink water and come back fresh.",
+        "Small break, big impact."
+      ]
+    },
+    "neutral": {
+      "study": [
+        "Next target: 25 focused minutes.",
+        "Consistency beats intensity.",
+        "Block in progress."
+      ],
+      "work": [
+        "High priority first.",
+        "Keep focus on one task.",
+        "Good progress in this session."
+      ],
+      "break": [
+        "Short pause recommended.",
+        "Time to recover energy.",
+        "Breathe and resume shortly."
+      ]
+    },
+    "motivator": {
+      "study": [
+        "Discipline today, results tomorrow.",
+        "Your best version is trained here.",
+        "Do not quit now: you already started."
+      ],
+      "work": [
+        "Execute what matters now.",
+        "You can close this block.",
+        "Full focus, let us go."
+      ],
+      "break": [
+        "Recharge fast and come back strong.",
+        "Smart break to perform better.",
+        "Short rest, powerful return."
+      ]
+    }
+  }
+}

@@ -1,0 +1,198 @@
+:root {
+  --bg-start: #fdf8f3;
+  --bg-end: #ffe8da;
+  --card: #fff8f1cc;
+  --line: #f0cdb8;
+  --text: #4a2f2f;
+  --accent: #ff8a7a;
+  --accent-strong: #ff6f5b;
+  --mint: #74d8c0;
+  --shadow: 0 12px 30px rgba(126, 79, 67, 0.2);
+  --radius: 20px;
+
+  color: var(--text);
+  font-family: "Trebuchet MS", "Avenir Next", "Segoe UI", sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  font-synthesis: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: radial-gradient(circle at 20% 20%, #fff6de 0%, var(--bg-start) 35%, var(--bg-end) 100%);
+}
+
+.app-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  border: 1px solid #f6d8c5;
+  border-radius: 22px;
+  background: linear-gradient(180deg, #fffcfae3 0%, #fff4ece3 100%);
+  overflow: auto;
+}
+
+.drag-zone {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #fff6ee;
+  border: 1px solid var(--line);
+  box-shadow: inset 0 0 0 1px #ffefe3;
+}
+
+.drag-zone strong {
+  letter-spacing: 0.2px;
+}
+
+.onboarding {
+  position: absolute;
+  inset: 8px;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  background: linear-gradient(180deg, #fffef8 0%, #fff5ef 100%);
+}
+
+.onboarding h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.avatar-card,
+.speech-card,
+.actions-card,
+.settings-panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  padding: 12px;
+  box-shadow: var(--shadow);
+  margin-bottom: 10px;
+}
+
+.avatar-card {
+  text-align: center;
+  transform-origin: center top;
+}
+
+.face {
+  margin: 4px 0;
+  font-size: 2rem;
+  line-height: 1.1;
+}
+
+.status {
+  margin: 0;
+  font-weight: 700;
+}
+
+.tagline,
+.boost {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+}
+
+.speech-card h4 {
+  margin: 0 0 6px;
+}
+
+.speech-card p {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.focus-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
+
+.settings-panel {
+  margin-bottom: 0;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+select,
+button,
+input[type="range"] {
+  width: 100%;
+}
+
+select,
+button {
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  padding: 9px 10px;
+  background: #fffefb;
+  color: var(--text);
+}
+
+button {
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-strong) 100%);
+  color: #fffdfb;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button.tiny {
+  width: auto;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  background: linear-gradient(180deg, #7acfb8 0%, var(--mint) 100%);
+  color: #1d4e43;
+}
+
+.checkbox-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-row input {
+  width: auto;
+}
+
+@media (max-height: 580px) {
+  .app-shell {
+    padding: 8px;
+  }
+
+  .avatar-card,
+  .speech-card,
+  .actions-card,
+  .settings-panel {
+    padding: 10px;
+  }
+}

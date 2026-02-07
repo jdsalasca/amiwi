@@ -1,0 +1,97 @@
+{
+  "appName": "Amiwi",
+  "tagline": "Tu amigo virtual para estudiar y trabajar",
+  "ui": {
+    "onboardingTitle": "Configura a Amiwi en 1 minuto",
+    "onboardingCta": "Empezar",
+    "language": "Idioma",
+    "tone": "Estilo de frase",
+    "mode": "Modo",
+    "openSettings": "Ajustes",
+    "closeSettings": "Cerrar",
+    "frequency": "Frecuencia de frases",
+    "seconds": "segundos",
+    "opacity": "Opacidad",
+    "size": "Tamano",
+    "phrasesEnabled": "Frases activas",
+    "focusStart": "Iniciar foco 25/5",
+    "focusStop": "Detener foco",
+    "focusRunning": "Foco activo",
+    "breakRunning": "Descanso activo",
+    "nextIn": "Siguiente cambio en",
+    "mins": "min",
+    "save": "Guardar",
+    "todayBoost": "Hoy vas muy bien",
+    "currentPhrase": "Mensaje"
+  },
+  "modes": {
+    "study": "Estudio",
+    "work": "Trabajo",
+    "break": "Descanso"
+  },
+  "tones": {
+    "sweet": "Dulce",
+    "neutral": "Neutral",
+    "motivator": "Motivador"
+  },
+  "status": {
+    "happy": "Alegre",
+    "focus": "Enfocado",
+    "tired": "Cansadito",
+    "break": "Tomando aire",
+    "celebrate": "Celebrando"
+  },
+  "phrases": {
+    "sweet": {
+      "study": [
+        "Vamos paso a paso, tu puedes.",
+        "Un ejercicio mas y celebramos.",
+        "Estoy contigo en este bloque."
+      ],
+      "work": [
+        "Respira y prioriza, vas super bien.",
+        "Una tarea a la vez, con calma.",
+        "Tu enfoque de hoy se nota."
+      ],
+      "break": [
+        "Descansar tambien es avanzar.",
+        "Toma agua y vuelve con energia.",
+        "Mini pausa, gran resultado."
+      ]
+    },
+    "neutral": {
+      "study": [
+        "Siguiente objetivo: 25 minutos.",
+        "Mantener ritmo supera a la intensidad.",
+        "Bloque en progreso."
+      ],
+      "work": [
+        "Prioridad alta primero.",
+        "Mantener foco en una sola tarea.",
+        "Buen avance en la sesion actual."
+      ],
+      "break": [
+        "Pausa breve recomendada.",
+        "Momento de recuperar energia.",
+        "Respira y retoma en breve."
+      ]
+    },
+    "motivator": {
+      "study": [
+        "Disciplina hoy, resultados manana.",
+        "Tu mejor version se entrena aqui.",
+        "No te rindas: ya empezaste."
+      ],
+      "work": [
+        "Ejecuta lo importante, ahora.",
+        "Eres capaz de cerrar este bloque.",
+        "Concentracion total, vamos."
+      ],
+      "break": [
+        "Recarga rapido y vuelve fuerte.",
+        "Pausa inteligente para rendir mejor.",
+        "Descanso corto, regreso potente."
+      ]
+    }
+  }
+}

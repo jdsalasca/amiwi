@@ -7,13 +7,18 @@
     "language": "Idioma",
     "tone": "Estilo de frase",
     "mode": "Modo",
+    "avatar": "Avatar",
     "openSettings": "Ajustes",
     "closeSettings": "Cerrar",
+    "minimal": "Minimal",
+    "expand": "Expandir",
+    "minimize": "Minimizar",
     "frequency": "Frecuencia de frases",
     "seconds": "segundos",
     "opacity": "Opacidad",
     "size": "Tamano",
     "phrasesEnabled": "Frases activas",
+    "occasionalSayings": "Mensajes ocasionales",
     "focusStart": "Iniciar foco 25/5",
     "focusStop": "Detener foco",
     "focusRunning": "Foco activo",
@@ -22,6 +27,13 @@
     "currentPhrase": "Mensaje",
     "musicTitle": "Music Reactor",
     "musicReactive": "Reaccionar a la musica",
+    "systemMusicDetect": "Detectar musica del sistema (beta)",
+    "systemMusicState": "Musica del sistema",
+    "systemMusicMethod": "Metodo",
+    "active": "Activa",
+    "inactive": "Inactiva",
+    "unknownSource": "fuente desconocida",
+    "na": "n/a",
     "musicPickFile": "Cargar cancion",
     "musicNowPlaying": "Sonando",
     "musicNoTrack": "Sin cancion",
@@ -30,7 +42,11 @@
     "focusMinutesToday": "Minutos foco (hoy)",
     "focusSessions": "Sesiones foco",
     "musicMinutesWeek": "Minutos con musica",
-    "streakDays": "Racha (dias)"
+    "feedCountWeek": "Snacks dados",
+    "streakDays": "Racha (dias)",
+    "petTitle": "Amiwi Pet",
+    "hunger": "Hambre",
+    "feedButton": "Dar snack"
   },
   "modes": {
     "study": "Estudio",
@@ -53,6 +69,21 @@
     "Que buen ritmo, sigamos con energia.",
     "Esta cancion y tu enfoque hacen gran equipo.",
     "Modo vibra activado: avanza con flow."
+  ],
+  "occasionalPhrases": [
+    "Estoy aqui contigo, paso a paso.",
+    "Buen ritmo, sigue asi.",
+    "Tu constancia hoy vale mucho."
+  ],
+  "feedPhrases": [
+    "Gracias por el snack, recargue energia.",
+    "Delicioso. Te acompano con mas animo.",
+    "Snack recibido, modo alegria activado."
+  ],
+  "petHungryPhrases": [
+    "Tengo un poco de hambre, me das un snack?",
+    "Un snack y retomamos con todo.",
+    "Estoy bajito de energia, ayudame con comida."
   ],
   "phrases": {
     "sweet": {

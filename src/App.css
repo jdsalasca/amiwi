@@ -48,12 +48,18 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   margin-bottom: 10px;
   padding: 6px 10px;
   border-radius: 999px;
   background: #fff6ee;
   border: 1px solid var(--line);
   box-shadow: inset 0 0 0 1px #ffefe3;
+}
+
+.header-actions {
+  display: flex;
+  gap: 6px;
 }
 
 .drag-zone strong {
@@ -81,6 +87,7 @@ body {
 
 .avatar-card,
 .speech-card,
+.pet-card,
 .actions-card,
 .music-card,
 .stats-card,
@@ -96,6 +103,10 @@ body {
 .avatar-card {
   text-align: center;
   transform-origin: center top;
+}
+
+.minimal-card {
+  margin-bottom: 0;
 }
 
 .face {
@@ -116,13 +127,15 @@ body {
 }
 
 .speech-card h4,
+.pet-card h4,
 .music-card h4,
 .stats-card h4 {
   margin: 0 0 6px;
 }
 
 .speech-card p,
-.stats-card p {
+.stats-card p,
+.pet-card p {
   margin: 0 0 4px;
   line-height: 1.4;
 }
@@ -146,6 +159,21 @@ body {
 
 .music-card audio {
   width: 100%;
+}
+
+.hunger-bar {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: #ffe3d2;
+  margin: 6px 0 10px;
+  overflow: hidden;
+}
+
+.hunger-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ffa463 0%, #ff6f5b 100%);
 }
 
 label {
@@ -186,7 +214,7 @@ button {
 button.tiny {
   width: auto;
   padding: 6px 10px;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   background: linear-gradient(180deg, #7acfb8 0%, var(--mint) 100%);
   color: #1d4e43;
 }
@@ -209,6 +237,7 @@ button.tiny {
 
   .avatar-card,
   .speech-card,
+  .pet-card,
   .actions-card,
   .music-card,
   .stats-card,

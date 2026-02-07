@@ -1,4 +1,6 @@
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import en from "./locales/en.json";
 import es from "./locales/es.json";
 import "./App.css";
@@ -8,6 +10,7 @@ type Tone = "sweet" | "neutral" | "motivator";
 type Mode = "study" | "work" | "break";
 type Mood = "happy" | "focus" | "tired" | "break" | "celebrate";
 type FocusPhase = "focus" | "break";
+type AvatarStyle = "blob" | "cat" | "bunny" | "fox";
 
 type Settings = {
   language: Lang;
@@ -19,6 +22,10 @@ type Settings = {
   phrasesEnabled: boolean;
   onboarded: boolean;
   musicReactive: boolean;
+  minimalMode: boolean;
+  avatarStyle: AvatarStyle;
+  occasionalSayings: boolean;
+  systemMusicDetect: boolean;
 };
 
 type WeeklyStats = {
@@ -27,11 +34,25 @@ type WeeklyStats = {
   focusSessions: number;
   breakSessions: number;
   musicMinutes: number;
+  feedCount: number;
   activeDates: string[];
+};
+
+type PetState = {
+  hunger: number;
+  feedTotal: number;
+  lastUpdatedAt: string;
+};
+
+type MusicDetection = {
+  active: boolean;
+  source: string;
+  method: string;
 };
 
 const SETTINGS_STORAGE_KEY = "amiwi.settings";
 const STATS_STORAGE_KEY = "amiwi.weeklyStats";
+const PET_STORAGE_KEY = "amiwi.petState";
 const FOCUS_SECONDS = 25 * 60;
 const BREAK_SECONDS = 5 * 60;
 
@@ -47,14 +68,41 @@ const defaultSettings: Settings = {
   phrasesEnabled: true,
   onboarded: false,
   musicReactive: true,
+  minimalMode: false,
+  avatarStyle: "blob",
+  occasionalSayings: true,
+  systemMusicDetect: true,
 };
 
-const faceByMood: Record<Mood, string> = {
-  happy: "(＾▽＾)",
-  focus: "(•̀ᴗ•́)و",
-  tired: "(˘･_･˘)",
-  break: "( ＾◡＾)っ✿",
-  celebrate: "٩(ˊᗜˋ*)و",
+const faceByAvatar: Record<AvatarStyle, Record<Mood, string>> = {
+  blob: {
+    happy: "(＾▽＾)",
+    focus: "(•̀ᴗ•́)و",
+    tired: "(˘･_･˘)",
+    break: "( ＾◡＾)っ✿",
+    celebrate: "٩(ˊᗜˋ*)و",
+  },
+  cat: {
+    happy: "^._.^",
+    focus: "ฅ^•ﻌ•^ฅ",
+    tired: "=^._.^=",
+    break: "(=^-ω-^=)",
+    celebrate: "ฅ(＾・ω・＾ฅ)",
+  },
+  bunny: {
+    happy: "(\_/)",
+    focus: "(\_/)>",
+    tired: "(\_/)..",
+    break: "(\_/ )~",
+    celebrate: "(\_/ )ﾉ",
+  },
+  fox: {
+    happy: "🦊",
+    focus: "🦊✨",
+    tired: "🦊💤",
+    break: "🦊☁",
+    celebrate: "🦊🎉",
+  },
 };
 
 function randomPick<T>(items: T[]): T {
@@ -133,6 +181,9 @@ function loadSettings(): Settings {
       opacity: clamp(parsed.opacity ?? 1, 0.4, 1),
       size: clamp(parsed.size ?? 1, 0.8, 1.4),
       musicReactive: parsed.musicReactive ?? true,
+      minimalMode: parsed.minimalMode ?? false,
+      occasionalSayings: parsed.occasionalSayings ?? true,
+      systemMusicDetect: parsed.systemMusicDetect ?? true,
     };
   } catch {
     return defaultSettings;
@@ -146,6 +197,7 @@ function defaultWeeklyStats(now: Date): WeeklyStats {
     focusSessions: 0,
     breakSessions: 0,
     musicMinutes: 0,
+    feedCount: 0,
     activeDates: [],
   };
 }
@@ -163,6 +215,7 @@ function normalizeWeeklyStats(candidate: WeeklyStats, now: Date): WeeklyStats {
   return {
     ...candidate,
     focusMinutesByDay: focusMinutesByDay.slice(0, 7),
+    feedCount: candidate.feedCount ?? 0,
     activeDates: unique(candidate.activeDates),
   };
 }
@@ -182,12 +235,64 @@ function loadWeeklyStats(): WeeklyStats {
   }
 }
 
+function defaultPetState(now: Date): PetState {
+  return {
+    hunger: 70,
+    feedTotal: 0,
+    lastUpdatedAt: now.toISOString(),
+  };
+}
+
+function applyPetDecay(pet: PetState, now: Date): PetState {
+  const last = new Date(pet.lastUpdatedAt);
+  const elapsedMinutes = Math.max(0, Math.floor((now.getTime() - last.getTime()) / 60_000));
+  const hunger = clamp(pet.hunger - elapsedMinutes, 0, 100);
+  return {
+    ...pet,
+    hunger,
+    lastUpdatedAt: now.toISOString(),
+  };
+}
+
+function loadPetState(): PetState {
+  const now = new Date();
+  const raw = localStorage.getItem(PET_STORAGE_KEY);
+  if (!raw) {
+    return defaultPetState(now);
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as PetState;
+    const normalized: PetState = {
+      hunger: clamp(parsed.hunger ?? 70, 0, 100),
+      feedTotal: parsed.feedTotal ?? 0,
+      lastUpdatedAt: parsed.lastUpdatedAt ?? now.toISOString(),
+    };
+
+    return applyPetDecay(normalized, now);
+  } catch {
+    return defaultPetState(now);
+  }
+}
+
+async function minimizeWindow(): Promise<void> {
+  try {
+    const window = getCurrentWindow();
+    await window.minimize();
+  } catch {
+    // No-op in environments that do not expose desktop APIs.
+  }
+}
+
 function App() {
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
   const [stats, setStats] = useState<WeeklyStats>(() => loadWeeklyStats());
+  const [pet, setPet] = useState<PetState>(() => loadPetState());
   const [showSettings, setShowSettings] = useState(false);
   const [mood, setMood] = useState<Mood>("happy");
   const [phrase, setPhrase] = useState("");
+  const [musicSystemSource, setMusicSystemSource] = useState("");
+  const [musicSystemMethod, setMusicSystemMethod] = useState("");
 
   const [focusRunning, setFocusRunning] = useState(false);
   const [focusPhase, setFocusPhase] = useState<FocusPhase>("focus");
@@ -196,10 +301,11 @@ function App() {
   const [musicTrackName, setMusicTrackName] = useState("");
   const [musicTrackUrl, setMusicTrackUrl] = useState("");
   const [musicPlaying, setMusicPlaying] = useState(false);
-
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [systemMusicActive, setSystemMusicActive] = useState(false);
 
   const locale = useMemo(() => localeByLang[settings.language], [settings.language]);
+
+  const isMusicActive = settings.musicReactive && (musicPlaying || systemMusicActive);
 
   useEffect(() => {
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
@@ -210,19 +316,29 @@ function App() {
   }, [stats]);
 
   useEffect(() => {
+    localStorage.setItem(PET_STORAGE_KEY, JSON.stringify(pet));
+  }, [pet]);
+
+  useEffect(() => {
     setStats((prev) => normalizeWeeklyStats(prev, new Date()));
   }, []);
 
   useEffect(() => {
-    if (settings.musicReactive && musicPlaying) {
+    if (isMusicActive) {
       setPhrase(randomPick(locale.musicPhrases));
       setMood("celebrate");
       return;
     }
 
+    if (pet.hunger < 20) {
+      setPhrase(randomPick(locale.petHungryPhrases));
+      setMood("tired");
+      return;
+    }
+
     const pool = locale.phrases[settings.tone][settings.mode];
     setPhrase(randomPick(pool));
-  }, [locale, musicPlaying, settings.mode, settings.musicReactive, settings.tone]);
+  }, [isMusicActive, locale, pet.hunger, settings.mode, settings.tone]);
 
   useEffect(() => {
     if (!settings.phrasesEnabled) {
@@ -230,9 +346,15 @@ function App() {
     }
 
     const tick = window.setInterval(() => {
-      if (settings.musicReactive && musicPlaying) {
+      if (isMusicActive) {
         setPhrase(randomPick(locale.musicPhrases));
         setMood((prev) => (prev === "celebrate" ? "happy" : "celebrate"));
+        return;
+      }
+
+      if (pet.hunger < 20) {
+        setPhrase(randomPick(locale.petHungryPhrases));
+        setMood("tired");
         return;
       }
 
@@ -242,7 +364,39 @@ function App() {
     }, settings.phraseFrequencySec * 1000);
 
     return () => window.clearInterval(tick);
-  }, [locale, musicPlaying, settings.mode, settings.musicReactive, settings.phraseFrequencySec, settings.phrasesEnabled, settings.tone]);
+  }, [isMusicActive, locale, pet.hunger, settings.mode, settings.phrasesEnabled, settings.phraseFrequencySec, settings.tone]);
+
+  useEffect(() => {
+    if (!settings.occasionalSayings) {
+      return;
+    }
+
+    let isCancelled = false;
+    let timeoutId = 0;
+
+    const schedule = () => {
+      const nextMs = randomPick([120_000, 180_000, 240_000, 300_000]);
+      timeoutId = window.setTimeout(() => {
+        if (isCancelled) {
+          return;
+        }
+
+        if (!isMusicActive) {
+          setPhrase(randomPick(locale.occasionalPhrases));
+          setMood("happy");
+        }
+
+        schedule();
+      }, nextMs);
+    };
+
+    schedule();
+
+    return () => {
+      isCancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [isMusicActive, locale, settings.occasionalSayings]);
 
   useEffect(() => {
     if (!focusRunning) {
@@ -286,7 +440,7 @@ function App() {
   }, [focusPhase, focusRunning]);
 
   useEffect(() => {
-    if (!(settings.musicReactive && musicPlaying)) {
+    if (!isMusicActive) {
       return;
     }
 
@@ -300,7 +454,57 @@ function App() {
     }, 60_000);
 
     return () => window.clearInterval(timer);
-  }, [musicPlaying, settings.musicReactive]);
+  }, [isMusicActive]);
+
+  useEffect(() => {
+    const tick = window.setInterval(() => {
+      setPet((prevPet) => applyPetDecay(prevPet, new Date()));
+    }, 60_000);
+
+    return () => window.clearInterval(tick);
+  }, []);
+
+  useEffect(() => {
+    if (!settings.systemMusicDetect) {
+      setSystemMusicActive(false);
+      setMusicSystemSource("");
+      setMusicSystemMethod("");
+      return;
+    }
+
+    let active = true;
+
+    const checkMusic = async () => {
+      try {
+        const result = await invoke<MusicDetection>("detect_system_music");
+        if (!active) {
+          return;
+        }
+
+        setSystemMusicActive(result.active);
+        setMusicSystemSource(result.source);
+        setMusicSystemMethod(result.method);
+      } catch {
+        if (!active) {
+          return;
+        }
+
+        setSystemMusicActive(false);
+        setMusicSystemSource("");
+        setMusicSystemMethod("error");
+      }
+    };
+
+    void checkMusic();
+    const timer = window.setInterval(() => {
+      void checkMusic();
+    }, 20_000);
+
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [settings.systemMusicDetect]);
 
   const currentStatus = locale.status[mood];
   const onboardingDone = settings.onboarded;
@@ -343,6 +547,18 @@ function App() {
     setMusicTrackName(file.name);
   };
 
+  const feedCompanion = () => {
+    setPet((prev) => ({
+      hunger: clamp(prev.hunger + 25, 0, 100),
+      feedTotal: prev.feedTotal + 1,
+      lastUpdatedAt: new Date().toISOString(),
+    }));
+
+    setStats((prev) => ({ ...prev, feedCount: prev.feedCount + 1 }));
+    setMood("celebrate");
+    setPhrase(randomPick(locale.feedPhrases));
+  };
+
   return (
     <main className="app-shell" style={{ opacity: settings.opacity }}>
       {!onboardingDone && (
@@ -369,6 +585,19 @@ function App() {
             </select>
           </label>
 
+          <label>
+            {locale.ui.avatar}
+            <select
+              value={settings.avatarStyle}
+              onChange={(event) => applySetting("avatarStyle", event.currentTarget.value as AvatarStyle)}
+            >
+              <option value="blob">Blob</option>
+              <option value="cat">Cat</option>
+              <option value="bunny">Bunny</option>
+              <option value="fox">Fox</option>
+            </select>
+          </label>
+
           <button type="button" onClick={() => applySetting("onboarded", true)}>
             {locale.ui.onboardingCta}
           </button>
@@ -377,103 +606,160 @@ function App() {
 
       <header className="drag-zone" data-tauri-drag-region>
         <strong>{locale.appName}</strong>
-        <button type="button" className="tiny" onClick={() => setShowSettings((prev) => !prev)}>
-          {showSettings ? locale.ui.closeSettings : locale.ui.openSettings}
-        </button>
+        <div className="header-actions">
+          <button type="button" className="tiny" onClick={() => applySetting("minimalMode", !settings.minimalMode)}>
+            {settings.minimalMode ? locale.ui.expand : locale.ui.minimal}
+          </button>
+          <button type="button" className="tiny" onClick={() => void minimizeWindow()}>
+            {locale.ui.minimize}
+          </button>
+          <button type="button" className="tiny" onClick={() => setShowSettings((prev) => !prev)}>
+            {showSettings ? locale.ui.closeSettings : locale.ui.openSettings}
+          </button>
+        </div>
       </header>
 
-      <section className="avatar-card" style={{ transform: `scale(${settings.size})` }}>
-        <p className="face">{faceByMood[mood]}</p>
+      <section className={`avatar-card ${settings.minimalMode ? "minimal-card" : ""}`} style={{ transform: `scale(${settings.size})` }}>
+        <p className="face">{faceByAvatar[settings.avatarStyle][mood]}</p>
         <p className="status">{currentStatus}</p>
-        <p className="tagline">{locale.tagline}</p>
-        <p className="boost">{locale.ui.todayBoost}</p>
+        {!settings.minimalMode && (
+          <>
+            <p className="tagline">{locale.tagline}</p>
+            <p className="boost">{locale.ui.todayBoost}</p>
+          </>
+        )}
       </section>
 
-      <section className="speech-card">
-        <h4>{locale.ui.currentPhrase}</h4>
-        <p>{phrase}</p>
-      </section>
+      {!settings.minimalMode && (
+        <>
+          <section className="speech-card">
+            <h4>{locale.ui.currentPhrase}</h4>
+            <p>{phrase}</p>
+          </section>
 
-      <section className="actions-card">
-        <label>
-          {locale.ui.mode}
-          <select value={settings.mode} onChange={(event) => applySetting("mode", event.currentTarget.value as Mode)}>
-            <option value="study">{locale.modes.study}</option>
-            <option value="work">{locale.modes.work}</option>
-            <option value="break">{locale.modes.break}</option>
-          </select>
-        </label>
-
-        <div className="focus-row">
-          {!focusRunning ? (
-            <button type="button" onClick={startFocus}>
-              {locale.ui.focusStart}
+          <section className="pet-card">
+            <h4>{locale.ui.petTitle}</h4>
+            <p>
+              {locale.ui.hunger}: {pet.hunger}%
+            </p>
+            <div className="hunger-bar">
+              <span style={{ width: `${pet.hunger}%` }} />
+            </div>
+            <button type="button" onClick={feedCompanion}>
+              {locale.ui.feedButton}
             </button>
-          ) : (
-            <button type="button" onClick={stopFocus}>
-              {locale.ui.focusStop}
-            </button>
-          )}
-          <span>
-            {focusPhase === "focus" ? locale.ui.focusRunning : locale.ui.breakRunning}: {formatMMSS(remainingSeconds)}
-          </span>
-        </div>
-      </section>
+          </section>
 
-      <section className="music-card">
-        <h4>{locale.ui.musicTitle}</h4>
+          <section className="actions-card">
+            <label>
+              {locale.ui.mode}
+              <select value={settings.mode} onChange={(event) => applySetting("mode", event.currentTarget.value as Mode)}>
+                <option value="study">{locale.modes.study}</option>
+                <option value="work">{locale.modes.work}</option>
+                <option value="break">{locale.modes.break}</option>
+              </select>
+            </label>
 
-        <label className="checkbox-row">
-          <input
-            type="checkbox"
-            checked={settings.musicReactive}
-            onChange={(event) => applySetting("musicReactive", event.currentTarget.checked)}
-          />
-          {locale.ui.musicReactive}
-        </label>
+            <div className="focus-row">
+              {!focusRunning ? (
+                <button type="button" onClick={startFocus}>
+                  {locale.ui.focusStart}
+                </button>
+              ) : (
+                <button type="button" onClick={stopFocus}>
+                  {locale.ui.focusStop}
+                </button>
+              )}
+              <span>
+                {focusPhase === "focus" ? locale.ui.focusRunning : locale.ui.breakRunning}: {formatMMSS(remainingSeconds)}
+              </span>
+            </div>
+          </section>
 
-        <label>
-          {locale.ui.musicPickFile}
-          <input type="file" accept="audio/*" onChange={handleMusicFile} />
-        </label>
+          <section className="music-card">
+            <h4>{locale.ui.musicTitle}</h4>
 
-        <p className="music-track">
-          {locale.ui.musicNowPlaying}: {musicTrackName || locale.ui.musicNoTrack}
-        </p>
+            <label className="checkbox-row">
+              <input
+                type="checkbox"
+                checked={settings.musicReactive}
+                onChange={(event) => applySetting("musicReactive", event.currentTarget.checked)}
+              />
+              {locale.ui.musicReactive}
+            </label>
 
-        <audio
-          ref={audioRef}
-          controls
-          src={musicTrackUrl}
-          onPlay={() => {
-            setMusicPlaying(true);
-            if (settings.musicReactive) {
-              setMood("celebrate");
-              setPhrase(randomPick(locale.musicPhrases));
-            }
-          }}
-          onPause={() => {
-            setMusicPlaying(false);
-            if (settings.mode === "break") {
-              setMood("break");
-            } else if (settings.mode === "study") {
-              setMood("focus");
-            } else {
-              setMood("happy");
-            }
-          }}
-          onEnded={() => setMusicPlaying(false)}
-        />
-      </section>
+            <label className="checkbox-row">
+              <input
+                type="checkbox"
+                checked={settings.systemMusicDetect}
+                onChange={(event) => applySetting("systemMusicDetect", event.currentTarget.checked)}
+              />
+              {locale.ui.systemMusicDetect}
+            </label>
 
-      <section className="stats-card">
-        <h4>{locale.ui.weeklyStats}</h4>
-        <p>{locale.ui.focusMinutesWeek}: {totalFocusWeek}</p>
-        <p>{locale.ui.focusMinutesToday}: {todayFocus}</p>
-        <p>{locale.ui.focusSessions}: {stats.focusSessions}</p>
-        <p>{locale.ui.musicMinutesWeek}: {stats.musicMinutes}</p>
-        <p>{locale.ui.streakDays}: {streakDays}</p>
-      </section>
+            <p className="music-track">
+              {locale.ui.systemMusicState}: {systemMusicActive ? `${locale.ui.active} (${musicSystemSource || locale.ui.unknownSource})` : locale.ui.inactive}
+            </p>
+            <p className="music-track">
+              {locale.ui.systemMusicMethod}: {musicSystemMethod || locale.ui.na}
+            </p>
+
+            <label>
+              {locale.ui.musicPickFile}
+              <input type="file" accept="audio/*" onChange={handleMusicFile} />
+            </label>
+
+            <p className="music-track">
+              {locale.ui.musicNowPlaying}: {musicTrackName || locale.ui.musicNoTrack}
+            </p>
+
+            <audio
+              controls
+              src={musicTrackUrl}
+              onPlay={() => {
+                setMusicPlaying(true);
+                if (settings.musicReactive) {
+                  setMood("celebrate");
+                  setPhrase(randomPick(locale.musicPhrases));
+                }
+              }}
+              onPause={() => {
+                setMusicPlaying(false);
+                if (settings.mode === "break") {
+                  setMood("break");
+                } else if (settings.mode === "study") {
+                  setMood("focus");
+                } else {
+                  setMood("happy");
+                }
+              }}
+              onEnded={() => setMusicPlaying(false)}
+            />
+          </section>
+
+          <section className="stats-card">
+            <h4>{locale.ui.weeklyStats}</h4>
+            <p>
+              {locale.ui.focusMinutesWeek}: {totalFocusWeek}
+            </p>
+            <p>
+              {locale.ui.focusMinutesToday}: {todayFocus}
+            </p>
+            <p>
+              {locale.ui.focusSessions}: {stats.focusSessions}
+            </p>
+            <p>
+              {locale.ui.musicMinutesWeek}: {stats.musicMinutes}
+            </p>
+            <p>
+              {locale.ui.feedCountWeek}: {stats.feedCount}
+            </p>
+            <p>
+              {locale.ui.streakDays}: {streakDays}
+            </p>
+          </section>
+        </>
+      )}
 
       {showSettings && (
         <section className="settings-panel">
@@ -485,6 +771,19 @@ function App() {
             >
               <option value="es">Espanol</option>
               <option value="en">English</option>
+            </select>
+          </label>
+
+          <label>
+            {locale.ui.avatar}
+            <select
+              value={settings.avatarStyle}
+              onChange={(event) => applySetting("avatarStyle", event.currentTarget.value as AvatarStyle)}
+            >
+              <option value="blob">Blob</option>
+              <option value="cat">Cat</option>
+              <option value="bunny">Bunny</option>
+              <option value="fox">Fox</option>
             </select>
           </label>
 
@@ -539,6 +838,24 @@ function App() {
               onChange={(event) => applySetting("phrasesEnabled", event.currentTarget.checked)}
             />
             {locale.ui.phrasesEnabled}
+          </label>
+
+          <label className="checkbox-row">
+            <input
+              type="checkbox"
+              checked={settings.occasionalSayings}
+              onChange={(event) => applySetting("occasionalSayings", event.currentTarget.checked)}
+            />
+            {locale.ui.occasionalSayings}
+          </label>
+
+          <label className="checkbox-row">
+            <input
+              type="checkbox"
+              checked={settings.minimalMode}
+              onChange={(event) => applySetting("minimalMode", event.currentTarget.checked)}
+            />
+            {locale.ui.minimal}
           </label>
         </section>
       )}

@@ -7,13 +7,18 @@
     "language": "Language",
     "tone": "Phrase style",
     "mode": "Mode",
+    "avatar": "Avatar",
     "openSettings": "Settings",
     "closeSettings": "Close",
+    "minimal": "Minimal",
+    "expand": "Expand",
+    "minimize": "Minimize",
     "frequency": "Phrase frequency",
     "seconds": "seconds",
     "opacity": "Opacity",
     "size": "Size",
     "phrasesEnabled": "Enable phrases",
+    "occasionalSayings": "Occasional sayings",
     "focusStart": "Start focus 25/5",
     "focusStop": "Stop focus",
     "focusRunning": "Focus running",
@@ -22,6 +27,13 @@
     "currentPhrase": "Message",
     "musicTitle": "Music Reactor",
     "musicReactive": "React to music",
+    "systemMusicDetect": "Detect system music (beta)",
+    "systemMusicState": "System music",
+    "systemMusicMethod": "Method",
+    "active": "Active",
+    "inactive": "Inactive",
+    "unknownSource": "unknown source",
+    "na": "n/a",
     "musicPickFile": "Load a song",
     "musicNowPlaying": "Now playing",
     "musicNoTrack": "No track",
@@ -30,7 +42,11 @@
     "focusMinutesToday": "Focus minutes (today)",
     "focusSessions": "Focus sessions",
     "musicMinutesWeek": "Music minutes",
-    "streakDays": "Streak (days)"
+    "feedCountWeek": "Snacks given",
+    "streakDays": "Streak (days)",
+    "petTitle": "Amiwi Pet",
+    "hunger": "Hunger",
+    "feedButton": "Feed snack"
   },
   "modes": {
     "study": "Study",
@@ -53,6 +69,21 @@
     "Great vibe, keep this momentum.",
     "This track and your focus are a strong combo.",
     "Flow mode is on, keep going."
+  ],
+  "occasionalPhrases": [
+    "I am here with you, one step at a time.",
+    "Great pace, keep it steady.",
+    "Your consistency today matters a lot."
+  ],
+  "feedPhrases": [
+    "Thanks for the snack, energy restored.",
+    "Yummy. I will cheer you up even more.",
+    "Snack received, joy mode activated."
+  ],
+  "petHungryPhrases": [
+    "I feel a bit hungry, can I get a snack?",
+    "A quick snack and we continue strong.",
+    "My energy is low, feed me please."
   ],
   "phrases": {
     "sweet": {

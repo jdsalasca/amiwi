@@ -2,7 +2,7 @@
 
 Amiwi is a cute desktop companion for study and work, built with Tauri + React + TypeScript.
 
-## v0.3.0 (requested experience release)
+## v0.3.1 (requested experience release)
 - Floating desktop companion window (`alwaysOnTop`, draggable).
 - Fast floating controls:
   - `Minimal` compact mode.

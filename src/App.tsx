@@ -1,56 +1,28 @@
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import en from "./locales/en.json";
-import es from "./locales/es.json";
 import "./App.css";
 
 type Lang = "es" | "en";
-type Tone = "sweet" | "neutral" | "motivator";
 type Mode = "study" | "work" | "break";
 type Mood = "happy" | "focus" | "tired" | "break" | "celebrate";
-type FocusPhase = "focus" | "break";
 type AvatarStyle = "blob" | "cat" | "bunny" | "fox" | "cloud" | "pixel";
-type Profile = "student" | "work" | "balanced";
-type Tab = "focus" | "pet" | "music" | "stats" | "style";
 type PomodoroPreset = "25-5" | "50-10" | "custom";
+type FocusPhase = "focus" | "break";
 
 type Settings = {
   language: Lang;
-  tone: Tone;
-  mode: Mode;
+  avatarStyle: AvatarStyle;
   phraseFrequencySec: number;
   opacity: number;
   size: number;
-  phrasesEnabled: boolean;
-  onboarded: boolean;
-  musicReactive: boolean;
-  minimalMode: boolean;
-  avatarStyle: AvatarStyle;
-  occasionalSayings: boolean;
-  systemMusicDetect: boolean;
+  mode: Mode;
   alwaysOnTop: boolean;
-  profile: Profile;
+  systemMusicDetect: boolean;
+  musicReactive: boolean;
   pomodoroPreset: PomodoroPreset;
   customFocusMin: number;
   customBreakMin: number;
-  gentleAlerts: boolean;
-};
-
-type WeeklyStats = {
-  weekStartIso: string;
-  focusMinutesByDay: number[];
-  focusSessions: number;
-  breakSessions: number;
-  musicMinutes: number;
-  feedCount: number;
-  activeDates: string[];
-};
-
-type PetState = {
-  hunger: number;
-  feedTotal: number;
-  lastUpdatedAt: string;
 };
 
 type MusicDetection = {
@@ -59,32 +31,130 @@ type MusicDetection = {
   method: string;
 };
 
-const SETTINGS_STORAGE_KEY = "amiwi.settings";
-const STATS_STORAGE_KEY = "amiwi.weeklyStats";
-const PET_STORAGE_KEY = "amiwi.petState";
+const STORAGE_KEY = "amiwi.widget.settings";
 
-const localeByLang = { es, en };
+const copy = {
+  es: {
+    title: "Amiwi",
+    subtitle: "companion mode",
+    focus: "Foco",
+    work: "Trabajo",
+    rest: "Descanso",
+    settings: "Ajustes",
+    close: "Cerrar",
+    nowPlaying: "Musica",
+    noMusic: "sin musica",
+    start: "Iniciar",
+    stop: "Detener",
+    phraseLabel: "Mensaje",
+    feed: "Snack",
+    preset: "Pomodoro",
+    focusMin: "Foco (min)",
+    breakMin: "Descanso (min)",
+    avatar: "Avatar",
+    language: "Idioma",
+    opacity: "Opacidad",
+    size: "Tamano",
+    phraseFreq: "Frecuencia frases",
+    mode: "Modo",
+    alwaysOnTop: "Siempre arriba",
+    detectSystemMusic: "Detectar musica del sistema",
+    reactMusic: "Reaccionar a musica",
+    uploadTrack: "Cargar cancion",
+    phraseStudy: [
+      "Vamos, paso a paso. Estoy contigo.",
+      "Un bloque mas y celebramos.",
+      "Tu enfoque hoy esta hermoso."
+    ],
+    phraseWork: [
+      "Una tarea a la vez, con claridad.",
+      "Prioriza lo importante y avanza.",
+      "Buen ritmo, sigue asi."
+    ],
+    phraseBreak: [
+      "Respira, descansa, vuelve fuerte.",
+      "Pausa corta, energia alta.",
+      "Descansar tambien es progreso."
+    ],
+    phraseMusic: [
+      "Ese beat esta perfecto para tu foco.",
+      "Flow activado, seguimos.",
+      "Tu energia subio, se nota."
+    ],
+    phraseFeed: [
+      "Snack recibido, alegria al maximo.",
+      "Gracias por cuidarme.",
+      "Con snack todo fluye mejor."
+    ]
+  },
+  en: {
+    title: "Amiwi",
+    subtitle: "companion mode",
+    focus: "Focus",
+    work: "Work",
+    rest: "Break",
+    settings: "Settings",
+    close: "Close",
+    nowPlaying: "Music",
+    noMusic: "no music",
+    start: "Start",
+    stop: "Stop",
+    phraseLabel: "Message",
+    feed: "Snack",
+    preset: "Pomodoro",
+    focusMin: "Focus (min)",
+    breakMin: "Break (min)",
+    avatar: "Avatar",
+    language: "Language",
+    opacity: "Opacity",
+    size: "Size",
+    phraseFreq: "Phrase frequency",
+    mode: "Mode",
+    alwaysOnTop: "Always on top",
+    detectSystemMusic: "Detect system music",
+    reactMusic: "React to music",
+    uploadTrack: "Load track",
+    phraseStudy: [
+      "One step at a time. I am with you.",
+      "One more block and we celebrate.",
+      "Your focus today is beautiful."
+    ],
+    phraseWork: [
+      "One task at a time, clear execution.",
+      "Prioritize what matters and move.",
+      "Great pace, keep going."
+    ],
+    phraseBreak: [
+      "Breathe, rest, come back stronger.",
+      "Short break, high energy.",
+      "Rest is progress too."
+    ],
+    phraseMusic: [
+      "That beat is perfect for your flow.",
+      "Flow mode enabled, keep moving.",
+      "Your energy is visibly up."
+    ],
+    phraseFeed: [
+      "Snack received, joy maxed out.",
+      "Thanks for taking care of me.",
+      "With snacks, everything flows better."
+    ]
+  }
+} as const;
 
 const defaultSettings: Settings = {
   language: "es",
-  tone: "sweet",
-  mode: "study",
-  phraseFrequencySec: 90,
+  avatarStyle: "cloud",
+  phraseFrequencySec: 85,
   opacity: 1,
   size: 1,
-  phrasesEnabled: true,
-  onboarded: false,
-  musicReactive: true,
-  minimalMode: true,
-  avatarStyle: "cloud",
-  occasionalSayings: true,
-  systemMusicDetect: true,
+  mode: "study",
   alwaysOnTop: true,
-  profile: "student",
+  systemMusicDetect: true,
+  musicReactive: true,
   pomodoroPreset: "25-5",
   customFocusMin: 30,
   customBreakMin: 5,
-  gentleAlerts: true,
 };
 
 const assetByAvatarMood: Record<AvatarStyle, Record<Mood, string>> = {
@@ -132,12 +202,12 @@ const assetByAvatarMood: Record<AvatarStyle, Record<Mood, string>> = {
   },
 };
 
-function randomPick<T>(items: T[]): T {
-  return items[Math.floor(Math.random() * items.length)];
-}
-
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+function randomPick<T>(values: readonly T[]): T {
+  return values[Math.floor(Math.random() * values.length)];
 }
 
 function formatMMSS(totalSeconds: number): string {
@@ -148,102 +218,8 @@ function formatMMSS(totalSeconds: number): string {
   return `${m}:${s}`;
 }
 
-function getIsoDate(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
-function getWeekStartIso(date: Date): string {
-  const d = new Date(date);
-  const day = d.getDay();
-  const mondayDistance = day === 0 ? 6 : day - 1;
-  d.setDate(d.getDate() - mondayDistance);
-  d.setHours(0, 0, 0, 0);
-  return getIsoDate(d);
-}
-
-function getWeekDayIndex(date: Date): number {
-  const day = date.getDay();
-  return day === 0 ? 6 : day - 1;
-}
-
-function unique(values: string[]): string[] {
-  return [...new Set(values)].sort();
-}
-
-function computeStreakDays(activeDates: string[]): number {
-  const uniqueDates = unique(activeDates);
-  if (uniqueDates.length === 0) {
-    return 0;
-  }
-
-  let streak = 0;
-  const cursor = new Date();
-  cursor.setHours(0, 0, 0, 0);
-
-  while (true) {
-    const key = getIsoDate(cursor);
-    if (!uniqueDates.includes(key)) {
-      break;
-    }
-
-    streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-
-  return streak;
-}
-
-function suggestProfileByTime(now: Date): Profile {
-  const hour = now.getHours();
-  if (hour >= 6 && hour < 15) {
-    return "student";
-  }
-
-  if (hour >= 15 && hour < 22) {
-    return "work";
-  }
-
-  return "balanced";
-}
-
-function getPomodoroDurations(settings: Settings): { focusSec: number; breakSec: number } {
-  if (settings.pomodoroPreset === "50-10") {
-    return { focusSec: 50 * 60, breakSec: 10 * 60 };
-  }
-
-  if (settings.pomodoroPreset === "custom") {
-    return {
-      focusSec: clamp(settings.customFocusMin, 5, 120) * 60,
-      breakSec: clamp(settings.customBreakMin, 1, 30) * 60,
-    };
-  }
-
-  return { focusSec: 25 * 60, breakSec: 5 * 60 };
-}
-
-function playGentleAlert(enabled: boolean): void {
-  if (!enabled) {
-    return;
-  }
-
-  try {
-    const audioCtx = new window.AudioContext();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = "sine";
-    osc.frequency.value = 760;
-    gain.gain.value = 0.04;
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.17);
-  } catch {
-    // Ignore browsers without AudioContext permissions.
-  }
-}
-
 function loadSettings(): Settings {
-  const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+  const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) {
     return defaultSettings;
   }
@@ -253,308 +229,77 @@ function loadSettings(): Settings {
     return {
       ...defaultSettings,
       ...parsed,
-      phraseFrequencySec: clamp(parsed.phraseFrequencySec ?? 90, 20, 600),
-      opacity: clamp(parsed.opacity ?? 1, 0.4, 1),
-      size: clamp(parsed.size ?? 1, 0.8, 1.6),
+      phraseFrequencySec: clamp(parsed.phraseFrequencySec ?? 85, 20, 300),
+      opacity: clamp(parsed.opacity ?? 1, 0.55, 1),
+      size: clamp(parsed.size ?? 1, 0.8, 1.4),
       customFocusMin: clamp(parsed.customFocusMin ?? 30, 5, 120),
       customBreakMin: clamp(parsed.customBreakMin ?? 5, 1, 30),
-      profile: parsed.profile ?? suggestProfileByTime(new Date()),
     };
   } catch {
     return defaultSettings;
   }
 }
 
-function defaultWeeklyStats(now: Date): WeeklyStats {
-  return {
-    weekStartIso: getWeekStartIso(now),
-    focusMinutesByDay: [0, 0, 0, 0, 0, 0, 0],
-    focusSessions: 0,
-    breakSessions: 0,
-    musicMinutes: 0,
-    feedCount: 0,
-    activeDates: [],
-  };
-}
-
-function normalizeWeeklyStats(candidate: WeeklyStats, now: Date): WeeklyStats {
-  if (candidate.weekStartIso !== getWeekStartIso(now)) {
-    return defaultWeeklyStats(now);
+function getDurations(settings: Settings): { focusSec: number; breakSec: number } {
+  if (settings.pomodoroPreset === "50-10") {
+    return { focusSec: 50 * 60, breakSec: 10 * 60 };
   }
 
-  const focusMinutesByDay = [...candidate.focusMinutesByDay];
-  while (focusMinutesByDay.length < 7) {
-    focusMinutesByDay.push(0);
-  }
-
-  return {
-    ...candidate,
-    focusMinutesByDay: focusMinutesByDay.slice(0, 7),
-    feedCount: candidate.feedCount ?? 0,
-    activeDates: unique(candidate.activeDates),
-  };
-}
-
-function loadWeeklyStats(): WeeklyStats {
-  const now = new Date();
-  const raw = localStorage.getItem(STATS_STORAGE_KEY);
-  if (!raw) {
-    return defaultWeeklyStats(now);
-  }
-
-  try {
-    const parsed = JSON.parse(raw) as WeeklyStats;
-    return normalizeWeeklyStats(parsed, now);
-  } catch {
-    return defaultWeeklyStats(now);
-  }
-}
-
-function defaultPetState(now: Date): PetState {
-  return {
-    hunger: 70,
-    feedTotal: 0,
-    lastUpdatedAt: now.toISOString(),
-  };
-}
-
-function applyPetDecay(pet: PetState, now: Date): PetState {
-  const last = new Date(pet.lastUpdatedAt);
-  const elapsedMinutes = Math.max(0, Math.floor((now.getTime() - last.getTime()) / 60_000));
-  const hunger = clamp(pet.hunger - elapsedMinutes, 0, 100);
-  return {
-    ...pet,
-    hunger,
-    lastUpdatedAt: now.toISOString(),
-  };
-}
-
-function loadPetState(): PetState {
-  const now = new Date();
-  const raw = localStorage.getItem(PET_STORAGE_KEY);
-  if (!raw) {
-    return defaultPetState(now);
-  }
-
-  try {
-    const parsed = JSON.parse(raw) as PetState;
-    const normalized: PetState = {
-      hunger: clamp(parsed.hunger ?? 70, 0, 100),
-      feedTotal: parsed.feedTotal ?? 0,
-      lastUpdatedAt: parsed.lastUpdatedAt ?? now.toISOString(),
+  if (settings.pomodoroPreset === "custom") {
+    return {
+      focusSec: settings.customFocusMin * 60,
+      breakSec: settings.customBreakMin * 60,
     };
-
-    return applyPetDecay(normalized, now);
-  } catch {
-    return defaultPetState(now);
   }
+
+  return { focusSec: 25 * 60, breakSec: 5 * 60 };
 }
 
-async function minimizeWindow(): Promise<void> {
+function playSoftBeep(): void {
   try {
-    await getCurrentWindow().minimize();
+    const ctx = new window.AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = 720;
+    gain.gain.value = 0.04;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.18);
   } catch {
-    // No-op
-  }
-}
-
-async function toggleMaximizeWindow(): Promise<void> {
-  try {
-    const appWindow = getCurrentWindow();
-    const isMax = await appWindow.isMaximized();
-    if (isMax) {
-      await appWindow.unmaximize();
-      return;
-    }
-
-    await appWindow.maximize();
-  } catch {
-    // No-op
-  }
-}
-
-async function closeWindow(): Promise<void> {
-  try {
-    await getCurrentWindow().close();
-  } catch {
-    // No-op
+    // Ignore if unavailable.
   }
 }
 
 function App() {
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
-  const [stats, setStats] = useState<WeeklyStats>(() => loadWeeklyStats());
-  const [pet, setPet] = useState<PetState>(() => loadPetState());
-  const [showSettings, setShowSettings] = useState(false);
-  const [onboardingAdvanced, setOnboardingAdvanced] = useState(false);
-  const [onboardingPreviewSec, setOnboardingPreviewSec] = useState(30);
-  const [activeTab, setActiveTab] = useState<Tab>("focus");
+  const [showPanel, setShowPanel] = useState(false);
   const [mood, setMood] = useState<Mood>("happy");
   const [phrase, setPhrase] = useState("");
-  const [musicSystemSource, setMusicSystemSource] = useState("");
+  const [phraseTick, setPhraseTick] = useState(0);
+  const [systemMusicActive, setSystemMusicActive] = useState(false);
+  const [systemMusicSource, setSystemMusicSource] = useState("");
 
+  const [musicTrackUrl, setMusicTrackUrl] = useState("");
+  const [musicTrackName, setMusicTrackName] = useState("");
+  const [musicPlaying, setMusicPlaying] = useState(false);
+
+  const durations = useMemo(() => getDurations(settings), [settings]);
   const [focusRunning, setFocusRunning] = useState(false);
   const [focusPhase, setFocusPhase] = useState<FocusPhase>("focus");
-  const [remainingSeconds, setRemainingSeconds] = useState(getPomodoroDurations(settings).focusSec);
+  const [remainingSeconds, setRemainingSeconds] = useState(durations.focusSec);
 
-  const [musicTrackName, setMusicTrackName] = useState("");
-  const [musicTrackUrl, setMusicTrackUrl] = useState("");
-  const [musicPlaying, setMusicPlaying] = useState(false);
-  const [systemMusicActive, setSystemMusicActive] = useState(false);
-
-  const locale = useMemo(() => localeByLang[settings.language], [settings.language]);
+  const t = copy[settings.language];
   const isMusicActive = settings.musicReactive && (musicPlaying || systemMusicActive);
-  const suggestedProfile = useMemo(() => suggestProfileByTime(new Date()), []);
-  const durations = useMemo(() => getPomodoroDurations(settings), [settings]);
 
   useEffect(() => {
-    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   }, [settings]);
-
-  useEffect(() => {
-    localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(stats));
-  }, [stats]);
-
-  useEffect(() => {
-    localStorage.setItem(PET_STORAGE_KEY, JSON.stringify(pet));
-  }, [pet]);
-
-  useEffect(() => {
-    setStats((prev) => normalizeWeeklyStats(prev, new Date()));
-  }, []);
 
   useEffect(() => {
     void getCurrentWindow().setAlwaysOnTop(settings.alwaysOnTop).catch(() => undefined);
   }, [settings.alwaysOnTop]);
-
-  useEffect(() => {
-    if (!settings.onboarded) {
-      const timer = window.setInterval(() => {
-        setOnboardingPreviewSec((prev) => (prev > 0 ? prev - 1 : 0));
-      }, 1000);
-
-      return () => window.clearInterval(timer);
-    }
-
-    return;
-  }, [settings.onboarded]);
-
-  useEffect(() => {
-    if (isMusicActive) {
-      setPhrase(randomPick(locale.musicPhrases));
-      setMood("celebrate");
-      return;
-    }
-
-    if (pet.hunger < 20) {
-      setPhrase(randomPick(locale.petHungryPhrases));
-      setMood("tired");
-      return;
-    }
-
-    const pool = locale.phrases[settings.tone][settings.mode];
-    setPhrase(randomPick(pool));
-  }, [isMusicActive, locale, pet.hunger, settings.mode, settings.tone]);
-
-  useEffect(() => {
-    if (!settings.phrasesEnabled) {
-      return;
-    }
-
-    const tick = window.setInterval(() => {
-      if (isMusicActive) {
-        setPhrase(randomPick(locale.musicPhrases));
-        setMood((prev) => (prev === "celebrate" ? "happy" : "celebrate"));
-        return;
-      }
-
-      if (pet.hunger < 20) {
-        setPhrase(randomPick(locale.petHungryPhrases));
-        setMood("tired");
-        return;
-      }
-
-      const pool = locale.phrases[settings.tone][settings.mode];
-      setPhrase(randomPick(pool));
-      setMood(settings.mode === "break" ? "break" : settings.mode === "study" ? "focus" : "happy");
-    }, settings.phraseFrequencySec * 1000);
-
-    return () => window.clearInterval(tick);
-  }, [isMusicActive, locale, pet.hunger, settings.mode, settings.phrasesEnabled, settings.phraseFrequencySec, settings.tone]);
-
-  useEffect(() => {
-    if (!settings.occasionalSayings) {
-      return;
-    }
-
-    let cancelled = false;
-    let timeoutId = 0;
-
-    const schedule = () => {
-      timeoutId = window.setTimeout(() => {
-        if (cancelled) {
-          return;
-        }
-
-        if (!isMusicActive) {
-          setPhrase(randomPick(locale.occasionalPhrases));
-          setMood("happy");
-        }
-
-        schedule();
-      }, randomPick([120_000, 180_000, 240_000, 300_000]));
-    };
-
-    schedule();
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeoutId);
-    };
-  }, [isMusicActive, locale, settings.occasionalSayings]);
-
-  useEffect(() => {
-    if (!focusRunning) {
-      return;
-    }
-
-    const tick = window.setInterval(() => {
-      setRemainingSeconds((prev) => {
-        if (prev > 1) {
-          return prev - 1;
-        }
-
-        playGentleAlert(settings.gentleAlerts);
-
-        if (focusPhase === "focus") {
-          const now = new Date();
-          const dayIndex = getWeekDayIndex(now);
-          const todayIso = getIsoDate(now);
-
-          setStats((prevStats) => {
-            const next = normalizeWeeklyStats(prevStats, now);
-            next.focusMinutesByDay[dayIndex] += Math.round(durations.focusSec / 60);
-            next.focusSessions += 1;
-            next.activeDates = unique([...next.activeDates, todayIso]).slice(-40);
-            return { ...next };
-          });
-
-          setFocusPhase("break");
-          setMood("celebrate");
-          setSettings((prevSettings) => ({ ...prevSettings, mode: "break" }));
-          return durations.breakSec;
-        }
-
-        setStats((prevStats) => ({ ...prevStats, breakSessions: prevStats.breakSessions + 1 }));
-        setFocusPhase("focus");
-        setMood("focus");
-        setSettings((prevSettings) => ({ ...prevSettings, mode: "study" }));
-        return durations.focusSec;
-      });
-    }, 1000);
-
-    return () => window.clearInterval(tick);
-  }, [durations.breakSec, durations.focusSec, focusPhase, focusRunning, settings.gentleAlerts]);
 
   useEffect(() => {
     if (!focusRunning) {
@@ -563,63 +308,80 @@ function App() {
     }
   }, [durations.focusSec, focusRunning]);
 
+  const emitPhrase = (text: string): void => {
+    setPhrase(text);
+    setPhraseTick((prev) => prev + 1);
+  };
+
   useEffect(() => {
-    if (!isMusicActive) {
+    if (isMusicActive) {
+      setMood("celebrate");
+      emitPhrase(randomPick(t.phraseMusic));
       return;
     }
 
-    const timer = window.setInterval(() => {
-      setStats((prevStats) => {
-        const now = new Date();
-        const next = normalizeWeeklyStats(prevStats, now);
-        next.musicMinutes += 1;
-        return { ...next };
-      });
-    }, 60_000);
+    if (settings.mode === "study") {
+      setMood("focus");
+      emitPhrase(randomPick(t.phraseStudy));
+      return;
+    }
 
-    return () => window.clearInterval(timer);
-  }, [isMusicActive]);
+    if (settings.mode === "work") {
+      setMood("happy");
+      emitPhrase(randomPick(t.phraseWork));
+      return;
+    }
+
+    setMood("break");
+    emitPhrase(randomPick(t.phraseBreak));
+  }, [isMusicActive, settings.mode, t]);
 
   useEffect(() => {
-    const tick = window.setInterval(() => {
-      setPet((prevPet) => applyPetDecay(prevPet, new Date()));
-    }, 60_000);
+    const timer = window.setInterval(() => {
+      if (isMusicActive) {
+        emitPhrase(randomPick(t.phraseMusic));
+        return;
+      }
 
-    return () => window.clearInterval(tick);
-  }, []);
+      const pool = settings.mode === "study" ? t.phraseStudy : settings.mode === "work" ? t.phraseWork : t.phraseBreak;
+      emitPhrase(randomPick(pool));
+    }, settings.phraseFrequencySec * 1000);
+
+    return () => window.clearInterval(timer);
+  }, [isMusicActive, settings.mode, settings.phraseFrequencySec, t]);
 
   useEffect(() => {
     if (!settings.systemMusicDetect) {
       setSystemMusicActive(false);
-      setMusicSystemSource("");
+      setSystemMusicSource("");
       return;
     }
 
     let active = true;
 
-    const checkMusic = async () => {
+    const check = async () => {
       try {
-        const result = await invoke<MusicDetection>("detect_system_music");
+        const res = await invoke<MusicDetection>("detect_system_music");
         if (!active) {
           return;
         }
 
-        setSystemMusicActive(result.active);
-        setMusicSystemSource(result.source);
+        setSystemMusicActive(res.active);
+        setSystemMusicSource(res.source);
       } catch {
         if (!active) {
           return;
         }
 
         setSystemMusicActive(false);
-        setMusicSystemSource("");
+        setSystemMusicSource("");
       }
     };
 
-    void checkMusic();
+    void check();
     const timer = window.setInterval(() => {
-      void checkMusic();
-    }, 20_000);
+      void check();
+    }, 12_000);
 
     return () => {
       active = false;
@@ -627,75 +389,38 @@ function App() {
     };
   }, [settings.systemMusicDetect]);
 
-  const applySetting = <K extends keyof Settings>(key: K, value: Settings[K]) => {
+  useEffect(() => {
+    if (!focusRunning) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setRemainingSeconds((prev) => {
+        if (prev > 1) {
+          return prev - 1;
+        }
+
+        playSoftBeep();
+
+        if (focusPhase === "focus") {
+          setFocusPhase("break");
+          setMood("celebrate");
+          emitPhrase(randomPick(t.phraseBreak));
+          return durations.breakSec;
+        }
+
+        setFocusPhase("focus");
+        setMood("focus");
+        emitPhrase(randomPick(t.phraseStudy));
+        return durations.focusSec;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [durations.breakSec, durations.focusSec, focusPhase, focusRunning, t]);
+
+  const update = <K extends keyof Settings>(key: K, value: Settings[K]): void => {
     setSettings((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const applyProfilePreset = (profile: Profile) => {
-    if (profile === "student") {
-      setSettings((prev) => ({
-        ...prev,
-        profile,
-        tone: "sweet",
-        mode: "study",
-        phraseFrequencySec: 80,
-        avatarStyle: "cloud",
-        minimalMode: true,
-        pomodoroPreset: "25-5",
-        onboarded: true,
-      }));
-      return;
-    }
-
-    if (profile === "work") {
-      setSettings((prev) => ({
-        ...prev,
-        profile,
-        tone: "motivator",
-        mode: "work",
-        phraseFrequencySec: 120,
-        avatarStyle: "pixel",
-        minimalMode: true,
-        pomodoroPreset: "50-10",
-        onboarded: true,
-      }));
-      return;
-    }
-
-    setSettings((prev) => ({
-      ...prev,
-      profile,
-      tone: "neutral",
-      mode: "study",
-      phraseFrequencySec: 100,
-      avatarStyle: "blob",
-      minimalMode: true,
-      pomodoroPreset: "custom",
-      customFocusMin: 30,
-      customBreakMin: 5,
-      onboarded: true,
-    }));
-  };
-
-  const currentStatus = locale.status[mood];
-  const onboardingDone = settings.onboarded;
-  const totalFocusWeek = stats.focusMinutesByDay.reduce((sum, item) => sum + item, 0);
-  const todayFocus = stats.focusMinutesByDay[getWeekDayIndex(new Date())] ?? 0;
-  const streakDays = computeStreakDays(stats.activeDates);
-
-  const startFocus = () => {
-    setFocusRunning(true);
-    setFocusPhase("focus");
-    setRemainingSeconds(durations.focusSec);
-    setMood("focus");
-    applySetting("mode", "study");
-  };
-
-  const stopFocus = () => {
-    setFocusRunning(false);
-    setRemainingSeconds(durations.focusSec);
-    setFocusPhase("focus");
-    setMood("happy");
   };
 
   const handleMusicFile = (event: ChangeEvent<HTMLInputElement>) => {
@@ -713,256 +438,153 @@ function App() {
     setMusicTrackName(file.name);
   };
 
-  const feedCompanion = () => {
-    setPet((prev) => ({
-      hunger: clamp(prev.hunger + 25, 0, 100),
-      feedTotal: prev.feedTotal + 1,
-      lastUpdatedAt: new Date().toISOString(),
-    }));
-
-    setStats((prev) => ({ ...prev, feedCount: prev.feedCount + 1 }));
+  const handleFeed = () => {
     setMood("celebrate");
-    setPhrase(randomPick(locale.feedPhrases));
+    emitPhrase(randomPick(t.phraseFeed));
+  };
+
+  const quickStartFocus = () => {
+    setFocusRunning(true);
+    setFocusPhase("focus");
+    setRemainingSeconds(durations.focusSec);
+    setMood("focus");
+    update("mode", "study");
   };
 
   const avatarAsset = assetByAvatarMood[settings.avatarStyle][mood];
 
   return (
-    <main className={`app-shell ${settings.minimalMode ? "widget-mode" : ""}`} style={{ opacity: settings.opacity }}>
-      {!onboardingDone && (
-        <section className="onboarding">
-          <h2>{locale.ui.onboardingTitle}</h2>
-          <p>Suggested profile: <strong>{suggestedProfile}</strong></p>
-          <p>Quick preview timer: {onboardingPreviewSec}s</p>
-
-          {!onboardingAdvanced && (
-            <div className="quick-setup-grid">
-              <button type="button" onClick={() => applyProfilePreset("student")}>Quick: Study</button>
-              <button type="button" onClick={() => applyProfilePreset("work")}>Quick: Work</button>
-              <button type="button" onClick={() => applyProfilePreset("balanced")}>Quick: Balanced</button>
-              <button type="button" onClick={() => setOnboardingAdvanced(true)}>Advanced Setup</button>
-            </div>
-          )}
-
-          {onboardingAdvanced && (
-            <>
-              <label>
-                {locale.ui.language}
-                <select value={settings.language} onChange={(event) => applySetting("language", event.currentTarget.value as Lang)}>
-                  <option value="es">Espanol</option>
-                  <option value="en">English</option>
-                </select>
-              </label>
-
-              <label>
-                {locale.ui.avatar}
-                <select value={settings.avatarStyle} onChange={(event) => applySetting("avatarStyle", event.currentTarget.value as AvatarStyle)}>
-                  <option value="cloud">Cloud</option>
-                  <option value="pixel">Pixel</option>
-                  <option value="blob">Blob</option>
-                  <option value="cat">Cat</option>
-                  <option value="bunny">Bunny</option>
-                  <option value="fox">Fox</option>
-                </select>
-              </label>
-
-              <label>
-                Pomodoro preset
-                <select value={settings.pomodoroPreset} onChange={(event) => applySetting("pomodoroPreset", event.currentTarget.value as PomodoroPreset)}>
-                  <option value="25-5">25 / 5</option>
-                  <option value="50-10">50 / 10</option>
-                  <option value="custom">Custom</option>
-                </select>
-              </label>
-
-              <button type="button" onClick={() => applySetting("onboarded", true)}>{locale.ui.onboardingCta}</button>
-            </>
-          )}
-        </section>
-      )}
-
-      <header className="drag-zone" data-tauri-drag-region>
-        <strong>{locale.appName}</strong>
-        <div className="header-actions">
-          <button type="button" className="tiny" onClick={() => applySetting("minimalMode", !settings.minimalMode)}>
-            {settings.minimalMode ? locale.ui.expand : locale.ui.minimal}
-          </button>
-          <button type="button" className="tiny" onClick={() => setShowSettings((prev) => !prev)}>
-            {showSettings ? locale.ui.closeSettings : locale.ui.openSettings}
-          </button>
-          <button type="button" className="win-btn" onClick={() => void minimizeWindow()} title="Minimize">_</button>
-          <button type="button" className="win-btn" onClick={() => void toggleMaximizeWindow()} title="Maximize">□</button>
-          <button type="button" className="win-btn close" onClick={() => void closeWindow()} title="Close">✕</button>
+    <main className="glass-shell" style={{ opacity: settings.opacity }}>
+      <div className="glass-header" data-tauri-drag-region>
+        <div>
+          <strong>{t.title}</strong>
+          <small>{t.subtitle}</small>
         </div>
-      </header>
+        <div className="window-controls">
+          <button className="chip" onClick={() => setShowPanel((prev) => !prev)}>{t.settings}</button>
+          <button className="win" onClick={() => void getCurrentWindow().minimize()}>_</button>
+          <button className="win" onClick={() => void getCurrentWindow().toggleMaximize()}>□</button>
+          <button className="win close" onClick={() => void getCurrentWindow().close()}>✕</button>
+        </div>
+      </div>
 
-      <section className={`avatar-card ${settings.minimalMode ? "minimal-card" : ""}`} style={{ transform: `scale(${settings.size})` }}>
-        <img className="avatar-asset" src={avatarAsset} alt={`${settings.avatarStyle}-${mood}`} />
-        <p className="status">{currentStatus}</p>
+      <section className="widget-body" style={{ transform: `scale(${settings.size})` }}>
+        <img className={`avatar ${isMusicActive ? "music-react" : ""}`} src={avatarAsset} alt={`${settings.avatarStyle}-${mood}`} />
 
-        {settings.minimalMode ? (
-          <>
-            <p className="widget-phrase">{phrase}</p>
-            <div className="pomodoro-chip">
-              <span>{focusPhase === "focus" ? "🍅" : "☕"}</span>
-              <span>{formatMMSS(remainingSeconds)}</span>
-              {!focusRunning ? (
-                <button type="button" onClick={startFocus}>Start</button>
-              ) : (
-                <button type="button" onClick={stopFocus}>Stop</button>
-              )}
-            </div>
-          </>
-        ) : (
-          <>
-            <p className="tagline">{locale.tagline}</p>
-            <p className="boost">{locale.ui.todayBoost}</p>
-          </>
-        )}
+        <div key={phraseTick} className="floating-phrase">
+          {phrase}
+        </div>
+
+        <div className="quick-row">
+          <button className="chip" onClick={() => quickStartFocus()}>{focusRunning ? t.stop : t.start}</button>
+          <span className="timer-pill">{focusPhase === "focus" ? "🍅" : "☕"} {formatMMSS(remainingSeconds)}</span>
+          <button className="chip" onClick={handleFeed}>{t.feed}</button>
+        </div>
+
+        <div className="music-pill">
+          {t.nowPlaying}: {isMusicActive ? (systemMusicSource || musicTrackName || "active") : t.noMusic}
+        </div>
       </section>
 
-      {!settings.minimalMode && (
-        <section className="tabs-shell">
-          <div className="tabs-row">
-            <button type="button" className={activeTab === "focus" ? "tab active" : "tab"} onClick={() => setActiveTab("focus")}>Focus</button>
-            <button type="button" className={activeTab === "pet" ? "tab active" : "tab"} onClick={() => setActiveTab("pet")}>Pet</button>
-            <button type="button" className={activeTab === "music" ? "tab active" : "tab"} onClick={() => setActiveTab("music")}>Music</button>
-            <button type="button" className={activeTab === "stats" ? "tab active" : "tab"} onClick={() => setActiveTab("stats")}>Stats</button>
-            <button type="button" className={activeTab === "style" ? "tab active" : "tab"} onClick={() => setActiveTab("style")}>Style</button>
-          </div>
-
-          {activeTab === "focus" && (
-            <section className="panel-card">
-              <h4>{locale.ui.currentPhrase}</h4>
-              <p>{phrase}</p>
-
-              <label>
-                Pomodoro preset
-                <select value={settings.pomodoroPreset} onChange={(event) => applySetting("pomodoroPreset", event.currentTarget.value as PomodoroPreset)}>
-                  <option value="25-5">25 / 5</option>
-                  <option value="50-10">50 / 10</option>
-                  <option value="custom">Custom</option>
-                </select>
-              </label>
-
-              {settings.pomodoroPreset === "custom" && (
-                <>
-                  <label>
-                    Focus minutes ({settings.customFocusMin})
-                    <input type="range" min={5} max={120} value={settings.customFocusMin} onChange={(event) => applySetting("customFocusMin", Number(event.currentTarget.value))} />
-                  </label>
-                  <label>
-                    Break minutes ({settings.customBreakMin})
-                    <input type="range" min={1} max={30} value={settings.customBreakMin} onChange={(event) => applySetting("customBreakMin", Number(event.currentTarget.value))} />
-                  </label>
-                </>
-              )}
-
-              <label className="checkbox-row">
-                <input type="checkbox" checked={settings.gentleAlerts} onChange={(event) => applySetting("gentleAlerts", event.currentTarget.checked)} />
-                Gentle alert on phase switch
-              </label>
-
-              <div className="focus-row">
-                {!focusRunning ? (
-                  <button type="button" onClick={startFocus}>{locale.ui.focusStart}</button>
-                ) : (
-                  <button type="button" onClick={stopFocus}>{locale.ui.focusStop}</button>
-                )}
-                <span>{focusPhase === "focus" ? locale.ui.focusRunning : locale.ui.breakRunning}: {formatMMSS(remainingSeconds)}</span>
-              </div>
-            </section>
-          )}
-
-          {activeTab === "pet" && (
-            <section className="panel-card">
-              <h4>{locale.ui.petTitle}</h4>
-              <p>{locale.ui.hunger}: {pet.hunger}%</p>
-              <div className="hunger-bar"><span style={{ width: `${pet.hunger}%` }} /></div>
-              <button type="button" onClick={feedCompanion}>{locale.ui.feedButton}</button>
-            </section>
-          )}
-
-          {activeTab === "music" && (
-            <section className="panel-card">
-              <h4>{locale.ui.musicTitle}</h4>
-              <p className="music-track">System: {systemMusicActive ? musicSystemSource || "active" : "inactive"}</p>
-              <label>
-                {locale.ui.musicPickFile}
-                <input type="file" accept="audio/*" onChange={handleMusicFile} />
-              </label>
-              <p className="music-track">{locale.ui.musicNowPlaying}: {musicTrackName || locale.ui.musicNoTrack}</p>
-              <audio controls src={musicTrackUrl} onPlay={() => setMusicPlaying(true)} onPause={() => setMusicPlaying(false)} onEnded={() => setMusicPlaying(false)} />
-            </section>
-          )}
-
-          {activeTab === "stats" && (
-            <section className="panel-card">
-              <h4>{locale.ui.weeklyStats}</h4>
-              <p>{locale.ui.focusMinutesWeek}: {totalFocusWeek}</p>
-              <p>{locale.ui.focusMinutesToday}: {todayFocus}</p>
-              <p>{locale.ui.focusSessions}: {stats.focusSessions}</p>
-              <p>{locale.ui.musicMinutesWeek}: {stats.musicMinutes}</p>
-              <p>{locale.ui.feedCountWeek}: {stats.feedCount}</p>
-              <p>{locale.ui.streakDays}: {streakDays}</p>
-            </section>
-          )}
-
-          {activeTab === "style" && (
-            <section className="panel-card">
-              <label>
-                {locale.ui.avatar}
-                <select value={settings.avatarStyle} onChange={(event) => applySetting("avatarStyle", event.currentTarget.value as AvatarStyle)}>
-                  <option value="cloud">Cloud</option>
-                  <option value="pixel">Pixel</option>
-                  <option value="blob">Blob</option>
-                  <option value="cat">Cat</option>
-                  <option value="bunny">Bunny</option>
-                  <option value="fox">Fox</option>
-                </select>
-              </label>
-              <label className="checkbox-row">
-                <input type="checkbox" checked={settings.alwaysOnTop} onChange={(event) => applySetting("alwaysOnTop", event.currentTarget.checked)} />
-                Always on top
-              </label>
-              <label>
-                {locale.ui.size}: {settings.size.toFixed(1)}x
-                <input type="range" min={0.8} max={1.6} step={0.1} value={settings.size} onChange={(event) => applySetting("size", Number(event.currentTarget.value))} />
-              </label>
-            </section>
-          )}
-        </section>
-      )}
-
-      {showSettings && (
+      {showPanel && (
         <section className="settings-panel">
           <label>
-            {locale.ui.language}
-            <select value={settings.language} onChange={(event) => applySetting("language", event.currentTarget.value as Lang)}>
+            {t.language}
+            <select value={settings.language} onChange={(event) => update("language", event.currentTarget.value as Lang)}>
               <option value="es">Espanol</option>
               <option value="en">English</option>
             </select>
           </label>
 
           <label>
-            {locale.ui.frequency}: {settings.phraseFrequencySec} {locale.ui.seconds}
-            <input type="range" min={20} max={300} value={settings.phraseFrequencySec} onChange={(event) => applySetting("phraseFrequencySec", Number(event.currentTarget.value))} />
+            {t.avatar}
+            <select value={settings.avatarStyle} onChange={(event) => update("avatarStyle", event.currentTarget.value as AvatarStyle)}>
+              <option value="cloud">Cloud</option>
+              <option value="pixel">Pixel</option>
+              <option value="blob">Blob</option>
+              <option value="cat">Cat</option>
+              <option value="bunny">Bunny</option>
+              <option value="fox">Fox</option>
+            </select>
           </label>
 
           <label>
-            {locale.ui.opacity}: {settings.opacity.toFixed(1)}
-            <input type="range" min={0.4} max={1} step={0.1} value={settings.opacity} onChange={(event) => applySetting("opacity", Number(event.currentTarget.value))} />
+            {t.mode}
+            <select value={settings.mode} onChange={(event) => update("mode", event.currentTarget.value as Mode)}>
+              <option value="study">{t.focus}</option>
+              <option value="work">{t.work}</option>
+              <option value="break">{t.rest}</option>
+            </select>
           </label>
 
-          <label className="checkbox-row">
-            <input type="checkbox" checked={settings.phrasesEnabled} onChange={(event) => applySetting("phrasesEnabled", event.currentTarget.checked)} />
-            {locale.ui.phrasesEnabled}
+          <label>
+            {t.preset}
+            <select value={settings.pomodoroPreset} onChange={(event) => update("pomodoroPreset", event.currentTarget.value as PomodoroPreset)}>
+              <option value="25-5">25 / 5</option>
+              <option value="50-10">50 / 10</option>
+              <option value="custom">Custom</option>
+            </select>
           </label>
 
-          <label className="checkbox-row">
-            <input type="checkbox" checked={settings.minimalMode} onChange={(event) => applySetting("minimalMode", event.currentTarget.checked)} />
-            {locale.ui.minimal}
+          {settings.pomodoroPreset === "custom" && (
+            <>
+              <label>
+                {t.focusMin}: {settings.customFocusMin}
+                <input type="range" min={5} max={120} value={settings.customFocusMin} onChange={(event) => update("customFocusMin", Number(event.currentTarget.value))} />
+              </label>
+              <label>
+                {t.breakMin}: {settings.customBreakMin}
+                <input type="range" min={1} max={30} value={settings.customBreakMin} onChange={(event) => update("customBreakMin", Number(event.currentTarget.value))} />
+              </label>
+            </>
+          )}
+
+          <label>
+            {t.phraseFreq}: {settings.phraseFrequencySec}s
+            <input type="range" min={20} max={300} value={settings.phraseFrequencySec} onChange={(event) => update("phraseFrequencySec", Number(event.currentTarget.value))} />
           </label>
+
+          <label>
+            {t.opacity}: {settings.opacity.toFixed(2)}
+            <input type="range" min={0.55} max={1} step={0.05} value={settings.opacity} onChange={(event) => update("opacity", Number(event.currentTarget.value))} />
+          </label>
+
+          <label>
+            {t.size}: {settings.size.toFixed(2)}x
+            <input type="range" min={0.8} max={1.4} step={0.05} value={settings.size} onChange={(event) => update("size", Number(event.currentTarget.value))} />
+          </label>
+
+          <label className="toggle-row">
+            <input type="checkbox" checked={settings.alwaysOnTop} onChange={(event) => update("alwaysOnTop", event.currentTarget.checked)} />
+            {t.alwaysOnTop}
+          </label>
+
+          <label className="toggle-row">
+            <input type="checkbox" checked={settings.systemMusicDetect} onChange={(event) => update("systemMusicDetect", event.currentTarget.checked)} />
+            {t.detectSystemMusic}
+          </label>
+
+          <label className="toggle-row">
+            <input type="checkbox" checked={settings.musicReactive} onChange={(event) => update("musicReactive", event.currentTarget.checked)} />
+            {t.reactMusic}
+          </label>
+
+          <label>
+            {t.uploadTrack}
+            <input type="file" accept="audio/*" onChange={handleMusicFile} />
+          </label>
+
+          <audio
+            controls
+            src={musicTrackUrl}
+            onPlay={() => setMusicPlaying(true)}
+            onPause={() => setMusicPlaying(false)}
+            onEnded={() => setMusicPlaying(false)}
+          />
+
+          <div className="panel-footer">
+            <button className="chip" onClick={() => setShowPanel(false)}>{t.close}</button>
+          </div>
         </section>
       )}
     </main>

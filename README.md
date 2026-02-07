@@ -2,7 +2,7 @@
 
 Amiwi is a desktop companion for study and work, built with Tauri + React + TypeScript.
 
-## v0.6.0 (daily UX integration)
+## v0.7.0 (liquid-glass minimal rework)
 - Widget-first default experience.
 - Quick onboarding presets + advanced setup.
 - Profile suggestion on first run (time-based).

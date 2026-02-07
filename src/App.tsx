@@ -13,6 +13,7 @@ type FocusPhase = "focus" | "break";
 type AvatarStyle = "blob" | "cat" | "bunny" | "fox" | "cloud" | "pixel";
 type Profile = "student" | "work" | "balanced";
 type Tab = "focus" | "pet" | "music" | "stats" | "style";
+type PomodoroPreset = "25-5" | "50-10" | "custom";
 
 type Settings = {
   language: Lang;
@@ -30,6 +31,10 @@ type Settings = {
   systemMusicDetect: boolean;
   alwaysOnTop: boolean;
   profile: Profile;
+  pomodoroPreset: PomodoroPreset;
+  customFocusMin: number;
+  customBreakMin: number;
+  gentleAlerts: boolean;
 };
 
 type WeeklyStats = {
@@ -57,8 +62,6 @@ type MusicDetection = {
 const SETTINGS_STORAGE_KEY = "amiwi.settings";
 const STATS_STORAGE_KEY = "amiwi.weeklyStats";
 const PET_STORAGE_KEY = "amiwi.petState";
-const FOCUS_SECONDS = 25 * 60;
-const BREAK_SECONDS = 5 * 60;
 
 const localeByLang = { es, en };
 
@@ -78,54 +81,41 @@ const defaultSettings: Settings = {
   systemMusicDetect: true,
   alwaysOnTop: true,
   profile: "student",
+  pomodoroPreset: "25-5",
+  customFocusMin: 30,
+  customBreakMin: 5,
+  gentleAlerts: true,
 };
 
-const faceByAvatar: Record<AvatarStyle, Record<Mood, string>> = {
+const assetByAvatarMood: Record<AvatarStyle, Record<Mood, string>> = {
   blob: {
-    happy: "(＾▽＾)",
-    focus: "(•̀ᴗ•́)و",
-    tired: "(˘･_･˘)",
-    break: "( ＾◡＾)っ✿",
-    celebrate: "٩(ˊᗜˋ*)و",
+    happy: "/avatars/blob/happy.svg",
+    focus: "/avatars/blob/focus.svg",
+    tired: "/avatars/blob/tired.svg",
+    break: "/avatars/blob/break.svg",
+    celebrate: "/avatars/blob/celebrate.svg",
   },
   cat: {
-    happy: "^._.^",
-    focus: "ฅ^•ﻌ•^ฅ",
-    tired: "=^._.^=",
-    break: "(=^-ω-^=)",
-    celebrate: "ฅ(＾・ω・＾ฅ)",
+    happy: "/avatars/cat/happy.svg",
+    focus: "/avatars/cat/focus.svg",
+    tired: "/avatars/cat/tired.svg",
+    break: "/avatars/cat/break.svg",
+    celebrate: "/avatars/cat/celebrate.svg",
   },
   bunny: {
-    happy: "(\_/)",
-    focus: "(\_/)>",
-    tired: "(\_/)..",
-    break: "(\_/ )~",
-    celebrate: "(\_/ )ﾉ",
+    happy: "/avatars/bunny/happy.svg",
+    focus: "/avatars/bunny/focus.svg",
+    tired: "/avatars/bunny/tired.svg",
+    break: "/avatars/bunny/break.svg",
+    celebrate: "/avatars/bunny/celebrate.svg",
   },
   fox: {
-    happy: "🦊",
-    focus: "🦊✨",
-    tired: "🦊💤",
-    break: "🦊☁",
-    celebrate: "🦊🎉",
+    happy: "/avatars/fox/happy.svg",
+    focus: "/avatars/fox/focus.svg",
+    tired: "/avatars/fox/tired.svg",
+    break: "/avatars/fox/break.svg",
+    celebrate: "/avatars/fox/celebrate.svg",
   },
-  cloud: {
-    happy: "",
-    focus: "",
-    tired: "",
-    break: "",
-    celebrate: "",
-  },
-  pixel: {
-    happy: "",
-    focus: "",
-    tired: "",
-    break: "",
-    celebrate: "",
-  },
-};
-
-const assetByAvatarMood: Partial<Record<AvatarStyle, Record<Mood, string>>> = {
   cloud: {
     happy: "/avatars/cloud/happy.svg",
     focus: "/avatars/cloud/focus.svg",
@@ -203,6 +193,55 @@ function computeStreakDays(activeDates: string[]): number {
   return streak;
 }
 
+function suggestProfileByTime(now: Date): Profile {
+  const hour = now.getHours();
+  if (hour >= 6 && hour < 15) {
+    return "student";
+  }
+
+  if (hour >= 15 && hour < 22) {
+    return "work";
+  }
+
+  return "balanced";
+}
+
+function getPomodoroDurations(settings: Settings): { focusSec: number; breakSec: number } {
+  if (settings.pomodoroPreset === "50-10") {
+    return { focusSec: 50 * 60, breakSec: 10 * 60 };
+  }
+
+  if (settings.pomodoroPreset === "custom") {
+    return {
+      focusSec: clamp(settings.customFocusMin, 5, 120) * 60,
+      breakSec: clamp(settings.customBreakMin, 1, 30) * 60,
+    };
+  }
+
+  return { focusSec: 25 * 60, breakSec: 5 * 60 };
+}
+
+function playGentleAlert(enabled: boolean): void {
+  if (!enabled) {
+    return;
+  }
+
+  try {
+    const audioCtx = new window.AudioContext();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = 760;
+    gain.gain.value = 0.04;
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.17);
+  } catch {
+    // Ignore browsers without AudioContext permissions.
+  }
+}
+
 function loadSettings(): Settings {
   const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
   if (!raw) {
@@ -216,13 +255,10 @@ function loadSettings(): Settings {
       ...parsed,
       phraseFrequencySec: clamp(parsed.phraseFrequencySec ?? 90, 20, 600),
       opacity: clamp(parsed.opacity ?? 1, 0.4, 1),
-      size: clamp(parsed.size ?? 1, 0.8, 1.4),
-      musicReactive: parsed.musicReactive ?? true,
-      minimalMode: parsed.minimalMode ?? true,
-      occasionalSayings: parsed.occasionalSayings ?? true,
-      systemMusicDetect: parsed.systemMusicDetect ?? true,
-      alwaysOnTop: parsed.alwaysOnTop ?? true,
-      profile: parsed.profile ?? "student",
+      size: clamp(parsed.size ?? 1, 0.8, 1.6),
+      customFocusMin: clamp(parsed.customFocusMin ?? 30, 5, 120),
+      customBreakMin: clamp(parsed.customBreakMin ?? 5, 1, 30),
+      profile: parsed.profile ?? suggestProfileByTime(new Date()),
     };
   } catch {
     return defaultSettings;
@@ -351,6 +387,7 @@ function App() {
   const [pet, setPet] = useState<PetState>(() => loadPetState());
   const [showSettings, setShowSettings] = useState(false);
   const [onboardingAdvanced, setOnboardingAdvanced] = useState(false);
+  const [onboardingPreviewSec, setOnboardingPreviewSec] = useState(30);
   const [activeTab, setActiveTab] = useState<Tab>("focus");
   const [mood, setMood] = useState<Mood>("happy");
   const [phrase, setPhrase] = useState("");
@@ -358,7 +395,7 @@ function App() {
 
   const [focusRunning, setFocusRunning] = useState(false);
   const [focusPhase, setFocusPhase] = useState<FocusPhase>("focus");
-  const [remainingSeconds, setRemainingSeconds] = useState(FOCUS_SECONDS);
+  const [remainingSeconds, setRemainingSeconds] = useState(getPomodoroDurations(settings).focusSec);
 
   const [musicTrackName, setMusicTrackName] = useState("");
   const [musicTrackUrl, setMusicTrackUrl] = useState("");
@@ -367,6 +404,8 @@ function App() {
 
   const locale = useMemo(() => localeByLang[settings.language], [settings.language]);
   const isMusicActive = settings.musicReactive && (musicPlaying || systemMusicActive);
+  const suggestedProfile = useMemo(() => suggestProfileByTime(new Date()), []);
+  const durations = useMemo(() => getPomodoroDurations(settings), [settings]);
 
   useEffect(() => {
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
@@ -387,6 +426,18 @@ function App() {
   useEffect(() => {
     void getCurrentWindow().setAlwaysOnTop(settings.alwaysOnTop).catch(() => undefined);
   }, [settings.alwaysOnTop]);
+
+  useEffect(() => {
+    if (!settings.onboarded) {
+      const timer = window.setInterval(() => {
+        setOnboardingPreviewSec((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+
+      return () => window.clearInterval(timer);
+    }
+
+    return;
+  }, [settings.onboarded]);
 
   useEffect(() => {
     if (isMusicActive) {
@@ -473,6 +524,8 @@ function App() {
           return prev - 1;
         }
 
+        playGentleAlert(settings.gentleAlerts);
+
         if (focusPhase === "focus") {
           const now = new Date();
           const dayIndex = getWeekDayIndex(now);
@@ -480,7 +533,7 @@ function App() {
 
           setStats((prevStats) => {
             const next = normalizeWeeklyStats(prevStats, now);
-            next.focusMinutesByDay[dayIndex] += 25;
+            next.focusMinutesByDay[dayIndex] += Math.round(durations.focusSec / 60);
             next.focusSessions += 1;
             next.activeDates = unique([...next.activeDates, todayIso]).slice(-40);
             return { ...next };
@@ -489,19 +542,26 @@ function App() {
           setFocusPhase("break");
           setMood("celebrate");
           setSettings((prevSettings) => ({ ...prevSettings, mode: "break" }));
-          return BREAK_SECONDS;
+          return durations.breakSec;
         }
 
         setStats((prevStats) => ({ ...prevStats, breakSessions: prevStats.breakSessions + 1 }));
         setFocusPhase("focus");
         setMood("focus");
         setSettings((prevSettings) => ({ ...prevSettings, mode: "study" }));
-        return FOCUS_SECONDS;
+        return durations.focusSec;
       });
     }, 1000);
 
     return () => window.clearInterval(tick);
-  }, [focusPhase, focusRunning]);
+  }, [durations.breakSec, durations.focusSec, focusPhase, focusRunning, settings.gentleAlerts]);
+
+  useEffect(() => {
+    if (!focusRunning) {
+      setRemainingSeconds(durations.focusSec);
+      setFocusPhase("focus");
+    }
+  }, [durations.focusSec, focusRunning]);
 
   useEffect(() => {
     if (!isMusicActive) {
@@ -581,6 +641,7 @@ function App() {
         phraseFrequencySec: 80,
         avatarStyle: "cloud",
         minimalMode: true,
+        pomodoroPreset: "25-5",
         onboarded: true,
       }));
       return;
@@ -595,6 +656,7 @@ function App() {
         phraseFrequencySec: 120,
         avatarStyle: "pixel",
         minimalMode: true,
+        pomodoroPreset: "50-10",
         onboarded: true,
       }));
       return;
@@ -608,6 +670,9 @@ function App() {
       phraseFrequencySec: 100,
       avatarStyle: "blob",
       minimalMode: true,
+      pomodoroPreset: "custom",
+      customFocusMin: 30,
+      customBreakMin: 5,
       onboarded: true,
     }));
   };
@@ -621,14 +686,14 @@ function App() {
   const startFocus = () => {
     setFocusRunning(true);
     setFocusPhase("focus");
-    setRemainingSeconds(FOCUS_SECONDS);
+    setRemainingSeconds(durations.focusSec);
     setMood("focus");
     applySetting("mode", "study");
   };
 
   const stopFocus = () => {
     setFocusRunning(false);
-    setRemainingSeconds(FOCUS_SECONDS);
+    setRemainingSeconds(durations.focusSec);
     setFocusPhase("focus");
     setMood("happy");
   };
@@ -660,13 +725,16 @@ function App() {
     setPhrase(randomPick(locale.feedPhrases));
   };
 
-  const avatarAsset = assetByAvatarMood[settings.avatarStyle]?.[mood];
+  const avatarAsset = assetByAvatarMood[settings.avatarStyle][mood];
 
   return (
     <main className={`app-shell ${settings.minimalMode ? "widget-mode" : ""}`} style={{ opacity: settings.opacity }}>
       {!onboardingDone && (
         <section className="onboarding">
           <h2>{locale.ui.onboardingTitle}</h2>
+          <p>Suggested profile: <strong>{suggestedProfile}</strong></p>
+          <p>Quick preview timer: {onboardingPreviewSec}s</p>
+
           {!onboardingAdvanced && (
             <div className="quick-setup-grid">
               <button type="button" onClick={() => applyProfilePreset("student")}>Quick: Study</button>
@@ -680,10 +748,7 @@ function App() {
             <>
               <label>
                 {locale.ui.language}
-                <select
-                  value={settings.language}
-                  onChange={(event) => applySetting("language", event.currentTarget.value as Lang)}
-                >
+                <select value={settings.language} onChange={(event) => applySetting("language", event.currentTarget.value as Lang)}>
                   <option value="es">Espanol</option>
                   <option value="en">English</option>
                 </select>
@@ -691,10 +756,7 @@ function App() {
 
               <label>
                 {locale.ui.avatar}
-                <select
-                  value={settings.avatarStyle}
-                  onChange={(event) => applySetting("avatarStyle", event.currentTarget.value as AvatarStyle)}
-                >
+                <select value={settings.avatarStyle} onChange={(event) => applySetting("avatarStyle", event.currentTarget.value as AvatarStyle)}>
                   <option value="cloud">Cloud</option>
                   <option value="pixel">Pixel</option>
                   <option value="blob">Blob</option>
@@ -704,18 +766,16 @@ function App() {
                 </select>
               </label>
 
-              <label className="checkbox-row">
-                <input
-                  type="checkbox"
-                  checked={settings.minimalMode}
-                  onChange={(event) => applySetting("minimalMode", event.currentTarget.checked)}
-                />
-                Widget mode by default
+              <label>
+                Pomodoro preset
+                <select value={settings.pomodoroPreset} onChange={(event) => applySetting("pomodoroPreset", event.currentTarget.value as PomodoroPreset)}>
+                  <option value="25-5">25 / 5</option>
+                  <option value="50-10">50 / 10</option>
+                  <option value="custom">Custom</option>
+                </select>
               </label>
 
-              <button type="button" onClick={() => applySetting("onboarded", true)}>
-                {locale.ui.onboardingCta}
-              </button>
+              <button type="button" onClick={() => applySetting("onboarded", true)}>{locale.ui.onboardingCta}</button>
             </>
           )}
         </section>
@@ -737,11 +797,7 @@ function App() {
       </header>
 
       <section className={`avatar-card ${settings.minimalMode ? "minimal-card" : ""}`} style={{ transform: `scale(${settings.size})` }}>
-        {avatarAsset ? (
-          <img className="avatar-asset" src={avatarAsset} alt={`${settings.avatarStyle}-${mood}`} />
-        ) : (
-          <p className="face">{faceByAvatar[settings.avatarStyle][mood]}</p>
-        )}
+        <img className="avatar-asset" src={avatarAsset} alt={`${settings.avatarStyle}-${mood}`} />
         <p className="status">{currentStatus}</p>
 
         {settings.minimalMode ? (
@@ -779,6 +835,34 @@ function App() {
             <section className="panel-card">
               <h4>{locale.ui.currentPhrase}</h4>
               <p>{phrase}</p>
+
+              <label>
+                Pomodoro preset
+                <select value={settings.pomodoroPreset} onChange={(event) => applySetting("pomodoroPreset", event.currentTarget.value as PomodoroPreset)}>
+                  <option value="25-5">25 / 5</option>
+                  <option value="50-10">50 / 10</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </label>
+
+              {settings.pomodoroPreset === "custom" && (
+                <>
+                  <label>
+                    Focus minutes ({settings.customFocusMin})
+                    <input type="range" min={5} max={120} value={settings.customFocusMin} onChange={(event) => applySetting("customFocusMin", Number(event.currentTarget.value))} />
+                  </label>
+                  <label>
+                    Break minutes ({settings.customBreakMin})
+                    <input type="range" min={1} max={30} value={settings.customBreakMin} onChange={(event) => applySetting("customBreakMin", Number(event.currentTarget.value))} />
+                  </label>
+                </>
+              )}
+
+              <label className="checkbox-row">
+                <input type="checkbox" checked={settings.gentleAlerts} onChange={(event) => applySetting("gentleAlerts", event.currentTarget.checked)} />
+                Gentle alert on phase switch
+              </label>
+
               <div className="focus-row">
                 {!focusRunning ? (
                   <button type="button" onClick={startFocus}>{locale.ui.focusStart}</button>
@@ -808,13 +892,7 @@ function App() {
                 <input type="file" accept="audio/*" onChange={handleMusicFile} />
               </label>
               <p className="music-track">{locale.ui.musicNowPlaying}: {musicTrackName || locale.ui.musicNoTrack}</p>
-              <audio
-                controls
-                src={musicTrackUrl}
-                onPlay={() => setMusicPlaying(true)}
-                onPause={() => setMusicPlaying(false)}
-                onEnded={() => setMusicPlaying(false)}
-              />
+              <audio controls src={musicTrackUrl} onPlay={() => setMusicPlaying(true)} onPause={() => setMusicPlaying(false)} onEnded={() => setMusicPlaying(false)} />
             </section>
           )}
 
@@ -849,7 +927,7 @@ function App() {
               </label>
               <label>
                 {locale.ui.size}: {settings.size.toFixed(1)}x
-                <input type="range" min={0.8} max={1.4} step={0.1} value={settings.size} onChange={(event) => applySetting("size", Number(event.currentTarget.value))} />
+                <input type="range" min={0.8} max={1.6} step={0.1} value={settings.size} onChange={(event) => applySetting("size", Number(event.currentTarget.value))} />
               </label>
             </section>
           )}

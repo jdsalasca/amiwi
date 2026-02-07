@@ -2,22 +2,25 @@
 
 Amiwi is a desktop companion for study and work, built with Tauri + React + TypeScript.
 
-## v0.5.0 (UX boost)
-- Widget-first default experience (mascot visible from launch).
-- Cleaner day-to-day controls:
-  - Minimal/Expand toggle
-  - Settings toggle
-  - Minimize, Maximize/Restore, Close
-- Real visual assets for avatars (initial packs):
-  - `cloud` SVG states
-  - `pixel` SVG states
-- Profile-based onboarding:
-  - Quick setup presets (Study, Work, Balanced)
-  - Advanced setup flow
-- Pomodoro mini clock in widget mode (timer + Start/Stop).
-- Phrases visible directly in widget mode.
+## v0.6.0 (daily UX integration)
+- Widget-first default experience.
+- Quick onboarding presets + advanced setup.
+- Profile suggestion on first run (time-based).
+- Preview/tour timer (30s) on onboarding.
+- Better desktop controls:
+  - minimize
+  - maximize/restore
+  - close
+- Real visual assets for all avatar styles by mood:
+  - cloud, pixel, blob, cat, bunny, fox
+- Pomodoro UX upgrade:
+  - presets: 25/5, 50/10, custom
+  - custom focus/break sliders
+  - gentle sound alerts on phase switch
+  - mini-clock in widget mode
+- Phrases visible in widget mode.
 - Expanded mode with tabs (`Focus`, `Pet`, `Music`, `Stats`, `Style`).
-- Existing music reaction, pet feeding, and weekly stats retained.
+- Existing system music reaction, pet feeding, and weekly stats preserved.
 
 ## Run locally
 ```bash

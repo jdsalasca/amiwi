@@ -14,15 +14,16 @@ Producto: Amiwi Desktop
 ## 2) Mascot & Visual Design
 - [x] Selector de estilos de avatar.
 - [x] Nuevas opciones solicitadas: `cloud` y `pixel`.
-- [x] Assets visuales reales iniciales para `cloud` y `pixel` por estado (SVG).
-- [ ] Sustituir completamente caras ASCII restantes por assets visuales reales (PNG/SVG/Lottie).
+- [x] Assets visuales reales para `cloud` y `pixel` por estado (SVG).
+- [x] Sustituir caras ASCII por assets visuales en todos los avatares disponibles.
 - [ ] Biblioteca de personajes cute coherente (idle, focus, celebrate, hungry, sleep).
 - [ ] Editor simple para elegir tema visual y tamaño por perfil.
 
 ## 3) Pomodoro & Focus UX
 - [x] Pomodoro visible en modo widget con reloj/contador.
 - [x] Botones Start/Stop accesibles desde widget.
-- [ ] Selector de presets (25/5, 50/10, custom) en UI.
+- [x] Selector de presets (25/5, 50/10, custom) en UI.
+- [x] Preset custom con minutos de foco/descanso configurables.
 - [ ] Notificaciones visuales/sonoras suaves al cambiar fase.
 - [ ] Historial de ciclos completados por dia/semana.
 
@@ -45,8 +46,8 @@ Producto: Amiwi Desktop
 - [x] Script rapido para instalacion Windows y macOS.
 - [x] Instalador Windows con modo `Quick` (silencioso) y guiado.
 - [ ] Instalador macOS equivalente con perfil quick/advanced.
-- [ ] Primera ejecucion con tour interactivo de 30s.
-- [ ] Detectar setup recomendado automaticamente (modo widget + idioma + perfil).
+- [x] Primera ejecucion con preview/tour rapido de 30s.
+- [x] Setup recomendado automaticamente por perfil sugerido.
 
 ## 7) Polish de calidad UX
 - [ ] QA visual en Windows/macOS (escalado, DPI, multiple monitors).

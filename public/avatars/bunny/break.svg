@@ -1,0 +1,9 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='220' height='180' viewBox='0 0 220 180'>
+  <rect width='220' height='180' fill='transparent'/>
+  <ellipse cx='110' cy='94' rx='62' ry='54' fill='#f6ebff' stroke='#6e5a88' stroke-width='5'/>
+  <ellipse cx='84' cy='88' rx='10' ry='8' fill='#fff'/>
+  <ellipse cx='136' cy='88' rx='10' ry='8' fill='#fff'/>
+  <text x='110' y='91' font-size='16' text-anchor='middle' fill='#6e5a88' font-family='Courier New'>^  ^</text>
+  <text x='110' y='116' font-size='20' text-anchor='middle' fill='#6e5a88' font-family='Courier New'>3</text>
+  <text x='160' y='52' font-size='18' text-anchor='middle' fill='#6e5a88' font-family='Courier New'>~</text>
+</svg>

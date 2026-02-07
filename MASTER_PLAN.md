@@ -2,7 +2,7 @@
 
 Fecha base: 2026-02-07
 Owner inicial: Equipo Amiwi
-Estado: Draft ejecutable v1
+Estado: Draft ejecutable v2
 
 ## 1) Resumen ejecutivo
 Amiwi es un companero virtual de escritorio para estudio y trabajo. Reduce friccion emocional y sostiene foco con presencia visual cute, frases utiles, micro-rituales y reaccion contextual.
@@ -23,15 +23,15 @@ Lanzar Amiwi en Windows y macOS, validar PMF inicial y construir una base activa
 - Avatar con estados emocionales.
 - Frases contextuales locales.
 - Onboarding rapido (idioma y tono).
-- Ajustes persistentes (frecuencia, opacidad, tamano, idioma, tono).
+- Ajustes persistentes.
 - Modo foco 25/5.
 - Instaladores Windows/macOS.
 
 ## P1 (retencion)
-- Reaccion a musica del sistema.
-- Biblioteca de packs de frases por mood.
-- Skins y personalizacion avanzada.
-- Estadisticas semanales y rutinas.
+- Reaccion a musica.
+- Biblioteca de frases por mood.
+- Estadisticas semanales.
+- Rutinas de uso diario.
 
 ## P2 (escala y monetizacion)
 - Tienda de temas/skins premium.
@@ -45,22 +45,23 @@ Lanzar Amiwi en Windows y macOS, validar PMF inicial y construir una base activa
 - RF-02 Cambio de expresion por contexto.
 - RF-03 Frases por modo/tono/idioma.
 - RF-04 Onboarding y cambio de idioma.
-- RF-05 Persistencia local de settings.
+- RF-05 Persistencia local de settings y stats.
 - RF-06 Temporizador de foco.
-- RF-07 Instaladores para Windows y macOS.
+- RF-07 Reaccion musical durante reproduccion.
+- RF-08 Instaladores para Windows y macOS.
 
 ### No funcionales
 - RNF-01 Arranque rapido.
 - RNF-02 Bajo consumo de recursos.
 - RNF-03 UX fluida y estable.
-- RNF-04 Privacidad por defecto (sin datos sensibles).
+- RNF-04 Privacidad por defecto.
 - RNF-05 i18n desde dia 1.
 
 ## 5) Estrategia de producto y tecnica
 - Principio: valor en menos de 3 minutos.
 - Stack: Tauri + React + TypeScript.
 - i18n local por JSON (`es`, `en`).
-- Arquitectura modular para escalar a P1/P2.
+- Arquitectura modular para escalar a P2.
 
 ## 6) Marketing y GTM
 ### Posicionamiento
@@ -80,14 +81,15 @@ Lanzar Amiwi en Windows y macOS, validar PMF inicial y construir una base activa
 - Activacion D1 (onboarding completado).
 - Retencion D7 y D30.
 - Minutos foco por usuario.
+- Minutos con musica por usuario.
 - Crash-free rate y tiempo de arranque.
 
 ## 8) Plan 90 dias
 - Semanas 1-4: MVP P0 funcional y empaquetado.
-- Semanas 5-8: beta cerrada, rendimiento, feedback.
-- Semanas 9-12: ajustes finales y lanzamiento publico.
+- Semanas 5-8: P1 (music + stats) y beta cerrada.
+- Semanas 9-12: ajustes finales, growth loops y lanzamiento amplio.
 
-## 9) Estado actual (v0.1.0)
+## 9) Estado actual (v0.2.0)
 Completado en esta version:
 - Base Tauri + React + TS.
 - UI cute funcional con caritas/estados.
@@ -95,4 +97,6 @@ Completado en esta version:
 - Onboarding inicial.
 - Settings persistentes.
 - Modo foco 25/5.
+- Music Reactor con reproduccion local y reacciones.
+- Estadisticas semanales persistentes (foco/musica/racha).
 - Build de instaladores Windows validado.

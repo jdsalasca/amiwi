@@ -18,11 +18,19 @@
     "focusStop": "Stop focus",
     "focusRunning": "Focus running",
     "breakRunning": "Break running",
-    "nextIn": "Next change in",
-    "mins": "min",
-    "save": "Save",
     "todayBoost": "You are doing great today",
-    "currentPhrase": "Message"
+    "currentPhrase": "Message",
+    "musicTitle": "Music Reactor",
+    "musicReactive": "React to music",
+    "musicPickFile": "Load a song",
+    "musicNowPlaying": "Now playing",
+    "musicNoTrack": "No track",
+    "weeklyStats": "Weekly stats",
+    "focusMinutesWeek": "Focus minutes (week)",
+    "focusMinutesToday": "Focus minutes (today)",
+    "focusSessions": "Focus sessions",
+    "musicMinutesWeek": "Music minutes",
+    "streakDays": "Streak (days)"
   },
   "modes": {
     "study": "Study",
@@ -41,6 +49,11 @@
     "break": "Taking a break",
     "celebrate": "Celebrating"
   },
+  "musicPhrases": [
+    "Great vibe, keep this momentum.",
+    "This track and your focus are a strong combo.",
+    "Flow mode is on, keep going."
+  ],
   "phrases": {
     "sweet": {
       "study": [

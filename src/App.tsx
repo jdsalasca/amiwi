@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import en from "./locales/en.json";
 import es from "./locales/es.json";
 import "./App.css";
@@ -18,9 +18,20 @@ type Settings = {
   size: number;
   phrasesEnabled: boolean;
   onboarded: boolean;
+  musicReactive: boolean;
 };
 
-const STORAGE_KEY = "amiwi.settings";
+type WeeklyStats = {
+  weekStartIso: string;
+  focusMinutesByDay: number[];
+  focusSessions: number;
+  breakSessions: number;
+  musicMinutes: number;
+  activeDates: string[];
+};
+
+const SETTINGS_STORAGE_KEY = "amiwi.settings";
+const STATS_STORAGE_KEY = "amiwi.weeklyStats";
 const FOCUS_SECONDS = 25 * 60;
 const BREAK_SECONDS = 5 * 60;
 
@@ -35,6 +46,7 @@ const defaultSettings: Settings = {
   size: 1,
   phrasesEnabled: true,
   onboarded: false,
+  musicReactive: true,
 };
 
 const faceByMood: Record<Mood, string> = {
@@ -61,8 +73,53 @@ function formatMMSS(totalSeconds: number): string {
   return `${m}:${s}`;
 }
 
+function getIsoDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function getWeekStartIso(date: Date): string {
+  const d = new Date(date);
+  const day = d.getDay();
+  const mondayDistance = day === 0 ? 6 : day - 1;
+  d.setDate(d.getDate() - mondayDistance);
+  d.setHours(0, 0, 0, 0);
+  return getIsoDate(d);
+}
+
+function getWeekDayIndex(date: Date): number {
+  const day = date.getDay();
+  return day === 0 ? 6 : day - 1;
+}
+
+function unique(values: string[]): string[] {
+  return [...new Set(values)].sort();
+}
+
+function computeStreakDays(activeDates: string[]): number {
+  const uniqueDates = unique(activeDates);
+  if (uniqueDates.length === 0) {
+    return 0;
+  }
+
+  let streak = 0;
+  const cursor = new Date();
+  cursor.setHours(0, 0, 0, 0);
+
+  while (true) {
+    const key = getIsoDate(cursor);
+    if (!uniqueDates.includes(key)) {
+      break;
+    }
+
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  return streak;
+}
+
 function loadSettings(): Settings {
-  const raw = localStorage.getItem(STORAGE_KEY);
+  const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
   if (!raw) {
     return defaultSettings;
   }
@@ -75,14 +132,59 @@ function loadSettings(): Settings {
       phraseFrequencySec: clamp(parsed.phraseFrequencySec ?? 90, 20, 600),
       opacity: clamp(parsed.opacity ?? 1, 0.4, 1),
       size: clamp(parsed.size ?? 1, 0.8, 1.4),
+      musicReactive: parsed.musicReactive ?? true,
     };
   } catch {
     return defaultSettings;
   }
 }
 
+function defaultWeeklyStats(now: Date): WeeklyStats {
+  return {
+    weekStartIso: getWeekStartIso(now),
+    focusMinutesByDay: [0, 0, 0, 0, 0, 0, 0],
+    focusSessions: 0,
+    breakSessions: 0,
+    musicMinutes: 0,
+    activeDates: [],
+  };
+}
+
+function normalizeWeeklyStats(candidate: WeeklyStats, now: Date): WeeklyStats {
+  if (candidate.weekStartIso !== getWeekStartIso(now)) {
+    return defaultWeeklyStats(now);
+  }
+
+  const focusMinutesByDay = [...candidate.focusMinutesByDay];
+  while (focusMinutesByDay.length < 7) {
+    focusMinutesByDay.push(0);
+  }
+
+  return {
+    ...candidate,
+    focusMinutesByDay: focusMinutesByDay.slice(0, 7),
+    activeDates: unique(candidate.activeDates),
+  };
+}
+
+function loadWeeklyStats(): WeeklyStats {
+  const now = new Date();
+  const raw = localStorage.getItem(STATS_STORAGE_KEY);
+  if (!raw) {
+    return defaultWeeklyStats(now);
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as WeeklyStats;
+    return normalizeWeeklyStats(parsed, now);
+  } catch {
+    return defaultWeeklyStats(now);
+  }
+}
+
 function App() {
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
+  const [stats, setStats] = useState<WeeklyStats>(() => loadWeeklyStats());
   const [showSettings, setShowSettings] = useState(false);
   const [mood, setMood] = useState<Mood>("happy");
   const [phrase, setPhrase] = useState("");
@@ -91,16 +193,36 @@ function App() {
   const [focusPhase, setFocusPhase] = useState<FocusPhase>("focus");
   const [remainingSeconds, setRemainingSeconds] = useState(FOCUS_SECONDS);
 
+  const [musicTrackName, setMusicTrackName] = useState("");
+  const [musicTrackUrl, setMusicTrackUrl] = useState("");
+  const [musicPlaying, setMusicPlaying] = useState(false);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   const locale = useMemo(() => localeByLang[settings.language], [settings.language]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
   }, [settings]);
 
   useEffect(() => {
+    localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(stats));
+  }, [stats]);
+
+  useEffect(() => {
+    setStats((prev) => normalizeWeeklyStats(prev, new Date()));
+  }, []);
+
+  useEffect(() => {
+    if (settings.musicReactive && musicPlaying) {
+      setPhrase(randomPick(locale.musicPhrases));
+      setMood("celebrate");
+      return;
+    }
+
     const pool = locale.phrases[settings.tone][settings.mode];
     setPhrase(randomPick(pool));
-  }, [locale, settings.tone, settings.mode]);
+  }, [locale, musicPlaying, settings.mode, settings.musicReactive, settings.tone]);
 
   useEffect(() => {
     if (!settings.phrasesEnabled) {
@@ -108,13 +230,19 @@ function App() {
     }
 
     const tick = window.setInterval(() => {
+      if (settings.musicReactive && musicPlaying) {
+        setPhrase(randomPick(locale.musicPhrases));
+        setMood((prev) => (prev === "celebrate" ? "happy" : "celebrate"));
+        return;
+      }
+
       const pool = locale.phrases[settings.tone][settings.mode];
       setPhrase(randomPick(pool));
       setMood(settings.mode === "break" ? "break" : settings.mode === "study" ? "focus" : "happy");
     }, settings.phraseFrequencySec * 1000);
 
     return () => window.clearInterval(tick);
-  }, [locale, settings.mode, settings.phraseFrequencySec, settings.phrasesEnabled, settings.tone]);
+  }, [locale, musicPlaying, settings.mode, settings.musicReactive, settings.phraseFrequencySec, settings.phrasesEnabled, settings.tone]);
 
   useEffect(() => {
     if (!focusRunning) {
@@ -128,12 +256,25 @@ function App() {
         }
 
         if (focusPhase === "focus") {
+          const now = new Date();
+          const dayIndex = getWeekDayIndex(now);
+          const todayIso = getIsoDate(now);
+
+          setStats((prevStats) => {
+            const next = normalizeWeeklyStats(prevStats, now);
+            next.focusMinutesByDay[dayIndex] += 25;
+            next.focusSessions += 1;
+            next.activeDates = unique([...next.activeDates, todayIso]).slice(-40);
+            return { ...next };
+          });
+
           setFocusPhase("break");
           setMood("celebrate");
           setSettings((prevSettings) => ({ ...prevSettings, mode: "break" }));
           return BREAK_SECONDS;
         }
 
+        setStats((prevStats) => ({ ...prevStats, breakSessions: prevStats.breakSessions + 1 }));
         setFocusPhase("focus");
         setMood("focus");
         setSettings((prevSettings) => ({ ...prevSettings, mode: "study" }));
@@ -144,9 +285,29 @@ function App() {
     return () => window.clearInterval(tick);
   }, [focusPhase, focusRunning]);
 
-  const currentStatus = locale.status[mood];
+  useEffect(() => {
+    if (!(settings.musicReactive && musicPlaying)) {
+      return;
+    }
 
+    const timer = window.setInterval(() => {
+      setStats((prevStats) => {
+        const now = new Date();
+        const next = normalizeWeeklyStats(prevStats, now);
+        next.musicMinutes += 1;
+        return { ...next };
+      });
+    }, 60_000);
+
+    return () => window.clearInterval(timer);
+  }, [musicPlaying, settings.musicReactive]);
+
+  const currentStatus = locale.status[mood];
   const onboardingDone = settings.onboarded;
+
+  const totalFocusWeek = stats.focusMinutesByDay.reduce((sum, item) => sum + item, 0);
+  const todayFocus = stats.focusMinutesByDay[getWeekDayIndex(new Date())] ?? 0;
+  const streakDays = computeStreakDays(stats.activeDates);
 
   const applySetting = <K extends keyof Settings>(key: K, value: Settings[K]) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -165,6 +326,21 @@ function App() {
     setRemainingSeconds(FOCUS_SECONDS);
     setFocusPhase("focus");
     setMood("happy");
+  };
+
+  const handleMusicFile = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (musicTrackUrl) {
+      URL.revokeObjectURL(musicTrackUrl);
+    }
+
+    const url = URL.createObjectURL(file);
+    setMusicTrackUrl(url);
+    setMusicTrackName(file.name);
   };
 
   return (
@@ -242,6 +418,61 @@ function App() {
             {focusPhase === "focus" ? locale.ui.focusRunning : locale.ui.breakRunning}: {formatMMSS(remainingSeconds)}
           </span>
         </div>
+      </section>
+
+      <section className="music-card">
+        <h4>{locale.ui.musicTitle}</h4>
+
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={settings.musicReactive}
+            onChange={(event) => applySetting("musicReactive", event.currentTarget.checked)}
+          />
+          {locale.ui.musicReactive}
+        </label>
+
+        <label>
+          {locale.ui.musicPickFile}
+          <input type="file" accept="audio/*" onChange={handleMusicFile} />
+        </label>
+
+        <p className="music-track">
+          {locale.ui.musicNowPlaying}: {musicTrackName || locale.ui.musicNoTrack}
+        </p>
+
+        <audio
+          ref={audioRef}
+          controls
+          src={musicTrackUrl}
+          onPlay={() => {
+            setMusicPlaying(true);
+            if (settings.musicReactive) {
+              setMood("celebrate");
+              setPhrase(randomPick(locale.musicPhrases));
+            }
+          }}
+          onPause={() => {
+            setMusicPlaying(false);
+            if (settings.mode === "break") {
+              setMood("break");
+            } else if (settings.mode === "study") {
+              setMood("focus");
+            } else {
+              setMood("happy");
+            }
+          }}
+          onEnded={() => setMusicPlaying(false)}
+        />
+      </section>
+
+      <section className="stats-card">
+        <h4>{locale.ui.weeklyStats}</h4>
+        <p>{locale.ui.focusMinutesWeek}: {totalFocusWeek}</p>
+        <p>{locale.ui.focusMinutesToday}: {todayFocus}</p>
+        <p>{locale.ui.focusSessions}: {stats.focusSessions}</p>
+        <p>{locale.ui.musicMinutesWeek}: {stats.musicMinutes}</p>
+        <p>{locale.ui.streakDays}: {streakDays}</p>
       </section>
 
       {showSettings && (

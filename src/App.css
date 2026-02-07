@@ -82,6 +82,8 @@ body {
 .avatar-card,
 .speech-card,
 .actions-card,
+.music-card,
+.stats-card,
 .settings-panel {
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -113,12 +115,15 @@ body {
   font-size: 0.9rem;
 }
 
-.speech-card h4 {
+.speech-card h4,
+.music-card h4,
+.stats-card h4 {
   margin: 0 0 6px;
 }
 
-.speech-card p {
-  margin: 0;
+.speech-card p,
+.stats-card p {
+  margin: 0 0 4px;
   line-height: 1.4;
 }
 
@@ -134,6 +139,15 @@ body {
   margin-bottom: 0;
 }
 
+.music-track {
+  font-size: 0.85rem;
+  margin: 0 0 8px;
+}
+
+.music-card audio {
+  width: 100%;
+}
+
 label {
   display: flex;
   flex-direction: column;
@@ -146,6 +160,10 @@ select,
 button,
 input[type="range"] {
   width: 100%;
+}
+
+input[type="file"] {
+  font-size: 0.8rem;
 }
 
 select,
@@ -192,6 +210,8 @@ button.tiny {
   .avatar-card,
   .speech-card,
   .actions-card,
+  .music-card,
+  .stats-card,
   .settings-panel {
     padding: 10px;
   }

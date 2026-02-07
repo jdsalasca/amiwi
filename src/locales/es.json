@@ -18,11 +18,19 @@
     "focusStop": "Detener foco",
     "focusRunning": "Foco activo",
     "breakRunning": "Descanso activo",
-    "nextIn": "Siguiente cambio en",
-    "mins": "min",
-    "save": "Guardar",
     "todayBoost": "Hoy vas muy bien",
-    "currentPhrase": "Mensaje"
+    "currentPhrase": "Mensaje",
+    "musicTitle": "Music Reactor",
+    "musicReactive": "Reaccionar a la musica",
+    "musicPickFile": "Cargar cancion",
+    "musicNowPlaying": "Sonando",
+    "musicNoTrack": "Sin cancion",
+    "weeklyStats": "Estadisticas semanales",
+    "focusMinutesWeek": "Minutos foco (semana)",
+    "focusMinutesToday": "Minutos foco (hoy)",
+    "focusSessions": "Sesiones foco",
+    "musicMinutesWeek": "Minutos con musica",
+    "streakDays": "Racha (dias)"
   },
   "modes": {
     "study": "Estudio",
@@ -41,6 +49,11 @@
     "break": "Tomando aire",
     "celebrate": "Celebrando"
   },
+  "musicPhrases": [
+    "Que buen ritmo, sigamos con energia.",
+    "Esta cancion y tu enfoque hacen gran equipo.",
+    "Modo vibra activado: avanza con flow."
+  ],
   "phrases": {
     "sweet": {
       "study": [

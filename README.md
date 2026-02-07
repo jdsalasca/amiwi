@@ -2,6 +2,13 @@
 
 Amiwi is a desktop companion for study and work, built with Tauri + React + TypeScript.
 
+## v0.8.1 (stability hotfix)
+- Fixed window button reliability (drag region no longer captures control clicks).
+- Reduced UI jank from expensive effects and high-frequency idle polling.
+- Hardened system music detection with timeout and non-blocking backend execution.
+- Improved avatar asset loading path resolution for packaged app builds.
+- Added visual fallback when an avatar asset fails to load.
+
 ## v0.8.0 (minimal liquid-glass widget)
 - Strong UX rework to a compact floating widget with liquid-glass style.
 - Default companion-first view with transparent background feel and reduced visual noise.

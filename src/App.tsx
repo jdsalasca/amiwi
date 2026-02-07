@@ -177,18 +177,18 @@ const copy = {
 const defaultSettings: Settings = {
   language: "es",
   avatarStyle: "cloud",
-  phraseFrequencySec: 85,
+  phraseFrequencySec: 110,
   opacity: 1,
   size: 1,
   mode: "study",
   alwaysOnTop: true,
-  systemMusicDetect: true,
+  systemMusicDetect: false,
   musicReactive: true,
   pomodoroPreset: "25-5",
   customFocusMin: 30,
   customBreakMin: 5,
-  autoHideEnabled: true,
-  autoHideSeconds: 6,
+  autoHideEnabled: false,
+  autoHideSeconds: 12,
 };
 
 const assetByAvatarMood: Record<AvatarStyle, Record<Mood, string>> = {
@@ -305,6 +305,11 @@ function playSoftBeep(): void {
   }
 }
 
+function resolveAsset(path: string): string {
+  const clean = path.replace(/^\//, "");
+  return `${import.meta.env.BASE_URL}${clean}`;
+}
+
 function App() {
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
   const [showPanel, setShowPanel] = useState(false);
@@ -313,6 +318,7 @@ function App() {
   const [phraseTick, setPhraseTick] = useState(0);
   const [systemMusicActive, setSystemMusicActive] = useState(false);
   const [systemMusicSource, setSystemMusicSource] = useState("");
+  const [avatarBroken, setAvatarBroken] = useState(false);
 
   const [musicTrackUrl, setMusicTrackUrl] = useState("");
   const [musicTrackName, setMusicTrackName] = useState("");
@@ -325,7 +331,8 @@ function App() {
 
   const [dormant, setDormant] = useState(false);
   const [clickThroughActive, setClickThroughActive] = useState(false);
-  const lastInteractionRef = useRef<number>(Date.now());
+  const hideTimerRef = useRef<number | null>(null);
+  const pollingRef = useRef(false);
 
   const t = copy[settings.language];
   const isMusicActive = settings.musicReactive && (musicPlaying || systemMusicActive);
@@ -420,8 +427,20 @@ function App() {
     let active = true;
 
     const check = async () => {
+      if (pollingRef.current) {
+        return;
+      }
+
+      pollingRef.current = true;
       try {
-        const res = await invoke<MusicDetection>("detect_system_music");
+        const timeout = new Promise<MusicDetection>((resolve) => {
+          window.setTimeout(() => {
+            resolve({ active: false, source: "", method: "timeout" });
+          }, 1500);
+        });
+
+        const detection = invoke<MusicDetection>("detect_system_music");
+        const res = await Promise.race([detection, timeout]);
         if (!active) {
           return;
         }
@@ -435,13 +454,15 @@ function App() {
 
         setSystemMusicActive(false);
         setSystemMusicSource("");
+      } finally {
+        pollingRef.current = false;
       }
     };
 
     void check();
     const timer = window.setInterval(() => {
       void check();
-    }, 12_000);
+    }, 20_000);
 
     return () => {
       active = false;
@@ -480,18 +501,11 @@ function App() {
   }, [durations.breakSec, durations.focusSec, focusPhase, focusRunning, t]);
 
   useEffect(() => {
-    if (!settings.autoHideEnabled) {
-      setDormant(false);
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      const idleSec = (Date.now() - lastInteractionRef.current) / 1000;
-      const shouldDormant = idleSec >= settings.autoHideSeconds && !showPanel;
-      setDormant(shouldDormant);
-    }, 500);
-
-    return () => window.clearInterval(timer);
+    return () => {
+      if (hideTimerRef.current !== null) {
+        window.clearTimeout(hideTimerRef.current);
+      }
+    };
   }, [settings.autoHideEnabled, settings.autoHideSeconds, showPanel]);
 
   useEffect(() => {
@@ -506,6 +520,24 @@ function App() {
   const update = <K extends keyof Settings>(key: K, value: Settings[K]): void => {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
+
+  const registerInteraction = (): void => {
+    setDormant(false);
+    if (hideTimerRef.current !== null) {
+      window.clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+
+    if (settings.autoHideEnabled && !showPanel) {
+      hideTimerRef.current = window.setTimeout(() => {
+        setDormant(true);
+      }, settings.autoHideSeconds * 1000);
+    }
+  };
+
+  useEffect(() => {
+    registerInteraction();
+  }, [settings.autoHideEnabled, settings.autoHideSeconds, showPanel]);
 
   const handleMusicFile = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0];
@@ -552,21 +584,22 @@ function App() {
     }, 8000);
   };
 
-  const avatarAsset = assetByAvatarMood[settings.avatarStyle][mood];
+  const avatarAsset = resolveAsset(assetByAvatarMood[settings.avatarStyle][mood]);
+
+  useEffect(() => {
+    setAvatarBroken(false);
+  }, [settings.avatarStyle, mood]);
 
   return (
     <main
       className={`glass-shell ${dormant ? "dormant" : ""}`}
       style={{ opacity: settings.opacity }}
-      onMouseMove={() => {
-        lastInteractionRef.current = Date.now();
-      }}
-      onMouseEnter={() => {
-        lastInteractionRef.current = Date.now();
-      }}
+      onMouseMove={registerInteraction}
+      onMouseEnter={registerInteraction}
+      onMouseDown={registerInteraction}
     >
-      <div className="glass-header" data-tauri-drag-region>
-        <div>
+      <div className="glass-header">
+        <div className="drag-region" data-tauri-drag-region>
           <strong>{t.title}</strong>
           <small>{t.subtitle}</small>
         </div>
@@ -579,7 +612,16 @@ function App() {
       </div>
 
       <section className="widget-body" style={{ transform: `scale(${settings.size})` }}>
-        <img className={`avatar ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`} src={avatarAsset} alt={`${settings.avatarStyle}-${mood}`} />
+        {!avatarBroken ? (
+          <img
+            className={`avatar ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
+            src={avatarAsset}
+            alt={`${settings.avatarStyle}-${mood}`}
+            onError={() => setAvatarBroken(true)}
+          />
+        ) : (
+          <div className="avatar-fallback" aria-label="avatar-fallback">o(=^.^=)o</div>
+        )}
 
         <div key={phraseTick} className="floating-phrase">
           {phrase}

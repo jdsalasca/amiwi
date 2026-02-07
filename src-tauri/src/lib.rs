@@ -9,8 +9,14 @@ struct MusicDetection {
 }
 
 #[tauri::command]
-fn detect_system_music() -> MusicDetection {
-    detect_system_music_impl()
+async fn detect_system_music() -> MusicDetection {
+    tauri::async_runtime::spawn_blocking(detect_system_music_impl)
+        .await
+        .unwrap_or(MusicDetection {
+            active: false,
+            source: String::new(),
+            method: "spawn_error".to_string(),
+        })
 }
 
 #[cfg(target_os = "windows")]

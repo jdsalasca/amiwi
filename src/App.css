@@ -16,7 +16,7 @@ body,
 }
 
 body {
-  background: radial-gradient(circle at 20% 20%, #ecf5ff 0%, #dfeeff 55%, #f6fbff 100%);
+  background: radial-gradient(circle at 20% 20%, #edf6ff 0%, #e6f1ff 58%, #f7fbff 100%);
   overflow: hidden;
 }
 
@@ -26,10 +26,10 @@ body {
   position: relative;
   padding: 8px;
   border-radius: 18px;
-  backdrop-filter: blur(18px) saturate(1.2);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.62), rgba(230, 244, 255, 0.44));
+  backdrop-filter: blur(8px) saturate(1.12);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(232, 245, 255, 0.6));
   border: 1px solid rgba(255, 255, 255, 0.65);
-  box-shadow: 0 14px 35px rgba(34, 83, 127, 0.18);
+  box-shadow: 0 10px 24px rgba(34, 83, 127, 0.14);
   overflow: hidden;
   transition: transform 220ms ease, opacity 220ms ease;
 }
@@ -48,6 +48,10 @@ body {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.68);
   border: 1px solid rgba(196, 225, 255, 0.7);
+}
+
+.drag-region {
+  user-select: none;
 }
 
 .glass-header strong {
@@ -83,6 +87,18 @@ body {
   margin: 4px auto;
   filter: drop-shadow(0 8px 14px rgba(39, 72, 114, 0.24));
   animation: avatarBob 4.4s ease-in-out infinite;
+}
+
+.avatar-fallback {
+  width: 168px;
+  max-width: 70%;
+  margin: 4px auto;
+  font-size: 2rem;
+  line-height: 1;
+  border-radius: 14px;
+  padding: 16px 8px;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(181, 215, 250, 0.8);
 }
 
 .avatar.music-react {
@@ -180,10 +196,10 @@ body {
   overflow: auto;
   padding: 10px;
   border-radius: 16px;
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(8px);
   background: rgba(248, 252, 255, 0.8);
   border: 1px solid rgba(173, 212, 251, 0.7);
-  box-shadow: 0 10px 30px rgba(27, 63, 97, 0.2);
+  box-shadow: 0 10px 20px rgba(27, 63, 97, 0.16);
 }
 
 label {

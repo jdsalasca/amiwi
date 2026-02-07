@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import "./App.css";
@@ -290,7 +290,9 @@ function getDurations(settings: Settings): { focusSec: number; breakSec: number 
 
 function playSoftBeep(): void {
   try {
-    const ctx = new window.AudioContext();
+    const audioContextRef = (window as Window & { __amiwiAudioCtx?: AudioContext });
+    const ctx = audioContextRef.__amiwiAudioCtx ?? new window.AudioContext();
+    audioContextRef.__amiwiAudioCtx = ctx;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = "sine";
@@ -333,6 +335,7 @@ function App() {
   const [clickThroughActive, setClickThroughActive] = useState(false);
   const hideTimerRef = useRef<number | null>(null);
   const pollingRef = useRef(false);
+  const interactionThrottleRef = useRef(0);
 
   const t = copy[settings.language];
   const isMusicActive = settings.musicReactive && (musicPlaying || systemMusicActive);
@@ -521,8 +524,18 @@ function App() {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
-  const registerInteraction = (): void => {
-    setDormant(false);
+  const registerInteraction = useCallback((): void => {
+    const now = Date.now();
+    const shouldThrottle = now - interactionThrottleRef.current < 180 && !dormant;
+    if (shouldThrottle) {
+      return;
+    }
+    interactionThrottleRef.current = now;
+
+    if (dormant) {
+      setDormant(false);
+    }
+
     if (hideTimerRef.current !== null) {
       window.clearTimeout(hideTimerRef.current);
       hideTimerRef.current = null;
@@ -533,11 +546,11 @@ function App() {
         setDormant(true);
       }, settings.autoHideSeconds * 1000);
     }
-  };
+  }, [dormant, settings.autoHideEnabled, settings.autoHideSeconds, showPanel]);
 
   useEffect(() => {
     registerInteraction();
-  }, [settings.autoHideEnabled, settings.autoHideSeconds, showPanel]);
+  }, [registerInteraction]);
 
   const handleMusicFile = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0];
@@ -584,7 +597,10 @@ function App() {
     }, 8000);
   };
 
-  const avatarAsset = resolveAsset(assetByAvatarMood[settings.avatarStyle][mood]);
+  const avatarAsset = useMemo(
+    () => resolveAsset(assetByAvatarMood[settings.avatarStyle][mood]),
+    [settings.avatarStyle, mood]
+  );
 
   useEffect(() => {
     setAvatarBroken(false);
@@ -604,10 +620,10 @@ function App() {
           <small>{t.subtitle}</small>
         </div>
         <div className="window-controls">
-          <button className="chip" onClick={() => setShowPanel((prev) => !prev)}>{t.settings}</button>
-          <button className="win" onClick={() => void getCurrentWindow().minimize()}>_</button>
-          <button className="win" onClick={() => void getCurrentWindow().toggleMaximize()}>□</button>
-          <button className="win close" onClick={() => void getCurrentWindow().close()}>✕</button>
+          <button type="button" className="chip" onClick={() => setShowPanel((prev) => !prev)}>{t.settings}</button>
+          <button type="button" className="win" onClick={() => void getCurrentWindow().minimize()}>_</button>
+          <button type="button" className="win" onClick={() => void getCurrentWindow().toggleMaximize()}>□</button>
+          <button type="button" className="win close" onClick={() => void getCurrentWindow().close()}>✕</button>
         </div>
       </div>
 
@@ -617,6 +633,8 @@ function App() {
             className={`avatar ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
             src={avatarAsset}
             alt={`${settings.avatarStyle}-${mood}`}
+            loading="eager"
+            decoding="async"
             onError={() => setAvatarBroken(true)}
           />
         ) : (
@@ -628,9 +646,9 @@ function App() {
         </div>
 
         <div className="quick-row">
-          <button className="chip" onClick={() => quickStartFocus()}>{focusRunning ? t.stop : t.start}</button>
+          <button type="button" className="chip" onClick={() => quickStartFocus()}>{focusRunning ? t.stop : t.start}</button>
           <span className="timer-pill">{focusPhase === "focus" ? "🍅" : "☕"} {formatMMSS(remainingSeconds)}</span>
-          <button className="chip" onClick={handleFeed}>{t.feed}</button>
+          <button type="button" className="chip" onClick={handleFeed}>{t.feed}</button>
         </div>
 
         <div className="music-pill">
@@ -741,8 +759,8 @@ function App() {
           <audio controls src={musicTrackUrl} onPlay={() => setMusicPlaying(true)} onPause={() => setMusicPlaying(false)} onEnded={() => setMusicPlaying(false)} />
 
           <div className="panel-footer">
-            <button className="chip" onClick={activateClickThroughPulse}>{t.clickThroughPulse}</button>
-            <button className="chip" onClick={() => setShowPanel(false)}>{t.close}</button>
+            <button type="button" className="chip" onClick={activateClickThroughPulse}>{t.clickThroughPulse}</button>
+            <button type="button" className="chip" onClick={() => setShowPanel(false)}>{t.close}</button>
           </div>
         </section>
       )}

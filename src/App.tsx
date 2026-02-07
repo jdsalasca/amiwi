@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import "./App.css";
@@ -23,6 +23,8 @@ type Settings = {
   pomodoroPreset: PomodoroPreset;
   customFocusMin: number;
   customBreakMin: number;
+  autoHideEnabled: boolean;
+  autoHideSeconds: number;
 };
 
 type MusicDetection = {
@@ -36,7 +38,7 @@ const STORAGE_KEY = "amiwi.widget.settings";
 const copy = {
   es: {
     title: "Amiwi",
-    subtitle: "companion mode",
+    subtitle: "widget mode",
     focus: "Foco",
     work: "Trabajo",
     rest: "Descanso",
@@ -46,7 +48,6 @@ const copy = {
     noMusic: "sin musica",
     start: "Iniciar",
     stop: "Detener",
-    phraseLabel: "Mensaje",
     feed: "Snack",
     preset: "Pomodoro",
     focusMin: "Foco (min)",
@@ -61,6 +62,10 @@ const copy = {
     detectSystemMusic: "Detectar musica del sistema",
     reactMusic: "Reaccionar a musica",
     uploadTrack: "Cargar cancion",
+    autoHide: "Auto ocultar",
+    autoHideSec: "Segundos para ocultar",
+    clickThroughPulse: "Click-through 8s",
+    clickThroughHint: "modo pasivo activo",
     phraseStudy: [
       "Vamos, paso a paso. Estoy contigo.",
       "Un bloque mas y celebramos.",
@@ -85,11 +90,23 @@ const copy = {
       "Snack recibido, alegria al maximo.",
       "Gracias por cuidarme.",
       "Con snack todo fluye mejor."
+    ],
+    phraseMorning: [
+      "Buenos dias. Hoy se avanza bonito.",
+      "Manana de enfoque suave y constante."
+    ],
+    phraseNight: [
+      "Cierre tranquilo, buen trabajo hoy.",
+      "Noche de calma: una cosa a la vez."
+    ],
+    phraseDeepFocus: [
+      "Respira hondo, bloque profundo activo.",
+      "Silencio interno, foco total."
     ]
   },
   en: {
     title: "Amiwi",
-    subtitle: "companion mode",
+    subtitle: "widget mode",
     focus: "Focus",
     work: "Work",
     rest: "Break",
@@ -99,7 +116,6 @@ const copy = {
     noMusic: "no music",
     start: "Start",
     stop: "Stop",
-    phraseLabel: "Message",
     feed: "Snack",
     preset: "Pomodoro",
     focusMin: "Focus (min)",
@@ -114,6 +130,10 @@ const copy = {
     detectSystemMusic: "Detect system music",
     reactMusic: "React to music",
     uploadTrack: "Load track",
+    autoHide: "Auto hide",
+    autoHideSec: "Seconds to hide",
+    clickThroughPulse: "Click-through 8s",
+    clickThroughHint: "passive mode enabled",
     phraseStudy: [
       "One step at a time. I am with you.",
       "One more block and we celebrate.",
@@ -138,6 +158,18 @@ const copy = {
       "Snack received, joy maxed out.",
       "Thanks for taking care of me.",
       "With snacks, everything flows better."
+    ],
+    phraseMorning: [
+      "Good morning. Let us move with calm focus.",
+      "Fresh start, clear mind, steady progress."
+    ],
+    phraseNight: [
+      "Calm finish. Great work today.",
+      "Night focus: one thing at a time."
+    ],
+    phraseDeepFocus: [
+      "Deep focus block is active.",
+      "Quiet mode inside, full execution."
     ]
   }
 } as const;
@@ -155,6 +187,8 @@ const defaultSettings: Settings = {
   pomodoroPreset: "25-5",
   customFocusMin: 30,
   customBreakMin: 5,
+  autoHideEnabled: true,
+  autoHideSeconds: 6,
 };
 
 const assetByAvatarMood: Record<AvatarStyle, Record<Mood, string>> = {
@@ -211,9 +245,7 @@ function randomPick<T>(values: readonly T[]): T {
 }
 
 function formatMMSS(totalSeconds: number): string {
-  const m = Math.floor(totalSeconds / 60)
-    .toString()
-    .padStart(2, "0");
+  const m = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
   const s = (totalSeconds % 60).toString().padStart(2, "0");
   return `${m}:${s}`;
 }
@@ -234,6 +266,7 @@ function loadSettings(): Settings {
       size: clamp(parsed.size ?? 1, 0.8, 1.4),
       customFocusMin: clamp(parsed.customFocusMin ?? 30, 5, 120),
       customBreakMin: clamp(parsed.customBreakMin ?? 5, 1, 30),
+      autoHideSeconds: clamp(parsed.autoHideSeconds ?? 6, 3, 30),
     };
   } catch {
     return defaultSettings;
@@ -290,6 +323,10 @@ function App() {
   const [focusPhase, setFocusPhase] = useState<FocusPhase>("focus");
   const [remainingSeconds, setRemainingSeconds] = useState(durations.focusSec);
 
+  const [dormant, setDormant] = useState(false);
+  const [clickThroughActive, setClickThroughActive] = useState(false);
+  const lastInteractionRef = useRef<number>(Date.now());
+
   const t = copy[settings.language];
   const isMusicActive = settings.musicReactive && (musicPlaying || systemMusicActive);
 
@@ -313,42 +350,65 @@ function App() {
     setPhraseTick((prev) => prev + 1);
   };
 
+  const getSmartPhrasePool = (): readonly string[] => {
+    const hour = new Date().getHours();
+
+    if (isMusicActive) {
+      return t.phraseMusic;
+    }
+
+    if (focusRunning && focusPhase === "focus") {
+      return t.phraseDeepFocus;
+    }
+
+    if (hour >= 6 && hour < 11) {
+      return t.phraseMorning;
+    }
+
+    if (hour >= 21 || hour < 5) {
+      return t.phraseNight;
+    }
+
+    if (settings.mode === "study") {
+      return t.phraseStudy;
+    }
+
+    if (settings.mode === "work") {
+      return t.phraseWork;
+    }
+
+    return t.phraseBreak;
+  };
+
   useEffect(() => {
+    const pool = getSmartPhrasePool();
+    emitPhrase(randomPick(pool));
+
     if (isMusicActive) {
       setMood("celebrate");
-      emitPhrase(randomPick(t.phraseMusic));
       return;
     }
 
     if (settings.mode === "study") {
       setMood("focus");
-      emitPhrase(randomPick(t.phraseStudy));
       return;
     }
 
     if (settings.mode === "work") {
       setMood("happy");
-      emitPhrase(randomPick(t.phraseWork));
       return;
     }
 
     setMood("break");
-    emitPhrase(randomPick(t.phraseBreak));
-  }, [isMusicActive, settings.mode, t]);
+  }, [isMusicActive, settings.mode, focusRunning, focusPhase]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      if (isMusicActive) {
-        emitPhrase(randomPick(t.phraseMusic));
-        return;
-      }
-
-      const pool = settings.mode === "study" ? t.phraseStudy : settings.mode === "work" ? t.phraseWork : t.phraseBreak;
-      emitPhrase(randomPick(pool));
+      emitPhrase(randomPick(getSmartPhrasePool()));
     }, settings.phraseFrequencySec * 1000);
 
     return () => window.clearInterval(timer);
-  }, [isMusicActive, settings.mode, settings.phraseFrequencySec, t]);
+  }, [settings.phraseFrequencySec, isMusicActive, settings.mode, focusRunning, focusPhase]);
 
   useEffect(() => {
     if (!settings.systemMusicDetect) {
@@ -411,13 +471,37 @@ function App() {
 
         setFocusPhase("focus");
         setMood("focus");
-        emitPhrase(randomPick(t.phraseStudy));
+        emitPhrase(randomPick(t.phraseDeepFocus));
         return durations.focusSec;
       });
     }, 1000);
 
     return () => window.clearInterval(timer);
   }, [durations.breakSec, durations.focusSec, focusPhase, focusRunning, t]);
+
+  useEffect(() => {
+    if (!settings.autoHideEnabled) {
+      setDormant(false);
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      const idleSec = (Date.now() - lastInteractionRef.current) / 1000;
+      const shouldDormant = idleSec >= settings.autoHideSeconds && !showPanel;
+      setDormant(shouldDormant);
+    }, 500);
+
+    return () => window.clearInterval(timer);
+  }, [settings.autoHideEnabled, settings.autoHideSeconds, showPanel]);
+
+  useEffect(() => {
+    const shouldIgnore = clickThroughActive && dormant && !showPanel;
+    void getCurrentWindow().setIgnoreCursorEvents(shouldIgnore).catch(() => undefined);
+
+    return () => {
+      void getCurrentWindow().setIgnoreCursorEvents(false).catch(() => undefined);
+    };
+  }, [clickThroughActive, dormant, showPanel]);
 
   const update = <K extends keyof Settings>(key: K, value: Settings[K]): void => {
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -444,17 +528,43 @@ function App() {
   };
 
   const quickStartFocus = () => {
-    setFocusRunning(true);
-    setFocusPhase("focus");
-    setRemainingSeconds(durations.focusSec);
-    setMood("focus");
-    update("mode", "study");
+    setFocusRunning((prev) => {
+      if (prev) {
+        setFocusPhase("focus");
+        setRemainingSeconds(durations.focusSec);
+        setMood("happy");
+        return false;
+      }
+
+      setFocusPhase("focus");
+      setRemainingSeconds(durations.focusSec);
+      setMood("focus");
+      update("mode", "study");
+      return true;
+    });
+  };
+
+  const activateClickThroughPulse = () => {
+    setClickThroughActive(true);
+    emitPhrase(t.clickThroughHint);
+    window.setTimeout(() => {
+      setClickThroughActive(false);
+    }, 8000);
   };
 
   const avatarAsset = assetByAvatarMood[settings.avatarStyle][mood];
 
   return (
-    <main className="glass-shell" style={{ opacity: settings.opacity }}>
+    <main
+      className={`glass-shell ${dormant ? "dormant" : ""}`}
+      style={{ opacity: settings.opacity }}
+      onMouseMove={() => {
+        lastInteractionRef.current = Date.now();
+      }}
+      onMouseEnter={() => {
+        lastInteractionRef.current = Date.now();
+      }}
+    >
       <div className="glass-header" data-tauri-drag-region>
         <div>
           <strong>{t.title}</strong>
@@ -469,7 +579,7 @@ function App() {
       </div>
 
       <section className="widget-body" style={{ transform: `scale(${settings.size})` }}>
-        <img className={`avatar ${isMusicActive ? "music-react" : ""}`} src={avatarAsset} alt={`${settings.avatarStyle}-${mood}`} />
+        <img className={`avatar ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`} src={avatarAsset} alt={`${settings.avatarStyle}-${mood}`} />
 
         <div key={phraseTick} className="floating-phrase">
           {phrase}
@@ -569,20 +679,27 @@ function App() {
             {t.reactMusic}
           </label>
 
+          <label className="toggle-row">
+            <input type="checkbox" checked={settings.autoHideEnabled} onChange={(event) => update("autoHideEnabled", event.currentTarget.checked)} />
+            {t.autoHide}
+          </label>
+
+          {settings.autoHideEnabled && (
+            <label>
+              {t.autoHideSec}: {settings.autoHideSeconds}s
+              <input type="range" min={3} max={30} value={settings.autoHideSeconds} onChange={(event) => update("autoHideSeconds", Number(event.currentTarget.value))} />
+            </label>
+          )}
+
           <label>
             {t.uploadTrack}
             <input type="file" accept="audio/*" onChange={handleMusicFile} />
           </label>
 
-          <audio
-            controls
-            src={musicTrackUrl}
-            onPlay={() => setMusicPlaying(true)}
-            onPause={() => setMusicPlaying(false)}
-            onEnded={() => setMusicPlaying(false)}
-          />
+          <audio controls src={musicTrackUrl} onPlay={() => setMusicPlaying(true)} onPause={() => setMusicPlaying(false)} onEnded={() => setMusicPlaying(false)} />
 
           <div className="panel-footer">
+            <button className="chip" onClick={activateClickThroughPulse}>{t.clickThroughPulse}</button>
             <button className="chip" onClick={() => setShowPanel(false)}>{t.close}</button>
           </div>
         </section>

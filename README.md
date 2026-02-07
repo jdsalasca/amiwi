@@ -2,6 +2,13 @@
 
 Amiwi is a desktop companion for study and work, built with Tauri + React + TypeScript.
 
+## v0.8.5 (global shortcut for settings)
+- Added global shortcut to toggle settings panel and focus app window:
+  - Windows/Linux: `Ctrl+Shift+A`
+  - macOS: `Cmd+Shift+A` (label in UI).
+- Works even when the app window is not focused/minimized.
+- Preserves mascot-only minimal mode as default value experience.
+
 ## v0.8.4 (mascot-only minimal mode + music ambience)
 - Ultra-minimal now behaves as mascot-only: no visible controls/chrome unless user opens settings.
 - Settings can be toggled directly from mascot via right-click.

@@ -1,5 +1,6 @@
 import { ChangeEvent, MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import "./App.css";
 
@@ -70,6 +71,7 @@ const copy = {
     ultraMinimal: "Ultra minimal",
     showTimerBubble: "Burbuja de tiempo",
     musicAmbient: "Color por musica",
+    globalShortcut: "Atajo global",
     clickThroughPulse: "Click-through 8s",
     clickThroughHint: "modo pasivo activo",
     phraseStudy: [
@@ -141,6 +143,7 @@ const copy = {
     ultraMinimal: "Ultra minimal",
     showTimerBubble: "Timer bubble",
     musicAmbient: "Music ambient color",
+    globalShortcut: "Global shortcut",
     clickThroughPulse: "Click-through 8s",
     clickThroughHint: "passive mode enabled",
     phraseStudy: [
@@ -358,6 +361,7 @@ function App() {
   const t = copy[settings.language];
   const isMusicActive = settings.musicReactive && (musicPlaying || systemMusicActive);
   const activeHue = Math.round(200 + musicEnergy * 110);
+  const globalShortcutLabel = navigator.platform.toLowerCase().includes("mac") ? "Cmd+Shift+A" : "Ctrl+Shift+A";
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -641,6 +645,26 @@ function App() {
     registerInteraction();
   }, [registerInteraction]);
 
+  useEffect(() => {
+    let disposed = false;
+    const unlistenPromise = listen("amiwi://toggle-settings", async () => {
+      if (disposed) {
+        return;
+      }
+      const appWindow = getCurrentWindow();
+      await appWindow.show().catch(() => undefined);
+      await appWindow.unminimize().catch(() => undefined);
+      await appWindow.setFocus().catch(() => undefined);
+      setShowPanel((prev) => !prev);
+      registerInteraction();
+    });
+
+    return () => {
+      disposed = true;
+      void unlistenPromise.then((unlisten) => unlisten()).catch(() => undefined);
+    };
+  }, [registerInteraction]);
+
   const handleMusicFile = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0];
     if (!file) {
@@ -876,6 +900,10 @@ function App() {
           <label className="toggle-row">
             <input type="checkbox" checked={settings.musicAmbient} onChange={(event) => update("musicAmbient", event.currentTarget.checked)} />
             {t.musicAmbient}
+          </label>
+
+          <label>
+            {t.globalShortcut}: {globalShortcutLabel}
           </label>
 
           {settings.autoHideEnabled && (

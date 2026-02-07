@@ -1,5 +1,7 @@
 use serde::Serialize;
 use std::process::Command;
+use tauri::Emitter;
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 #[derive(Serialize)]
 struct MusicDetection {
@@ -81,6 +83,20 @@ fn detect_system_music_impl() -> MusicDetection {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .setup(|app| {
+            let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyA);
+            let app_handle = app.handle().clone();
+
+            app.global_shortcut().on_shortcut(shortcut.clone(), move |_app, _shortcut, event| {
+                if event.state == ShortcutState::Pressed {
+                    let _ = app_handle.emit("amiwi://toggle-settings", ());
+                }
+            })?;
+
+            app.global_shortcut().register(shortcut)?;
+            Ok(())
+        })
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![detect_system_music])
         .run(tauri::generate_context!())

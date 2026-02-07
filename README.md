@@ -2,6 +2,22 @@
 
 Amiwi is a desktop companion for study and work, built with Tauri + React + TypeScript.
 
+## v0.8.8 (visual system + scalable bubbles)
+- Mascot is now draggable across the full widget area.
+- Bubble architecture is now extensible through a unified bubble actions model.
+- Added new interactive bubbles:
+  - focus
+  - snack
+  - phrase on-demand
+  - music ambient toggle
+  - settings
+- Added reactive music bubble feedback near mascot.
+- Codebase reorganized for maintainability:
+  - `src/domain/*` for types/config/assets
+  - `src/hooks/useMascotDrag.ts`
+  - `src/utils/helpers.ts`
+- Reinforced liquid-glass consistency and visual behavior around draggable mascot.
+
 ## v0.8.7 (windows startup crash hotfix)
 - Fixed startup crash on Windows when global shortcut is already taken.
 - App no longer panics on shortcut registration failure.

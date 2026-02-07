@@ -1,318 +1,36 @@
 import { ChangeEvent, MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { LogicalSize } from "@tauri-apps/api/dpi";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { LogicalSize } from "@tauri-apps/api/dpi";
+import { assetByAvatarMood } from "./domain/assets";
+import { copy, STORAGE_KEY } from "./domain/config";
+import type { FocusPhase, MusicDetection, Mood, PomodoroPreset, Settings } from "./domain/types";
+import { useMascotDrag } from "./hooks/useMascotDrag";
+import { clamp, formatMMSS, loadSettings, randomPick, resolveAsset } from "./utils/helpers";
 import "./App.css";
 
-type Lang = "es" | "en";
-type Mode = "study" | "work" | "break";
-type Mood = "happy" | "focus" | "tired" | "break" | "celebrate";
-type AvatarStyle = "blob" | "cat" | "bunny" | "fox" | "cloud" | "pixel";
-type PomodoroPreset = "25-5" | "50-10" | "custom";
-type FocusPhase = "focus" | "break";
-
-type Settings = {
-  language: Lang;
-  avatarStyle: AvatarStyle;
-  phraseFrequencySec: number;
-  opacity: number;
-  size: number;
-  mode: Mode;
-  alwaysOnTop: boolean;
-  systemMusicDetect: boolean;
-  musicReactive: boolean;
-  pomodoroPreset: PomodoroPreset;
-  customFocusMin: number;
-  customBreakMin: number;
-  autoHideEnabled: boolean;
-  autoHideSeconds: number;
-  ultraMinimal: boolean;
-  showTimerBubble: boolean;
-  musicAmbient: boolean;
+type BubbleAction = {
+  id: string;
+  icon: string;
+  label: string;
+  onClick: () => void;
+  pulse?: boolean;
 };
-
-type MusicDetection = {
-  active: boolean;
-  source: string;
-  method: string;
-};
-
-const STORAGE_KEY = "amiwi.widget.settings";
-
-const copy = {
-  es: {
-    title: "Amiwi",
-    subtitle: "widget mode",
-    focus: "Foco",
-    work: "Trabajo",
-    rest: "Descanso",
-    settings: "Ajustes",
-    close: "Cerrar",
-    nowPlaying: "Musica",
-    noMusic: "sin musica",
-    start: "Iniciar",
-    stop: "Detener",
-    feed: "Snack",
-    preset: "Pomodoro",
-    focusMin: "Foco (min)",
-    breakMin: "Descanso (min)",
-    avatar: "Avatar",
-    language: "Idioma",
-    opacity: "Opacidad",
-    size: "Tamano",
-    phraseFreq: "Frecuencia frases",
-    mode: "Modo",
-    alwaysOnTop: "Siempre arriba",
-    detectSystemMusic: "Detectar musica del sistema",
-    reactMusic: "Reaccionar a musica",
-    uploadTrack: "Cargar cancion",
-    autoHide: "Auto ocultar",
-    autoHideSec: "Segundos para ocultar",
-    ultraMinimal: "Ultra minimal",
-    showTimerBubble: "Burbuja de tiempo",
-    musicAmbient: "Color por musica",
-    globalShortcut: "Atajo global",
-    clickThroughPulse: "Click-through 8s",
-    clickThroughHint: "modo pasivo activo",
-    bubbleFocus: "Foco",
-    bubbleFeed: "Snack",
-    bubbleSettings: "Ajustes",
-    phraseStudy: [
-      "Vamos, paso a paso. Estoy contigo.",
-      "Un bloque mas y celebramos.",
-      "Tu enfoque hoy esta hermoso."
-    ],
-    phraseWork: [
-      "Una tarea a la vez, con claridad.",
-      "Prioriza lo importante y avanza.",
-      "Buen ritmo, sigue asi."
-    ],
-    phraseBreak: [
-      "Respira, descansa, vuelve fuerte.",
-      "Pausa corta, energia alta.",
-      "Descansar tambien es progreso."
-    ],
-    phraseMusic: [
-      "Ese beat esta perfecto para tu foco.",
-      "Flow activado, seguimos.",
-      "Tu energia subio, se nota."
-    ],
-    phraseFeed: [
-      "Snack recibido, alegria al maximo.",
-      "Gracias por cuidarme.",
-      "Con snack todo fluye mejor."
-    ],
-    phraseMorning: [
-      "Buenos dias. Hoy se avanza bonito.",
-      "Manana de enfoque suave y constante."
-    ],
-    phraseNight: [
-      "Cierre tranquilo, buen trabajo hoy.",
-      "Noche de calma: una cosa a la vez."
-    ],
-    phraseDeepFocus: [
-      "Respira hondo, bloque profundo activo.",
-      "Silencio interno, foco total."
-    ]
-  },
-  en: {
-    title: "Amiwi",
-    subtitle: "widget mode",
-    focus: "Focus",
-    work: "Work",
-    rest: "Break",
-    settings: "Settings",
-    close: "Close",
-    nowPlaying: "Music",
-    noMusic: "no music",
-    start: "Start",
-    stop: "Stop",
-    feed: "Snack",
-    preset: "Pomodoro",
-    focusMin: "Focus (min)",
-    breakMin: "Break (min)",
-    avatar: "Avatar",
-    language: "Language",
-    opacity: "Opacity",
-    size: "Size",
-    phraseFreq: "Phrase frequency",
-    mode: "Mode",
-    alwaysOnTop: "Always on top",
-    detectSystemMusic: "Detect system music",
-    reactMusic: "React to music",
-    uploadTrack: "Load track",
-    autoHide: "Auto hide",
-    autoHideSec: "Seconds to hide",
-    ultraMinimal: "Ultra minimal",
-    showTimerBubble: "Timer bubble",
-    musicAmbient: "Music ambient color",
-    globalShortcut: "Global shortcut",
-    clickThroughPulse: "Click-through 8s",
-    clickThroughHint: "passive mode enabled",
-    bubbleFocus: "Focus",
-    bubbleFeed: "Snack",
-    bubbleSettings: "Settings",
-    phraseStudy: [
-      "One step at a time. I am with you.",
-      "One more block and we celebrate.",
-      "Your focus today is beautiful."
-    ],
-    phraseWork: [
-      "One task at a time, clear execution.",
-      "Prioritize what matters and move.",
-      "Great pace, keep going."
-    ],
-    phraseBreak: [
-      "Breathe, rest, come back stronger.",
-      "Short break, high energy.",
-      "Rest is progress too."
-    ],
-    phraseMusic: [
-      "That beat is perfect for your flow.",
-      "Flow mode enabled, keep moving.",
-      "Your energy is visibly up."
-    ],
-    phraseFeed: [
-      "Snack received, joy maxed out.",
-      "Thanks for taking care of me.",
-      "With snacks, everything flows better."
-    ],
-    phraseMorning: [
-      "Good morning. Let us move with calm focus.",
-      "Fresh start, clear mind, steady progress."
-    ],
-    phraseNight: [
-      "Calm finish. Great work today.",
-      "Night focus: one thing at a time."
-    ],
-    phraseDeepFocus: [
-      "Deep focus block is active.",
-      "Quiet mode inside, full execution."
-    ]
-  }
-} as const;
-
-const defaultSettings: Settings = {
-  language: "es",
-  avatarStyle: "cloud",
-  phraseFrequencySec: 110,
-  opacity: 1,
-  size: 1,
-  mode: "study",
-  alwaysOnTop: true,
-  systemMusicDetect: false,
-  musicReactive: true,
-  pomodoroPreset: "25-5",
-  customFocusMin: 30,
-  customBreakMin: 5,
-  autoHideEnabled: false,
-  autoHideSeconds: 12,
-  ultraMinimal: true,
-  showTimerBubble: true,
-  musicAmbient: true,
-};
-
-const assetByAvatarMood: Record<AvatarStyle, Record<Mood, string>> = {
-  blob: {
-    happy: "/avatars/blob/happy.svg",
-    focus: "/avatars/blob/focus.svg",
-    tired: "/avatars/blob/tired.svg",
-    break: "/avatars/blob/break.svg",
-    celebrate: "/avatars/blob/celebrate.svg",
-  },
-  cat: {
-    happy: "/avatars/cat/happy.svg",
-    focus: "/avatars/cat/focus.svg",
-    tired: "/avatars/cat/tired.svg",
-    break: "/avatars/cat/break.svg",
-    celebrate: "/avatars/cat/celebrate.svg",
-  },
-  bunny: {
-    happy: "/avatars/bunny/happy.svg",
-    focus: "/avatars/bunny/focus.svg",
-    tired: "/avatars/bunny/tired.svg",
-    break: "/avatars/bunny/break.svg",
-    celebrate: "/avatars/bunny/celebrate.svg",
-  },
-  fox: {
-    happy: "/avatars/fox/happy.svg",
-    focus: "/avatars/fox/focus.svg",
-    tired: "/avatars/fox/tired.svg",
-    break: "/avatars/fox/break.svg",
-    celebrate: "/avatars/fox/celebrate.svg",
-  },
-  cloud: {
-    happy: "/avatars/cloud/happy.svg",
-    focus: "/avatars/cloud/focus.svg",
-    tired: "/avatars/cloud/tired.svg",
-    break: "/avatars/cloud/break.svg",
-    celebrate: "/avatars/cloud/celebrate.svg",
-  },
-  pixel: {
-    happy: "/avatars/pixel/happy.svg",
-    focus: "/avatars/pixel/focus.svg",
-    tired: "/avatars/pixel/tired.svg",
-    break: "/avatars/pixel/break.svg",
-    celebrate: "/avatars/pixel/celebrate.svg",
-  },
-};
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
-
-function randomPick<T>(values: readonly T[]): T {
-  return values[Math.floor(Math.random() * values.length)];
-}
-
-function formatMMSS(totalSeconds: number): string {
-  const m = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
-  const s = (totalSeconds % 60).toString().padStart(2, "0");
-  return `${m}:${s}`;
-}
-
-function loadSettings(): Settings {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) {
-    return defaultSettings;
-  }
-
-  try {
-    const parsed = JSON.parse(raw) as Partial<Settings>;
-    return {
-      ...defaultSettings,
-      ...parsed,
-      phraseFrequencySec: clamp(parsed.phraseFrequencySec ?? 85, 20, 300),
-      opacity: clamp(parsed.opacity ?? 1, 0.55, 1),
-      size: clamp(parsed.size ?? 1, 0.8, 1.4),
-      customFocusMin: clamp(parsed.customFocusMin ?? 30, 5, 120),
-      customBreakMin: clamp(parsed.customBreakMin ?? 5, 1, 30),
-      autoHideSeconds: clamp(parsed.autoHideSeconds ?? 6, 3, 30),
-    };
-  } catch {
-    return defaultSettings;
-  }
-}
 
 function getDurations(settings: Settings): { focusSec: number; breakSec: number } {
   if (settings.pomodoroPreset === "50-10") {
     return { focusSec: 50 * 60, breakSec: 10 * 60 };
   }
-
   if (settings.pomodoroPreset === "custom") {
-    return {
-      focusSec: settings.customFocusMin * 60,
-      breakSec: settings.customBreakMin * 60,
-    };
+    return { focusSec: settings.customFocusMin * 60, breakSec: settings.customBreakMin * 60 };
   }
-
   return { focusSec: 25 * 60, breakSec: 5 * 60 };
 }
 
 function playSoftBeep(): void {
   try {
-    const audioContextRef = (window as Window & { __amiwiAudioCtx?: AudioContext });
+    const audioContextRef = window as Window & { __amiwiAudioCtx?: AudioContext };
     const ctx = audioContextRef.__amiwiAudioCtx ?? new window.AudioContext();
     audioContextRef.__amiwiAudioCtx = ctx;
     const osc = ctx.createOscillator();
@@ -325,13 +43,8 @@ function playSoftBeep(): void {
     osc.start();
     osc.stop(ctx.currentTime + 0.18);
   } catch {
-    // Ignore if unavailable.
+    // noop
   }
-}
-
-function resolveAsset(path: string): string {
-  const clean = path.replace(/^\//, "");
-  return `${import.meta.env.BASE_URL}${clean}`;
 }
 
 function App() {
@@ -340,22 +53,22 @@ function App() {
   const [mood, setMood] = useState<Mood>("happy");
   const [phrase, setPhrase] = useState("");
   const [phraseTick, setPhraseTick] = useState(0);
+  const [musicPulsePhrase, setMusicPulsePhrase] = useState("");
   const [systemMusicActive, setSystemMusicActive] = useState(false);
   const [systemMusicSource, setSystemMusicSource] = useState("");
   const [avatarBroken, setAvatarBroken] = useState(false);
-
   const [musicTrackUrl, setMusicTrackUrl] = useState("");
   const [musicTrackName, setMusicTrackName] = useState("");
   const [musicPlaying, setMusicPlaying] = useState(false);
   const [musicEnergy, setMusicEnergy] = useState(0);
-
-  const durations = useMemo(() => getDurations(settings), [settings]);
   const [focusRunning, setFocusRunning] = useState(false);
   const [focusPhase, setFocusPhase] = useState<FocusPhase>("focus");
-  const [remainingSeconds, setRemainingSeconds] = useState(durations.focusSec);
-
   const [dormant, setDormant] = useState(false);
   const [clickThroughActive, setClickThroughActive] = useState(false);
+
+  const durations = useMemo(() => getDurations(settings), [settings]);
+  const [remainingSeconds, setRemainingSeconds] = useState(durations.focusSec);
+
   const hideTimerRef = useRef<number | null>(null);
   const pollingRef = useRef(false);
   const interactionThrottleRef = useRef(0);
@@ -364,6 +77,14 @@ function App() {
   const dataArrayRef = useRef<Uint8Array | null>(null);
   const audioSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const rafRef = useRef<number | null>(null);
+  const widgetBodyRef = useRef<HTMLElement | null>(null);
+
+  const { position, startDrag } = useMascotDrag({
+    containerRef: widgetBodyRef,
+    storageKey: `${STORAGE_KEY}.mascot.position`,
+    mascotSize: { w: 150, h: 112 },
+    enabled: settings.ultraMinimal && !showPanel,
+  });
 
   const t = copy[settings.language];
   const isMusicActive = settings.musicReactive && (musicPlaying || systemMusicActive);
@@ -371,6 +92,16 @@ function App() {
   const globalShortcutLabel = navigator.platform.toLowerCase().includes("mac")
     ? "Cmd+Shift+A"
     : "Ctrl+Shift+A (fallback Ctrl+Alt+A)";
+
+  const stageWidth = widgetBodyRef.current?.clientWidth ?? 240;
+  const stageHeight = widgetBodyRef.current?.clientHeight ?? 220;
+  const mascotCenterX = clamp(position.x + 75, 24, stageWidth - 24);
+  const phraseY = clamp(position.y - 38, 0, stageHeight - 38);
+  const actionY = clamp(position.y + 116, 0, stageHeight - 36);
+  const timerX = clamp(position.x + 88, 24, stageWidth - 42);
+  const timerY = clamp(position.y + 92, 6, stageHeight - 28);
+  const musicX = clamp(position.x + 115, 24, stageWidth - 24);
+  const musicY = clamp(position.y + 10, 4, stageHeight - 28);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -394,70 +125,65 @@ function App() {
     }
   }, [durations.focusSec, focusRunning]);
 
+  const update = <K extends keyof Settings>(key: K, value: Settings[K]): void => {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+  };
+
   const emitPhrase = (text: string): void => {
     setPhrase(text);
     setPhraseTick((prev) => prev + 1);
   };
 
-  const getSmartPhrasePool = (): readonly string[] => {
+  const smartPhrasePool = useCallback((): readonly string[] => {
     const hour = new Date().getHours();
-
     if (isMusicActive) {
       return t.phraseMusic;
     }
-
     if (focusRunning && focusPhase === "focus") {
       return t.phraseDeepFocus;
     }
-
     if (hour >= 6 && hour < 11) {
       return t.phraseMorning;
     }
-
     if (hour >= 21 || hour < 5) {
       return t.phraseNight;
     }
-
     if (settings.mode === "study") {
       return t.phraseStudy;
     }
-
     if (settings.mode === "work") {
       return t.phraseWork;
     }
-
     return t.phraseBreak;
-  };
+  }, [focusPhase, focusRunning, isMusicActive, settings.mode, t]);
 
   useEffect(() => {
-    const pool = getSmartPhrasePool();
-    emitPhrase(randomPick(pool));
-
+    emitPhrase(randomPick(smartPhrasePool()));
     if (isMusicActive) {
       setMood("celebrate");
       return;
     }
-
-    if (settings.mode === "study") {
-      setMood("focus");
-      return;
-    }
-
-    if (settings.mode === "work") {
-      setMood("happy");
-      return;
-    }
-
-    setMood("break");
-  }, [isMusicActive, settings.mode, focusRunning, focusPhase]);
+    setMood(settings.mode === "study" ? "focus" : settings.mode === "work" ? "happy" : "break");
+  }, [isMusicActive, settings.mode, smartPhrasePool]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      emitPhrase(randomPick(getSmartPhrasePool()));
+      emitPhrase(randomPick(smartPhrasePool()));
     }, settings.phraseFrequencySec * 1000);
-
     return () => window.clearInterval(timer);
-  }, [settings.phraseFrequencySec, isMusicActive, settings.mode, focusRunning, focusPhase]);
+  }, [settings.phraseFrequencySec, smartPhrasePool]);
+
+  useEffect(() => {
+    if (!isMusicActive) {
+      setMusicPulsePhrase("");
+      return;
+    }
+    setMusicPulsePhrase("♪");
+    const timer = window.setInterval(() => {
+      setMusicPulsePhrase(randomPick(t.phraseMusic));
+    }, 9000);
+    return () => window.clearInterval(timer);
+  }, [isMusicActive, t.phraseMusic]);
 
   useEffect(() => {
     if (!settings.systemMusicDetect) {
@@ -465,47 +191,34 @@ function App() {
       setSystemMusicSource("");
       return;
     }
-
     let active = true;
-
     const check = async () => {
       if (pollingRef.current) {
         return;
       }
-
       pollingRef.current = true;
       try {
         const timeout = new Promise<MusicDetection>((resolve) => {
-          window.setTimeout(() => {
-            resolve({ active: false, source: "", method: "timeout" });
-          }, 1500);
+          window.setTimeout(() => resolve({ active: false, source: "", method: "timeout" }), 1500);
         });
-
         const detection = invoke<MusicDetection>("detect_system_music");
         const res = await Promise.race([detection, timeout]);
         if (!active) {
           return;
         }
-
         setSystemMusicActive(res.active);
         setSystemMusicSource(res.source);
       } catch {
-        if (!active) {
-          return;
+        if (active) {
+          setSystemMusicActive(false);
+          setSystemMusicSource("");
         }
-
-        setSystemMusicActive(false);
-        setSystemMusicSource("");
       } finally {
         pollingRef.current = false;
       }
     };
-
     void check();
-    const timer = window.setInterval(() => {
-      void check();
-    }, 20_000);
-
+    const timer = window.setInterval(() => void check(), 20_000);
     return () => {
       active = false;
       window.clearInterval(timer);
@@ -523,7 +236,7 @@ function App() {
     }
 
     if (!musicPlaying || !audioRef.current) {
-      if (!musicPlaying && systemMusicActive) {
+      if (systemMusicActive) {
         const timer = window.setInterval(() => {
           setMusicEnergy((prev) => {
             const next = 0.35 + 0.2 * Math.sin(Date.now() / 600);
@@ -543,7 +256,6 @@ function App() {
     if (!audioSourceRef.current) {
       audioSourceRef.current = ctx.createMediaElementSource(audioRef.current);
     }
-
     if (!analyserRef.current) {
       analyserRef.current = ctx.createAnalyser();
       analyserRef.current.fftSize = 128;
@@ -565,13 +277,11 @@ function App() {
         for (let i = 0; i < dataArrayRef.current.length; i += 1) {
           sum += dataArrayRef.current[i];
         }
-        const avg = sum / dataArrayRef.current.length;
-        const normalized = clamp(avg / 255, 0, 1);
+        const normalized = clamp((sum / dataArrayRef.current.length) / 255, 0, 1);
         setMusicEnergy((prev) => (Math.abs(prev - normalized) > 0.03 ? normalized : prev));
       }
       rafRef.current = window.requestAnimationFrame(loop);
     };
-
     rafRef.current = window.requestAnimationFrame(loop);
 
     return () => {
@@ -586,79 +296,60 @@ function App() {
     if (!focusRunning) {
       return;
     }
-
     const timer = window.setInterval(() => {
       setRemainingSeconds((prev) => {
         if (prev > 1) {
           return prev - 1;
         }
-
         playSoftBeep();
-
         if (focusPhase === "focus") {
           setFocusPhase("break");
           setMood("celebrate");
           emitPhrase(randomPick(t.phraseBreak));
           return durations.breakSec;
         }
-
         setFocusPhase("focus");
         setMood("focus");
         emitPhrase(randomPick(t.phraseDeepFocus));
         return durations.focusSec;
       });
     }, 1000);
-
     return () => window.clearInterval(timer);
-  }, [durations.breakSec, durations.focusSec, focusPhase, focusRunning, t]);
-
-  useEffect(() => {
-    return () => {
-      if (hideTimerRef.current !== null) {
-        window.clearTimeout(hideTimerRef.current);
-      }
-    };
-  }, [settings.autoHideEnabled, settings.autoHideSeconds, showPanel]);
+  }, [durations.breakSec, durations.focusSec, focusPhase, focusRunning, t.phraseBreak, t.phraseDeepFocus]);
 
   useEffect(() => {
     const shouldIgnore = clickThroughActive && dormant && !showPanel;
     void getCurrentWindow().setIgnoreCursorEvents(shouldIgnore).catch(() => undefined);
-
     return () => {
       void getCurrentWindow().setIgnoreCursorEvents(false).catch(() => undefined);
     };
   }, [clickThroughActive, dormant, showPanel]);
 
-  const update = <K extends keyof Settings>(key: K, value: Settings[K]): void => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
-  };
-
   const registerInteraction = useCallback((): void => {
     const now = Date.now();
-    const shouldThrottle = now - interactionThrottleRef.current < 180 && !dormant;
-    if (shouldThrottle) {
+    if (now - interactionThrottleRef.current < 180 && !dormant) {
       return;
     }
     interactionThrottleRef.current = now;
-
     if (dormant) {
       setDormant(false);
     }
-
     if (hideTimerRef.current !== null) {
       window.clearTimeout(hideTimerRef.current);
       hideTimerRef.current = null;
     }
-
     if (settings.autoHideEnabled && !showPanel) {
-      hideTimerRef.current = window.setTimeout(() => {
-        setDormant(true);
-      }, settings.autoHideSeconds * 1000);
+      hideTimerRef.current = window.setTimeout(() => setDormant(true), settings.autoHideSeconds * 1000);
     }
   }, [dormant, settings.autoHideEnabled, settings.autoHideSeconds, showPanel]);
 
   useEffect(() => {
     registerInteraction();
+    return () => {
+      if (hideTimerRef.current !== null) {
+        window.clearTimeout(hideTimerRef.current);
+      }
+    };
   }, [registerInteraction]);
 
   useEffect(() => {
@@ -674,34 +365,13 @@ function App() {
       setShowPanel((prev) => !prev);
       registerInteraction();
     });
-
     return () => {
       disposed = true;
       void unlistenPromise.then((unlisten) => unlisten()).catch(() => undefined);
     };
   }, [registerInteraction]);
 
-  const handleMusicFile = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.currentTarget.files?.[0];
-    if (!file) {
-      return;
-    }
-
-    if (musicTrackUrl) {
-      URL.revokeObjectURL(musicTrackUrl);
-    }
-
-    const url = URL.createObjectURL(file);
-    setMusicTrackUrl(url);
-    setMusicTrackName(file.name);
-  };
-
-  const handleFeed = () => {
-    setMood("celebrate");
-    emitPhrase(randomPick(t.phraseFeed));
-  };
-
-  const quickStartFocus = () => {
+  const quickStartFocus = useCallback(() => {
     setFocusRunning((prev) => {
       if (prev) {
         setFocusPhase("focus");
@@ -709,21 +379,50 @@ function App() {
         setMood("happy");
         return false;
       }
-
       setFocusPhase("focus");
       setRemainingSeconds(durations.focusSec);
       setMood("focus");
       update("mode", "study");
       return true;
     });
+  }, [durations.focusSec]);
+
+  const handleFeed = useCallback(() => {
+    setMood("celebrate");
+    emitPhrase(randomPick(t.phraseFeed));
+  }, [t.phraseFeed]);
+
+  const bubbleActions: BubbleAction[] = useMemo(() => [
+    { id: "focus", icon: focusRunning ? "■" : "▶", label: t.bubbleFocus, onClick: quickStartFocus },
+    { id: "feed", icon: "🍪", label: t.bubbleFeed, onClick: handleFeed },
+    { id: "phrase", icon: "💬", label: t.bubblePhrase, onClick: () => emitPhrase(randomPick(smartPhrasePool())) },
+    {
+      id: "music",
+      icon: "♪",
+      label: t.bubbleMusic,
+      onClick: () => update("musicAmbient", !settings.musicAmbient),
+      pulse: isMusicActive
+    },
+    { id: "settings", icon: "⚙", label: t.bubbleSettings, onClick: () => setShowPanel(true) },
+  ], [focusRunning, handleFeed, isMusicActive, quickStartFocus, settings.musicAmbient, smartPhrasePool, t, update]);
+
+  const handleMusicFile = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    if (!file) {
+      return;
+    }
+    if (musicTrackUrl) {
+      URL.revokeObjectURL(musicTrackUrl);
+    }
+    const url = URL.createObjectURL(file);
+    setMusicTrackUrl(url);
+    setMusicTrackName(file.name);
   };
 
   const activateClickThroughPulse = () => {
     setClickThroughActive(true);
     emitPhrase(t.clickThroughHint);
-    window.setTimeout(() => {
-      setClickThroughActive(false);
-    }, 8000);
+    window.setTimeout(() => setClickThroughActive(false), 8000);
   };
 
   const avatarAsset = useMemo(
@@ -735,11 +434,7 @@ function App() {
     setAvatarBroken(false);
   }, [settings.avatarStyle, mood]);
 
-  const toggleFocusFromMascot = () => {
-    quickStartFocus();
-  };
-
-  const toggleSettingsFromMascot = (event: ReactMouseEvent<HTMLImageElement | HTMLDivElement>) => {
+  const openOrCloseSettings = (event: ReactMouseEvent<HTMLImageElement | HTMLDivElement>) => {
     event.preventDefault();
     setShowPanel((prev) => !prev);
   };
@@ -757,73 +452,72 @@ function App() {
       onMouseDown={registerInteraction}
     >
       {(!settings.ultraMinimal || showPanel) && (
-        <div className={`glass-header ${settings.ultraMinimal && !showPanel ? "hidden-chrome" : ""}`}>
+        <div className="glass-header">
           <div className="drag-region" data-tauri-drag-region>
             <strong>{t.title}</strong>
             <small>{t.subtitle}</small>
           </div>
           <div className="window-controls">
-            <button type="button" className="chip" title={t.settings} onClick={() => setShowPanel((prev) => !prev)}>⚙</button>
+            <button type="button" className="chip" onClick={() => setShowPanel((prev) => !prev)}>⚙</button>
             <button type="button" className="win" onClick={() => void getCurrentWindow().minimize()}>_</button>
-            <button type="button" className="win" onClick={() => void getCurrentWindow().close()}>✕</button>
+            <button type="button" className="win close" onClick={() => void getCurrentWindow().close()}>✕</button>
           </div>
         </div>
       )}
 
-      <section className="widget-body" style={{ transform: `scale(${settings.size})` }}>
-        {!avatarBroken ? (
-          <img
-            className={`avatar ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
-            src={avatarAsset}
-            alt={`${settings.avatarStyle}-${mood}`}
-            loading="eager"
-            decoding="async"
-            onDoubleClick={toggleFocusFromMascot}
-            onContextMenu={toggleSettingsFromMascot}
-            onError={() => setAvatarBroken(true)}
-          />
-        ) : (
-          <div
-            className="avatar-fallback"
-            aria-label="avatar-fallback"
-            onDoubleClick={toggleFocusFromMascot}
-            onContextMenu={toggleSettingsFromMascot}
-          >
-            o(=^.^=)o
-          </div>
-        )}
+      <section ref={widgetBodyRef} className="widget-body" style={{ transform: `scale(${settings.size})` }}>
+        <div className="mascot-draggable" style={{ left: `${position.x}px`, top: `${position.y}px` }} onPointerDown={startDrag}>
+          {!avatarBroken ? (
+            <img
+              className={`avatar ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
+              src={avatarAsset}
+              alt={`${settings.avatarStyle}-${mood}`}
+              loading="eager"
+              decoding="async"
+              onDoubleClick={quickStartFocus}
+              onContextMenu={openOrCloseSettings}
+              onError={() => setAvatarBroken(true)}
+            />
+          ) : (
+            <div className="avatar-fallback" onDoubleClick={quickStartFocus} onContextMenu={openOrCloseSettings}>
+              o(=^.^=)o
+            </div>
+          )}
+        </div>
 
-        <div key={phraseTick} className="floating-phrase">
+        <div key={phraseTick} className="floating-phrase" style={{ left: `${mascotCenterX}px`, top: `${phraseY}px` }}>
           {phrase}
         </div>
 
-        {!settings.ultraMinimal && (
-          <div className={`quick-row ${settings.ultraMinimal ? "minimal-dock" : ""}`}>
-            <button type="button" className="chip" title={focusRunning ? t.stop : t.start} onClick={() => quickStartFocus()}>{focusRunning ? "■" : "▶"}</button>
-            <span className="timer-pill">{focusPhase === "focus" ? "🍅" : "☕"} {formatMMSS(remainingSeconds)}</span>
-            <button type="button" className="chip" title={t.feed} onClick={handleFeed}>🍪</button>
-          </div>
-        )}
-
         {settings.ultraMinimal && !showPanel && (
-          <div className="bubble-actions">
-            <button type="button" className="bubble-action" title={t.bubbleFocus} onClick={quickStartFocus}>
-              {focusRunning ? "■" : "▶"}
-            </button>
-            <button type="button" className="bubble-action" title={t.bubbleFeed} onClick={handleFeed}>
-              🍪
-            </button>
-            <button type="button" className="bubble-action" title={t.bubbleSettings} onClick={() => setShowPanel(true)}>
-              ⚙
-            </button>
+          <div className="bubble-actions" style={{ left: `${mascotCenterX}px`, top: `${actionY}px` }}>
+            {bubbleActions.map((action) => (
+              <button
+                key={action.id}
+                type="button"
+                className={`bubble-action ${action.pulse ? "music-pulse" : ""}`}
+                title={action.label}
+                onClick={action.onClick}
+              >
+                {action.icon}
+              </button>
+            ))}
           </div>
         )}
 
         {settings.showTimerBubble && focusRunning && (
-          <div className="timer-bubble">{focusPhase === "focus" ? "🍅" : "☕"} {formatMMSS(remainingSeconds)}</div>
+          <div className="timer-bubble" style={{ left: `${timerX}px`, top: `${timerY}px` }}>
+            {focusPhase === "focus" ? "🍅" : "☕"} {formatMMSS(remainingSeconds)}
+          </div>
         )}
 
-        {(showPanel || (!settings.ultraMinimal && isMusicActive)) && (
+        {isMusicActive && settings.musicAmbient && (
+          <div className="music-react-bubble" style={{ left: `${musicX}px`, top: `${musicY}px` }}>
+            {musicPulsePhrase || "♪"}
+          </div>
+        )}
+
+        {showPanel && (
           <div className="music-pill">
             {t.nowPlaying}: {isMusicActive ? (systemMusicSource || musicTrackName || "active") : t.noMusic}
           </div>
@@ -834,7 +528,7 @@ function App() {
         <section className="settings-panel">
           <label>
             {t.language}
-            <select value={settings.language} onChange={(event) => update("language", event.currentTarget.value as Lang)}>
+            <select value={settings.language} onChange={(event) => update("language", event.currentTarget.value as Settings["language"])}>
               <option value="es">Espanol</option>
               <option value="en">English</option>
             </select>
@@ -842,7 +536,7 @@ function App() {
 
           <label>
             {t.avatar}
-            <select value={settings.avatarStyle} onChange={(event) => update("avatarStyle", event.currentTarget.value as AvatarStyle)}>
+            <select value={settings.avatarStyle} onChange={(event) => update("avatarStyle", event.currentTarget.value as Settings["avatarStyle"])}>
               <option value="cloud">Cloud</option>
               <option value="pixel">Pixel</option>
               <option value="blob">Blob</option>
@@ -854,7 +548,7 @@ function App() {
 
           <label>
             {t.mode}
-            <select value={settings.mode} onChange={(event) => update("mode", event.currentTarget.value as Mode)}>
+            <select value={settings.mode} onChange={(event) => update("mode", event.currentTarget.value as Settings["mode"])}>
               <option value="study">{t.focus}</option>
               <option value="work">{t.work}</option>
               <option value="break">{t.rest}</option>
@@ -898,44 +592,15 @@ function App() {
             <input type="range" min={0.8} max={1.4} step={0.05} value={settings.size} onChange={(event) => update("size", Number(event.currentTarget.value))} />
           </label>
 
-          <label className="toggle-row">
-            <input type="checkbox" checked={settings.alwaysOnTop} onChange={(event) => update("alwaysOnTop", event.currentTarget.checked)} />
-            {t.alwaysOnTop}
-          </label>
+          <label className="toggle-row"><input type="checkbox" checked={settings.alwaysOnTop} onChange={(event) => update("alwaysOnTop", event.currentTarget.checked)} />{t.alwaysOnTop}</label>
+          <label className="toggle-row"><input type="checkbox" checked={settings.systemMusicDetect} onChange={(event) => update("systemMusicDetect", event.currentTarget.checked)} />{t.detectSystemMusic}</label>
+          <label className="toggle-row"><input type="checkbox" checked={settings.musicReactive} onChange={(event) => update("musicReactive", event.currentTarget.checked)} />{t.reactMusic}</label>
+          <label className="toggle-row"><input type="checkbox" checked={settings.autoHideEnabled} onChange={(event) => update("autoHideEnabled", event.currentTarget.checked)} />{t.autoHide}</label>
+          <label className="toggle-row"><input type="checkbox" checked={settings.ultraMinimal} onChange={(event) => update("ultraMinimal", event.currentTarget.checked)} />{t.ultraMinimal}</label>
+          <label className="toggle-row"><input type="checkbox" checked={settings.showTimerBubble} onChange={(event) => update("showTimerBubble", event.currentTarget.checked)} />{t.showTimerBubble}</label>
+          <label className="toggle-row"><input type="checkbox" checked={settings.musicAmbient} onChange={(event) => update("musicAmbient", event.currentTarget.checked)} />{t.musicAmbient}</label>
 
-          <label className="toggle-row">
-            <input type="checkbox" checked={settings.systemMusicDetect} onChange={(event) => update("systemMusicDetect", event.currentTarget.checked)} />
-            {t.detectSystemMusic}
-          </label>
-
-          <label className="toggle-row">
-            <input type="checkbox" checked={settings.musicReactive} onChange={(event) => update("musicReactive", event.currentTarget.checked)} />
-            {t.reactMusic}
-          </label>
-
-          <label className="toggle-row">
-            <input type="checkbox" checked={settings.autoHideEnabled} onChange={(event) => update("autoHideEnabled", event.currentTarget.checked)} />
-            {t.autoHide}
-          </label>
-
-          <label className="toggle-row">
-            <input type="checkbox" checked={settings.ultraMinimal} onChange={(event) => update("ultraMinimal", event.currentTarget.checked)} />
-            {t.ultraMinimal}
-          </label>
-
-          <label className="toggle-row">
-            <input type="checkbox" checked={settings.showTimerBubble} onChange={(event) => update("showTimerBubble", event.currentTarget.checked)} />
-            {t.showTimerBubble}
-          </label>
-
-          <label className="toggle-row">
-            <input type="checkbox" checked={settings.musicAmbient} onChange={(event) => update("musicAmbient", event.currentTarget.checked)} />
-            {t.musicAmbient}
-          </label>
-
-          <label>
-            {t.globalShortcut}: {globalShortcutLabel}
-          </label>
+          <label>{t.globalShortcut}: {globalShortcutLabel}</label>
 
           {settings.autoHideEnabled && (
             <label>
@@ -949,14 +614,7 @@ function App() {
             <input type="file" accept="audio/*" onChange={handleMusicFile} />
           </label>
 
-          <audio
-            ref={audioRef}
-            controls
-            src={musicTrackUrl}
-            onPlay={() => setMusicPlaying(true)}
-            onPause={() => setMusicPlaying(false)}
-            onEnded={() => setMusicPlaying(false)}
-          />
+          <audio ref={audioRef} controls src={musicTrackUrl} onPlay={() => setMusicPlaying(true)} onPause={() => setMusicPlaying(false)} onEnded={() => setMusicPlaying(false)} />
 
           <div className="panel-footer">
             <button type="button" className="chip" onClick={activateClickThroughPulse}>{t.clickThroughPulse}</button>

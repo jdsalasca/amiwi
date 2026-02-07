@@ -99,6 +99,7 @@ body {
   border-radius: 18px;
   text-align: center;
   min-height: 200px;
+  overflow: visible;
 }
 
 .ultra-minimal .widget-body {
@@ -109,11 +110,23 @@ body {
   width: 168px;
   max-width: 78%;
   display: block;
-  margin: 26px auto 0;
+  margin: 0;
   filter:
     drop-shadow(0 8px 14px rgba(39, 72, 114, 0.24))
     drop-shadow(0 0 calc(8px + var(--music-energy, 0) * 20px) hsla(var(--accent-hue, 210), 90%, 65%, 0.45));
   animation: avatarBob 4.4s ease-in-out infinite;
+}
+
+.mascot-draggable {
+  position: absolute;
+  width: 150px;
+  height: 112px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.mascot-draggable:active {
+  cursor: grabbing;
 }
 
 .avatar-fallback {
@@ -156,8 +169,6 @@ body {
 
 .floating-phrase {
   position: absolute;
-  left: 50%;
-  top: -4px;
   transform: translateX(-50%);
   max-width: 88%;
   font-size: 0.8rem;
@@ -173,8 +184,7 @@ body {
 
 .timer-bubble {
   position: absolute;
-  right: 8px;
-  bottom: 16px;
+  transform: translate(-50%, -50%);
   font-size: 0.72rem;
   border-radius: 999px;
   padding: 4px 8px;
@@ -185,11 +195,10 @@ body {
 
 .bubble-actions {
   position: absolute;
-  left: 50%;
-  bottom: 8px;
   transform: translateX(-50%);
   display: inline-flex;
   gap: 8px;
+  z-index: 3;
 }
 
 .bubble-action {
@@ -202,6 +211,24 @@ body {
   font-size: 0.78rem;
   font-weight: 700;
   padding: 0;
+}
+
+.bubble-action.music-pulse {
+  box-shadow: 0 0 14px hsla(var(--accent-hue, 210), 95%, 65%, 0.5);
+}
+
+.music-react-bubble {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  max-width: 120px;
+  font-size: 0.68rem;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #244067;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(181, 215, 250, 0.8);
+  animation: pulse 1.4s ease-in-out infinite;
+  z-index: 2;
 }
 
 @keyframes bubbleIn {

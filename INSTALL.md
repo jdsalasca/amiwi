@@ -5,6 +5,11 @@
 2. Run:
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass -Force
+.\scripts\install-windows.ps1 -Quick
+```
+
+## Windows (guided install)
+```powershell
 .\scripts\install-windows.ps1
 ```
 

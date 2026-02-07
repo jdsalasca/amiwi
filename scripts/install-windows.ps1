@@ -1,5 +1,6 @@
 param(
-  [string]$Version = "latest"
+  [string]$Version = "latest",
+  [switch]$Quick
 )
 
 $owner = "jdsalasca"
@@ -15,5 +16,11 @@ if ($Version -eq "latest") {
 $target = Join-Path $env:TEMP "Amiwi-setup.exe"
 Write-Host "Downloading installer from $releaseUrl"
 Invoke-WebRequest -Uri $releaseUrl -OutFile $target
-Write-Host "Running installer: $target"
-Start-Process -FilePath $target -Wait
+
+if ($Quick) {
+  Write-Host "Running quick silent install..."
+  Start-Process -FilePath $target -ArgumentList "/S" -Wait
+} else {
+  Write-Host "Running guided install..."
+  Start-Process -FilePath $target -Wait
+}

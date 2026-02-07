@@ -1,11 +1,11 @@
 # UX Requirements Checklist (Next Improvements)
 
-Fecha: 2026-02-07  
+Fecha: 2026-02-07
 Producto: Amiwi Desktop
 
 ## 1) Window & Widget UX
 - [x] Widget mode por defecto (solo mascota visible al iniciar).
-- [x] Botones de control de ventana (minimizar, agrandar/restaurar, cerrar).
+- [x] Botones de control de ventana (minimizar, agrandar/restaurar, cerrar) visibles en app.
 - [x] Toggle rapido `Minimal/Expandir`.
 - [x] Ventana redimensionable para adaptarse al flujo del usuario.
 - [ ] Atajo global para mostrar/ocultar widget.
@@ -14,14 +14,15 @@ Producto: Amiwi Desktop
 ## 2) Mascot & Visual Design
 - [x] Selector de estilos de avatar.
 - [x] Nuevas opciones solicitadas: `cloud` y `pixel`.
-- [ ] Sustituir caras ASCII por assets visuales reales (PNG/SVG/Lottie).
+- [x] Assets visuales reales iniciales para `cloud` y `pixel` por estado (SVG).
+- [ ] Sustituir completamente caras ASCII restantes por assets visuales reales (PNG/SVG/Lottie).
 - [ ] Biblioteca de personajes cute coherente (idle, focus, celebrate, hungry, sleep).
 - [ ] Editor simple para elegir tema visual y tamaño por perfil.
 
 ## 3) Pomodoro & Focus UX
 - [x] Pomodoro visible en modo widget con reloj/contador.
 - [x] Botones Start/Stop accesibles desde widget.
-- [ ] Selector de presets (25/5, 50/10, custom).
+- [ ] Selector de presets (25/5, 50/10, custom) en UI.
 - [ ] Notificaciones visuales/sonoras suaves al cambiar fase.
 - [ ] Historial de ciclos completados por dia/semana.
 
@@ -42,7 +43,8 @@ Producto: Amiwi Desktop
 ## 6) Installer & Onboarding
 - [x] Guia de instalacion simplificada (`INSTALL.md`).
 - [x] Script rapido para instalacion Windows y macOS.
-- [ ] Instalador con \"Quick setup\" y \"Advanced setup\".
+- [x] Instalador Windows con modo `Quick` (silencioso) y guiado.
+- [ ] Instalador macOS equivalente con perfil quick/advanced.
 - [ ] Primera ejecucion con tour interactivo de 30s.
 - [ ] Detectar setup recomendado automaticamente (modo widget + idioma + perfil).
 

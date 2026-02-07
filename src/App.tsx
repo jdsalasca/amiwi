@@ -11,6 +11,8 @@ type Mode = "study" | "work" | "break";
 type Mood = "happy" | "focus" | "tired" | "break" | "celebrate";
 type FocusPhase = "focus" | "break";
 type AvatarStyle = "blob" | "cat" | "bunny" | "fox" | "cloud" | "pixel";
+type Profile = "student" | "work" | "balanced";
+type Tab = "focus" | "pet" | "music" | "stats" | "style";
 
 type Settings = {
   language: Lang;
@@ -26,6 +28,8 @@ type Settings = {
   avatarStyle: AvatarStyle;
   occasionalSayings: boolean;
   systemMusicDetect: boolean;
+  alwaysOnTop: boolean;
+  profile: Profile;
 };
 
 type WeeklyStats = {
@@ -69,9 +73,11 @@ const defaultSettings: Settings = {
   onboarded: false,
   musicReactive: true,
   minimalMode: true,
-  avatarStyle: "blob",
+  avatarStyle: "cloud",
   occasionalSayings: true,
   systemMusicDetect: true,
+  alwaysOnTop: true,
+  profile: "student",
 };
 
 const faceByAvatar: Record<AvatarStyle, Record<Mood, string>> = {
@@ -104,18 +110,35 @@ const faceByAvatar: Record<AvatarStyle, Record<Mood, string>> = {
     celebrate: "🦊🎉",
   },
   cloud: {
-    happy: "☁︎(◕‿◕)",
-    focus: "☁︎(•̀ᴗ•́)",
-    tired: "☁︎(˘･_･˘)",
-    break: "☁︎( ＾◡＾)",
-    celebrate: "☁︎✧٩(ˊᗜˋ*)و",
+    happy: "",
+    focus: "",
+    tired: "",
+    break: "",
+    celebrate: "",
   },
   pixel: {
-    happy: "[ ^_^ ]",
-    focus: "[ >_< ]",
-    tired: "[ -_- ]",
-    break: "[ ~_~ ]",
-    celebrate: "[ +_+ ]",
+    happy: "",
+    focus: "",
+    tired: "",
+    break: "",
+    celebrate: "",
+  },
+};
+
+const assetByAvatarMood: Partial<Record<AvatarStyle, Record<Mood, string>>> = {
+  cloud: {
+    happy: "/avatars/cloud/happy.svg",
+    focus: "/avatars/cloud/focus.svg",
+    tired: "/avatars/cloud/tired.svg",
+    break: "/avatars/cloud/break.svg",
+    celebrate: "/avatars/cloud/celebrate.svg",
+  },
+  pixel: {
+    happy: "/avatars/pixel/happy.svg",
+    focus: "/avatars/pixel/focus.svg",
+    tired: "/avatars/pixel/tired.svg",
+    break: "/avatars/pixel/break.svg",
+    celebrate: "/avatars/pixel/celebrate.svg",
   },
 };
 
@@ -198,6 +221,8 @@ function loadSettings(): Settings {
       minimalMode: parsed.minimalMode ?? true,
       occasionalSayings: parsed.occasionalSayings ?? true,
       systemMusicDetect: parsed.systemMusicDetect ?? true,
+      alwaysOnTop: parsed.alwaysOnTop ?? true,
+      profile: parsed.profile ?? "student",
     };
   } catch {
     return defaultSettings;
@@ -325,6 +350,8 @@ function App() {
   const [stats, setStats] = useState<WeeklyStats>(() => loadWeeklyStats());
   const [pet, setPet] = useState<PetState>(() => loadPetState());
   const [showSettings, setShowSettings] = useState(false);
+  const [onboardingAdvanced, setOnboardingAdvanced] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>("focus");
   const [mood, setMood] = useState<Mood>("happy");
   const [phrase, setPhrase] = useState("");
   const [musicSystemSource, setMusicSystemSource] = useState("");
@@ -356,6 +383,10 @@ function App() {
   useEffect(() => {
     setStats((prev) => normalizeWeeklyStats(prev, new Date()));
   }, []);
+
+  useEffect(() => {
+    void getCurrentWindow().setAlwaysOnTop(settings.alwaysOnTop).catch(() => undefined);
+  }, [settings.alwaysOnTop]);
 
   useEffect(() => {
     if (isMusicActive) {
@@ -540,6 +571,47 @@ function App() {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
+  const applyProfilePreset = (profile: Profile) => {
+    if (profile === "student") {
+      setSettings((prev) => ({
+        ...prev,
+        profile,
+        tone: "sweet",
+        mode: "study",
+        phraseFrequencySec: 80,
+        avatarStyle: "cloud",
+        minimalMode: true,
+        onboarded: true,
+      }));
+      return;
+    }
+
+    if (profile === "work") {
+      setSettings((prev) => ({
+        ...prev,
+        profile,
+        tone: "motivator",
+        mode: "work",
+        phraseFrequencySec: 120,
+        avatarStyle: "pixel",
+        minimalMode: true,
+        onboarded: true,
+      }));
+      return;
+    }
+
+    setSettings((prev) => ({
+      ...prev,
+      profile,
+      tone: "neutral",
+      mode: "study",
+      phraseFrequencySec: 100,
+      avatarStyle: "blob",
+      minimalMode: true,
+      onboarded: true,
+    }));
+  };
+
   const currentStatus = locale.status[mood];
   const onboardingDone = settings.onboarded;
   const totalFocusWeek = stats.focusMinutesByDay.reduce((sum, item) => sum + item, 0);
@@ -588,41 +660,64 @@ function App() {
     setPhrase(randomPick(locale.feedPhrases));
   };
 
+  const avatarAsset = assetByAvatarMood[settings.avatarStyle]?.[mood];
+
   return (
     <main className={`app-shell ${settings.minimalMode ? "widget-mode" : ""}`} style={{ opacity: settings.opacity }}>
       {!onboardingDone && (
         <section className="onboarding">
           <h2>{locale.ui.onboardingTitle}</h2>
+          {!onboardingAdvanced && (
+            <div className="quick-setup-grid">
+              <button type="button" onClick={() => applyProfilePreset("student")}>Quick: Study</button>
+              <button type="button" onClick={() => applyProfilePreset("work")}>Quick: Work</button>
+              <button type="button" onClick={() => applyProfilePreset("balanced")}>Quick: Balanced</button>
+              <button type="button" onClick={() => setOnboardingAdvanced(true)}>Advanced Setup</button>
+            </div>
+          )}
 
-          <label>
-            {locale.ui.language}
-            <select
-              value={settings.language}
-              onChange={(event) => applySetting("language", event.currentTarget.value as Lang)}
-            >
-              <option value="es">Espanol</option>
-              <option value="en">English</option>
-            </select>
-          </label>
+          {onboardingAdvanced && (
+            <>
+              <label>
+                {locale.ui.language}
+                <select
+                  value={settings.language}
+                  onChange={(event) => applySetting("language", event.currentTarget.value as Lang)}
+                >
+                  <option value="es">Espanol</option>
+                  <option value="en">English</option>
+                </select>
+              </label>
 
-          <label>
-            {locale.ui.avatar}
-            <select
-              value={settings.avatarStyle}
-              onChange={(event) => applySetting("avatarStyle", event.currentTarget.value as AvatarStyle)}
-            >
-              <option value="blob">Blob</option>
-              <option value="cloud">Cloud</option>
-              <option value="pixel">Pixel</option>
-              <option value="cat">Cat</option>
-              <option value="bunny">Bunny</option>
-              <option value="fox">Fox</option>
-            </select>
-          </label>
+              <label>
+                {locale.ui.avatar}
+                <select
+                  value={settings.avatarStyle}
+                  onChange={(event) => applySetting("avatarStyle", event.currentTarget.value as AvatarStyle)}
+                >
+                  <option value="cloud">Cloud</option>
+                  <option value="pixel">Pixel</option>
+                  <option value="blob">Blob</option>
+                  <option value="cat">Cat</option>
+                  <option value="bunny">Bunny</option>
+                  <option value="fox">Fox</option>
+                </select>
+              </label>
 
-          <button type="button" onClick={() => applySetting("onboarded", true)}>
-            {locale.ui.onboardingCta}
-          </button>
+              <label className="checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={settings.minimalMode}
+                  onChange={(event) => applySetting("minimalMode", event.currentTarget.checked)}
+                />
+                Widget mode by default
+              </label>
+
+              <button type="button" onClick={() => applySetting("onboarded", true)}>
+                {locale.ui.onboardingCta}
+              </button>
+            </>
+          )}
         </section>
       )}
 
@@ -635,20 +730,18 @@ function App() {
           <button type="button" className="tiny" onClick={() => setShowSettings((prev) => !prev)}>
             {showSettings ? locale.ui.closeSettings : locale.ui.openSettings}
           </button>
-          <button type="button" className="win-btn" onClick={() => void minimizeWindow()} title="Minimize">
-            _
-          </button>
-          <button type="button" className="win-btn" onClick={() => void toggleMaximizeWindow()} title="Maximize">
-            □
-          </button>
-          <button type="button" className="win-btn close" onClick={() => void closeWindow()} title="Close">
-            ✕
-          </button>
+          <button type="button" className="win-btn" onClick={() => void minimizeWindow()} title="Minimize">_</button>
+          <button type="button" className="win-btn" onClick={() => void toggleMaximizeWindow()} title="Maximize">□</button>
+          <button type="button" className="win-btn close" onClick={() => void closeWindow()} title="Close">✕</button>
         </div>
       </header>
 
       <section className={`avatar-card ${settings.minimalMode ? "minimal-card" : ""}`} style={{ transform: `scale(${settings.size})` }}>
-        <p className="face">{faceByAvatar[settings.avatarStyle][mood]}</p>
+        {avatarAsset ? (
+          <img className="avatar-asset" src={avatarAsset} alt={`${settings.avatarStyle}-${mood}`} />
+        ) : (
+          <p className="face">{faceByAvatar[settings.avatarStyle][mood]}</p>
+        )}
         <p className="status">{currentStatus}</p>
 
         {settings.minimalMode ? (
@@ -673,163 +766,123 @@ function App() {
       </section>
 
       {!settings.minimalMode && (
-        <>
-          <section className="speech-card">
-            <h4>{locale.ui.currentPhrase}</h4>
-            <p>{phrase}</p>
-          </section>
+        <section className="tabs-shell">
+          <div className="tabs-row">
+            <button type="button" className={activeTab === "focus" ? "tab active" : "tab"} onClick={() => setActiveTab("focus")}>Focus</button>
+            <button type="button" className={activeTab === "pet" ? "tab active" : "tab"} onClick={() => setActiveTab("pet")}>Pet</button>
+            <button type="button" className={activeTab === "music" ? "tab active" : "tab"} onClick={() => setActiveTab("music")}>Music</button>
+            <button type="button" className={activeTab === "stats" ? "tab active" : "tab"} onClick={() => setActiveTab("stats")}>Stats</button>
+            <button type="button" className={activeTab === "style" ? "tab active" : "tab"} onClick={() => setActiveTab("style")}>Style</button>
+          </div>
 
-          <section className="pet-card">
-            <h4>{locale.ui.petTitle}</h4>
-            <p>
-              {locale.ui.hunger}: {pet.hunger}%
-            </p>
-            <div className="hunger-bar">
-              <span style={{ width: `${pet.hunger}%` }} />
-            </div>
-            <button type="button" onClick={feedCompanion}>
-              {locale.ui.feedButton}
-            </button>
-          </section>
+          {activeTab === "focus" && (
+            <section className="panel-card">
+              <h4>{locale.ui.currentPhrase}</h4>
+              <p>{phrase}</p>
+              <div className="focus-row">
+                {!focusRunning ? (
+                  <button type="button" onClick={startFocus}>{locale.ui.focusStart}</button>
+                ) : (
+                  <button type="button" onClick={stopFocus}>{locale.ui.focusStop}</button>
+                )}
+                <span>{focusPhase === "focus" ? locale.ui.focusRunning : locale.ui.breakRunning}: {formatMMSS(remainingSeconds)}</span>
+              </div>
+            </section>
+          )}
 
-          <section className="actions-card">
-            <label>
-              {locale.ui.mode}
-              <select value={settings.mode} onChange={(event) => applySetting("mode", event.currentTarget.value as Mode)}>
-                <option value="study">{locale.modes.study}</option>
-                <option value="work">{locale.modes.work}</option>
-                <option value="break">{locale.modes.break}</option>
-              </select>
-            </label>
+          {activeTab === "pet" && (
+            <section className="panel-card">
+              <h4>{locale.ui.petTitle}</h4>
+              <p>{locale.ui.hunger}: {pet.hunger}%</p>
+              <div className="hunger-bar"><span style={{ width: `${pet.hunger}%` }} /></div>
+              <button type="button" onClick={feedCompanion}>{locale.ui.feedButton}</button>
+            </section>
+          )}
 
-            <div className="focus-row">
-              {!focusRunning ? (
-                <button type="button" onClick={startFocus}>
-                  {locale.ui.focusStart}
-                </button>
-              ) : (
-                <button type="button" onClick={stopFocus}>
-                  {locale.ui.focusStop}
-                </button>
-              )}
-              <span>
-                {focusPhase === "focus" ? locale.ui.focusRunning : locale.ui.breakRunning}: {formatMMSS(remainingSeconds)}
-              </span>
-            </div>
-          </section>
+          {activeTab === "music" && (
+            <section className="panel-card">
+              <h4>{locale.ui.musicTitle}</h4>
+              <p className="music-track">System: {systemMusicActive ? musicSystemSource || "active" : "inactive"}</p>
+              <label>
+                {locale.ui.musicPickFile}
+                <input type="file" accept="audio/*" onChange={handleMusicFile} />
+              </label>
+              <p className="music-track">{locale.ui.musicNowPlaying}: {musicTrackName || locale.ui.musicNoTrack}</p>
+              <audio
+                controls
+                src={musicTrackUrl}
+                onPlay={() => setMusicPlaying(true)}
+                onPause={() => setMusicPlaying(false)}
+                onEnded={() => setMusicPlaying(false)}
+              />
+            </section>
+          )}
 
-          <section className="music-card">
-            <h4>{locale.ui.musicTitle}</h4>
-            <p className="music-track">System: {systemMusicActive ? musicSystemSource || "active" : "inactive"}</p>
+          {activeTab === "stats" && (
+            <section className="panel-card">
+              <h4>{locale.ui.weeklyStats}</h4>
+              <p>{locale.ui.focusMinutesWeek}: {totalFocusWeek}</p>
+              <p>{locale.ui.focusMinutesToday}: {todayFocus}</p>
+              <p>{locale.ui.focusSessions}: {stats.focusSessions}</p>
+              <p>{locale.ui.musicMinutesWeek}: {stats.musicMinutes}</p>
+              <p>{locale.ui.feedCountWeek}: {stats.feedCount}</p>
+              <p>{locale.ui.streakDays}: {streakDays}</p>
+            </section>
+          )}
 
-            <label>
-              {locale.ui.musicPickFile}
-              <input type="file" accept="audio/*" onChange={handleMusicFile} />
-            </label>
-
-            <p className="music-track">
-              {locale.ui.musicNowPlaying}: {musicTrackName || locale.ui.musicNoTrack}
-            </p>
-
-            <audio
-              controls
-              src={musicTrackUrl}
-              onPlay={() => setMusicPlaying(true)}
-              onPause={() => setMusicPlaying(false)}
-              onEnded={() => setMusicPlaying(false)}
-            />
-          </section>
-
-          <section className="stats-card">
-            <h4>{locale.ui.weeklyStats}</h4>
-            <p>{locale.ui.focusMinutesWeek}: {totalFocusWeek}</p>
-            <p>{locale.ui.focusMinutesToday}: {todayFocus}</p>
-            <p>{locale.ui.focusSessions}: {stats.focusSessions}</p>
-            <p>{locale.ui.musicMinutesWeek}: {stats.musicMinutes}</p>
-            <p>{locale.ui.feedCountWeek}: {stats.feedCount}</p>
-            <p>{locale.ui.streakDays}: {streakDays}</p>
-          </section>
-        </>
+          {activeTab === "style" && (
+            <section className="panel-card">
+              <label>
+                {locale.ui.avatar}
+                <select value={settings.avatarStyle} onChange={(event) => applySetting("avatarStyle", event.currentTarget.value as AvatarStyle)}>
+                  <option value="cloud">Cloud</option>
+                  <option value="pixel">Pixel</option>
+                  <option value="blob">Blob</option>
+                  <option value="cat">Cat</option>
+                  <option value="bunny">Bunny</option>
+                  <option value="fox">Fox</option>
+                </select>
+              </label>
+              <label className="checkbox-row">
+                <input type="checkbox" checked={settings.alwaysOnTop} onChange={(event) => applySetting("alwaysOnTop", event.currentTarget.checked)} />
+                Always on top
+              </label>
+              <label>
+                {locale.ui.size}: {settings.size.toFixed(1)}x
+                <input type="range" min={0.8} max={1.4} step={0.1} value={settings.size} onChange={(event) => applySetting("size", Number(event.currentTarget.value))} />
+              </label>
+            </section>
+          )}
+        </section>
       )}
 
       {showSettings && (
         <section className="settings-panel">
           <label>
             {locale.ui.language}
-            <select
-              value={settings.language}
-              onChange={(event) => applySetting("language", event.currentTarget.value as Lang)}
-            >
+            <select value={settings.language} onChange={(event) => applySetting("language", event.currentTarget.value as Lang)}>
               <option value="es">Espanol</option>
               <option value="en">English</option>
             </select>
           </label>
 
           <label>
-            {locale.ui.avatar}
-            <select
-              value={settings.avatarStyle}
-              onChange={(event) => applySetting("avatarStyle", event.currentTarget.value as AvatarStyle)}
-            >
-              <option value="blob">Blob</option>
-              <option value="cloud">Cloud</option>
-              <option value="pixel">Pixel</option>
-              <option value="cat">Cat</option>
-              <option value="bunny">Bunny</option>
-              <option value="fox">Fox</option>
-            </select>
-          </label>
-
-          <label>
             {locale.ui.frequency}: {settings.phraseFrequencySec} {locale.ui.seconds}
-            <input
-              type="range"
-              min={20}
-              max={300}
-              value={settings.phraseFrequencySec}
-              onChange={(event) => applySetting("phraseFrequencySec", Number(event.currentTarget.value))}
-            />
-          </label>
-
-          <label>
-            {locale.ui.size}: {settings.size.toFixed(1)}x
-            <input
-              type="range"
-              min={0.8}
-              max={1.4}
-              step={0.1}
-              value={settings.size}
-              onChange={(event) => applySetting("size", Number(event.currentTarget.value))}
-            />
+            <input type="range" min={20} max={300} value={settings.phraseFrequencySec} onChange={(event) => applySetting("phraseFrequencySec", Number(event.currentTarget.value))} />
           </label>
 
           <label>
             {locale.ui.opacity}: {settings.opacity.toFixed(1)}
-            <input
-              type="range"
-              min={0.4}
-              max={1}
-              step={0.1}
-              value={settings.opacity}
-              onChange={(event) => applySetting("opacity", Number(event.currentTarget.value))}
-            />
+            <input type="range" min={0.4} max={1} step={0.1} value={settings.opacity} onChange={(event) => applySetting("opacity", Number(event.currentTarget.value))} />
           </label>
 
           <label className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={settings.phrasesEnabled}
-              onChange={(event) => applySetting("phrasesEnabled", event.currentTarget.checked)}
-            />
+            <input type="checkbox" checked={settings.phrasesEnabled} onChange={(event) => applySetting("phrasesEnabled", event.currentTarget.checked)} />
             {locale.ui.phrasesEnabled}
           </label>
 
           <label className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={settings.minimalMode}
-              onChange={(event) => applySetting("minimalMode", event.currentTarget.checked)}
-            />
+            <input type="checkbox" checked={settings.minimalMode} onChange={(event) => applySetting("minimalMode", event.currentTarget.checked)} />
             {locale.ui.minimal}
           </label>
         </section>

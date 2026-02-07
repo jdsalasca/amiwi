@@ -1,14 +1,14 @@
 :root {
   --bg-start: #fdf8f3;
   --bg-end: #ffe8da;
-  --card: #fff8f1cc;
+  --card: #fff8f1e8;
   --line: #f0cdb8;
   --text: #4a2f2f;
   --accent: #ff8a7a;
   --accent-strong: #ff6f5b;
   --mint: #74d8c0;
-  --shadow: 0 12px 30px rgba(126, 79, 67, 0.2);
-  --radius: 20px;
+  --shadow: 0 10px 24px rgba(126, 79, 67, 0.18);
+  --radius: 16px;
 
   color: var(--text);
   font-family: "Trebuchet MS", "Avenir Next", "Segoe UI", sans-serif;
@@ -39,7 +39,7 @@ body {
   height: 100%;
   padding: 10px;
   border: 1px solid #f6d8c5;
-  border-radius: 18px;
+  border-radius: 16px;
   background: linear-gradient(180deg, #fffcfae3 0%, #fff4ece3 100%);
   overflow: auto;
 }
@@ -56,21 +56,21 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   padding: 6px 10px;
   border-radius: 999px;
-  background: #fff6ee;
+  background: #fff8f1;
   border: 1px solid var(--line);
 }
 
 .app-shell.widget-mode .drag-zone {
   margin-bottom: 6px;
-  background: #ffffffd8;
+  background: #ffffffdc;
 }
 
 .header-actions {
   display: flex;
-  gap: 6px;
+  gap: 5px;
   align-items: center;
 }
 
@@ -81,35 +81,32 @@ body {
 .onboarding {
   position: absolute;
   inset: 8px;
-  z-index: 12;
+  z-index: 20;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 18px;
+  gap: 10px;
+  padding: 16px;
   border-radius: var(--radius);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
   background: linear-gradient(180deg, #fffef8 0%, #fff5ef 100%);
 }
 
-.onboarding h2 {
-  margin: 0;
-  font-size: 1.1rem;
+.quick-setup-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
 .avatar-card,
-.speech-card,
-.pet-card,
-.actions-card,
-.music-card,
-.stats-card,
-.settings-panel {
+.settings-panel,
+.panel-card {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--card);
-  padding: 12px;
+  padding: 10px;
   box-shadow: var(--shadow);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .avatar-card {
@@ -119,8 +116,14 @@ body {
 
 .minimal-card {
   border-radius: 999px;
-  margin-bottom: 0;
-  background: #fffef0e0;
+  background: #fffef0ea;
+}
+
+.avatar-asset {
+  width: 120px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
 }
 
 .face {
@@ -134,15 +137,21 @@ body {
   font-weight: 700;
 }
 
+.tagline,
+.boost {
+  margin: 6px 0 0;
+  font-size: 0.88rem;
+}
+
 .widget-phrase {
   margin: 6px auto;
-  max-width: 90%;
-  font-size: 0.82rem;
+  max-width: 92%;
+  font-size: 0.8rem;
   line-height: 1.3;
 }
 
 .pomodoro-chip {
-  margin-top: 6px;
+  margin-top: 4px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -158,36 +167,46 @@ body {
   font-size: 0.72rem;
 }
 
-.tagline,
-.boost {
-  margin: 6px 0 0;
-  font-size: 0.9rem;
+.tabs-shell {
+  border-radius: var(--radius);
+  background: #fff9f3d8;
+  border: 1px solid var(--line);
+  padding: 8px;
 }
 
-.speech-card h4,
-.pet-card h4,
-.music-card h4,
-.stats-card h4 {
+.tabs-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  overflow-x: auto;
+}
+
+.tab {
+  width: auto;
+  white-space: nowrap;
+  background: #ffeede;
+  color: #623f3f;
+}
+
+.tab.active {
+  background: linear-gradient(180deg, #ffb08f 0%, #ff8c74 100%);
+  color: #fff;
+}
+
+.panel-card h4 {
   margin: 0 0 6px;
 }
 
-.speech-card p,
-.stats-card p,
-.pet-card p {
-  margin: 0 0 4px;
-  line-height: 1.4;
+.panel-card p {
+  margin: 0 0 6px;
 }
 
 .focus-row {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 8px;
   font-size: 0.9rem;
-}
-
-.settings-panel {
-  margin-bottom: 0;
 }
 
 .music-track {
@@ -195,7 +214,7 @@ body {
   margin: 0 0 8px;
 }
 
-.music-card audio {
+.panel-card audio {
   width: 100%;
 }
 
@@ -234,9 +253,9 @@ input[type="file"] {
 
 select,
 button {
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid var(--line);
-  padding: 9px 10px;
+  padding: 8px 10px;
   background: #fffefb;
   color: var(--text);
 }
@@ -251,19 +270,19 @@ button {
 
 button.tiny {
   width: auto;
-  padding: 6px 8px;
-  font-size: 0.72rem;
+  padding: 6px 7px;
+  font-size: 0.7rem;
   background: linear-gradient(180deg, #7acfb8 0%, var(--mint) 100%);
   color: #1d4e43;
 }
 
 .win-btn {
-  width: 24px;
-  min-width: 24px;
-  height: 24px;
+  width: 22px;
+  min-width: 22px;
+  height: 22px;
   line-height: 1;
   padding: 0;
-  font-size: 0.8rem;
+  font-size: 0.74rem;
   border-radius: 6px;
   background: #f8eadf;
   color: #5f3b3b;
@@ -288,16 +307,6 @@ button.tiny {
 
 @media (max-height: 580px) {
   .app-shell {
-    padding: 8px;
-  }
-
-  .avatar-card,
-  .speech-card,
-  .pet-card,
-  .actions-card,
-  .music-card,
-  .stats-card,
-  .settings-panel {
-    padding: 10px;
+    padding: 6px;
   }
 }

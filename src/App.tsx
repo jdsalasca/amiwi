@@ -3,6 +3,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { LogicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow, monitorFromPoint } from "@tauri-apps/api/window";
+import { relaunch } from "@tauri-apps/plugin-process";
+import { check } from "@tauri-apps/plugin-updater";
 import { assetByAvatarMood } from "./domain/assets";
 import { copy, STORAGE_KEY } from "./domain/config";
 import type { BubbleModuleId, FocusPhase, MusicDetection, Mood, PomodoroPreset, Settings } from "./domain/types";
@@ -94,6 +96,7 @@ function App() {
   const interactionThrottleRef = useRef(0);
   const windowDragUntilRef = useRef(0);
   const widgetBodyRef = useRef<HTMLElement | null>(null);
+  const updaterCheckedRef = useRef(false);
   const manualDragRef = useRef({
     active: false,
     appWindowX: 0,
@@ -160,6 +163,39 @@ function App() {
       setFocusPhase("focus");
     }
   }, [durations.focusSec, focusRunning]);
+
+  useEffect(() => {
+    if (import.meta.env.DEV || updaterCheckedRef.current) {
+      return;
+    }
+    updaterCheckedRef.current = true;
+    let cancelled = false;
+    const runUpdater = async () => {
+      try {
+        const update = await check();
+        if (!update || cancelled) {
+          return;
+        }
+        const prompt = settings.language === "es"
+          ? `Hay una nueva version disponible (${update.version}). Se instalara ahora y Amiwi se reiniciara.`
+          : `A new version is available (${update.version}). It will install now and Amiwi will restart.`;
+        if (!window.confirm(prompt)) {
+          return;
+        }
+        await update.downloadAndInstall();
+        if (cancelled) {
+          return;
+        }
+        await relaunch();
+      } catch {
+        // ignore updater errors to avoid blocking the app
+      }
+    };
+    void runUpdater();
+    return () => {
+      cancelled = true;
+    };
+  }, [settings.language]);
 
   const update = <K extends keyof Settings>(key: K, value: Settings[K]): void => {
     setSettings((prev) => ({ ...prev, [key]: value }));

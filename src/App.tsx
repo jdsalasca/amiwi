@@ -595,17 +595,6 @@ function App() {
     startWindowDrag(event.screenX, event.screenY);
   };
 
-  const handleShellPointerDownCapture = (event: ReactPointerEvent<HTMLElement>) => {
-    if (event.button !== 0 || showPanel) {
-      return;
-    }
-    const target = event.target as HTMLElement;
-    if (target.closest("button, input, select, textarea, summary, details, a, label")) {
-      return;
-    }
-    startWindowDrag(event.screenX, event.screenY);
-  };
-
   useEffect(() => {
     const appWindow = getCurrentWindow();
     const flushDragFrame = () => {
@@ -752,7 +741,6 @@ function App() {
       onMouseMove={handleShellMouseMove}
       onMouseEnter={registerInteraction}
       onMouseDown={registerInteraction}
-      onPointerDownCapture={handleShellPointerDownCapture}
     >
       {(!settings.ultraMinimal || showPanel) && (
         <div className="glass-header">
@@ -773,7 +761,9 @@ function App() {
           className="mascot-draggable"
           style={{ left: `${position.x}px`, top: `${position.y}px` }}
           onPointerDown={handleMascotPointerDown}
+          data-tauri-drag-region
         >
+          <div className="mascot-hitbox" aria-hidden="true" />
           <div className="mascot-shell">
             <img
               className={`avatar ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}

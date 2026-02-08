@@ -186,6 +186,13 @@ body {
   touch-action: none;
 }
 
+.mascot-hitbox {
+  position: absolute;
+  inset: -14px -16px -16px -16px;
+  border-radius: 999px;
+  background: transparent;
+}
+
 .mascot-shell {
   width: 170px;
   height: 124px;

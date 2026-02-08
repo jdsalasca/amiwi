@@ -6,6 +6,7 @@ export type PomodoroPreset = "25-5" | "50-10" | "custom";
 export type FocusPhase = "focus" | "break";
 export type ThemePreset = "ocean" | "mint" | "rose";
 export type BubbleModuleId = "focus" | "feed" | "phrase" | "music" | "move" | "settings";
+export type BubblePack = "kawaii" | "study" | "pastel" | "retro";
 
 export type Settings = {
   language: Lang;
@@ -27,6 +28,7 @@ export type Settings = {
   showTimerBubble: boolean;
   musicAmbient: boolean;
   cuteBubblesEnabled: boolean;
+  bubblePack: BubblePack;
   clickThroughPermanent: boolean;
   dragAnywhereEnabled: boolean;
   snapToEdgeEnabled: boolean;

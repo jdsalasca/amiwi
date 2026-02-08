@@ -108,6 +108,7 @@ function App() {
   const [animeMouthOpen, setAnimeMouthOpen] = useState(false);
   const [animeStepFrame, setAnimeStepFrame] = useState(0);
   const [cuteBubbles, setCuteBubbles] = useState<CuteBubble[]>([]);
+  const [mascotDraggingVisual, setMascotDraggingVisual] = useState(false);
 
   const durations = useMemo(() => getDurations(settings), [settings]);
   const [remainingSeconds, setRemainingSeconds] = useState(durations.focusSec);
@@ -119,6 +120,7 @@ function App() {
   const dragPermissionWarnedRef = useRef(false);
   const widgetBodyRef = useRef<HTMLElement | null>(null);
   const updaterCheckedRef = useRef(false);
+  const dragVisualTimeoutRef = useRef<number | null>(null);
   const manualDragRef = useRef({
     active: false,
     appWindowX: 0,
@@ -192,20 +194,38 @@ function App() {
     return t.danceIdle;
   }, [animeDanceProfile, t.danceCalm, t.danceGroove, t.danceHype, t.danceIdle]);
   const cuteIconPool = useMemo<readonly string[]>(() => {
+    const packBase = settings.bubblePack === "study"
+      ? ["📘", "📚", "✏️", "📝", "☕", "✅", "✨", "🫧"]
+      : settings.bubblePack === "pastel"
+        ? ["💗", "🌸", "🫧", "⭐", "🧸", "🐣", "✨", "🫶"]
+        : settings.bubblePack === "retro"
+          ? ["🕹️", "🎲", "🌟", "🫧", "🎵", "📼", "🧡", "✨"]
+          : ["💗", "🫧", "⭐", "📘", "🐾", "🌸", "✨", "🧸"];
     if (isMusicActive) {
-      return ["🫧", "🎵", "🎶", "✨", "💗", "🌟", "🧸"];
+      return [...packBase, "🎵", "🎶", "✨"];
     }
     if (focusRunning && focusPhase === "focus") {
-      return ["📘", "📚", "✏️", "✨", "🫧", "🌟", "🐾"];
+      return [...packBase, "📘", "✏️", "✅"];
     }
     if (settings.mode === "work") {
-      return ["☕", "✅", "📘", "🫧", "✨", "🐾"];
+      return [...packBase, "☕", "✅", "📘"];
     }
     if (settings.mode === "break") {
-      return ["💗", "🌸", "🫧", "⭐", "🧸", "🐥"];
+      return [...packBase, "💗", "🌸", "🧸"];
     }
-    return ["💗", "🫧", "⭐", "📘", "🐾", "🌸", "✨", "🧸"];
-  }, [focusPhase, focusRunning, isMusicActive, settings.mode]);
+    return packBase;
+  }, [focusPhase, focusRunning, isMusicActive, settings.bubblePack, settings.mode]);
+
+  const refreshDraggingVisual = useCallback((durationMs: number = 160) => {
+    setMascotDraggingVisual(true);
+    if (dragVisualTimeoutRef.current !== null) {
+      window.clearTimeout(dragVisualTimeoutRef.current);
+    }
+    dragVisualTimeoutRef.current = window.setTimeout(() => {
+      setMascotDraggingVisual(false);
+      dragVisualTimeoutRef.current = null;
+    }, durationMs);
+  }, []);
 
   const spawnCuteBubbleBurst = useCallback((intensity: number = 1) => {
     if (!settings.cuteBubblesEnabled || showPanel) {
@@ -245,6 +265,14 @@ function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   }, [settings]);
+
+  useEffect(() => {
+    return () => {
+      if (dragVisualTimeoutRef.current !== null) {
+        window.clearTimeout(dragVisualTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const seen = localStorage.getItem(ONBOARDING_KEY);
@@ -422,6 +450,23 @@ function App() {
     }, 3200);
     return () => window.clearInterval(timer);
   }, [isMusicActive, musicEnergy, settings.cuteBubblesEnabled, spawnCuteBubbleBurst]);
+
+  useEffect(() => {
+    const appWindow = getCurrentWindow();
+    let disposed = false;
+    const unlistenPromise = appWindow.onMoved(() => {
+      if (disposed) {
+        return;
+      }
+      if (Date.now() < windowDragUntilRef.current + 420) {
+        refreshDraggingVisual(200);
+      }
+    });
+    return () => {
+      disposed = true;
+      void unlistenPromise.then((unlisten) => unlisten()).catch(() => undefined);
+    };
+  }, [refreshDraggingVisual]);
 
   useEffect(() => {
     if (!settings.systemMusicDetect) {
@@ -789,6 +834,7 @@ function App() {
     }
     event.preventDefault();
     event.stopPropagation();
+    refreshDraggingVisual(280);
     if (settings.dragAnywhereEnabled) {
       return;
     }
@@ -805,6 +851,7 @@ function App() {
     }
     event.preventDefault();
     startWindowDrag(event.screenX, event.screenY);
+    refreshDraggingVisual(220);
   };
 
   const handlePanelDragPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
@@ -814,6 +861,7 @@ function App() {
     event.preventDefault();
     event.stopPropagation();
     startWindowDrag(event.screenX, event.screenY);
+    refreshDraggingVisual(220);
   };
 
   useEffect(() => {
@@ -854,6 +902,7 @@ function App() {
         drag.rafId = 0;
       }
       windowDragUntilRef.current = Date.now() + 900;
+      setMascotDraggingVisual(false);
     };
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", stopDrag);
@@ -986,10 +1035,10 @@ function App() {
           data-tauri-drag-region
         >
           <div className="mascot-hitbox" aria-hidden="true" />
-          <div className="mascot-shell" style={{ width: `${mascotWidth}px`, height: `${mascotHeight}px` }}>
+          <div className={`mascot-shell ${mascotDraggingVisual ? "dragging" : ""}`} style={{ width: `${mascotWidth}px`, height: `${mascotHeight}px` }}>
             {isAnimeAvatar ? (
               <div
-                className={`anime-avatar step-${animeStepFrame} dance-${animeDanceProfile} ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
+                className={`anime-avatar step-${animeStepFrame} dance-${animeDanceProfile} ${mascotDraggingVisual ? "dragging" : ""} ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
                 onDoubleClick={quickStartFocus}
                 onContextMenu={openOrCloseSettings}
               >
@@ -1228,6 +1277,15 @@ function App() {
             <label className="toggle-row"><input type="checkbox" checked={settings.ultraMinimal} onChange={(event) => update("ultraMinimal", event.currentTarget.checked)} />{t.ultraMinimal}</label>
             <label className="toggle-row"><input type="checkbox" checked={settings.musicAmbient} onChange={(event) => update("musicAmbient", event.currentTarget.checked)} />{t.musicAmbient}</label>
             <label className="toggle-row"><input type="checkbox" checked={settings.cuteBubblesEnabled} onChange={(event) => update("cuteBubblesEnabled", event.currentTarget.checked)} />{t.cuteBubbles}</label>
+            <label>
+              {t.bubblePack}
+              <select value={settings.bubblePack} onChange={(event) => update("bubblePack", event.currentTarget.value as Settings["bubblePack"])}>
+                <option value="kawaii">{t.bubblePackKawaii}</option>
+                <option value="study">{t.bubblePackStudy}</option>
+                <option value="pastel">{t.bubblePackPastel}</option>
+                <option value="retro">{t.bubblePackRetro}</option>
+              </select>
+            </label>
 
             {settings.autoHideEnabled && (
               <label>

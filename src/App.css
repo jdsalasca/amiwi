@@ -326,6 +326,13 @@ body {
     animeHype 520ms ease-in-out infinite;
 }
 
+.anime-avatar.dragging {
+  transform: translateY(1px) rotate(-1.8deg) scale(0.985);
+  filter:
+    drop-shadow(0 10px 16px rgba(39, 72, 114, 0.24))
+    drop-shadow(0 0 calc(10px + var(--music-energy, 0) * 20px) hsla(var(--accent-hue, 210), 90%, 65%, 0.42));
+}
+
 .anime-avatar.dance-calm .anime-hair,
 .anime-avatar.dance-groove .anime-hair,
 .anime-avatar.dance-hype .anime-hair {
@@ -387,6 +394,12 @@ body {
     radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.8), transparent 42%);
   border: 1px solid rgba(182, 216, 249, 0.36);
   backdrop-filter: blur(8px);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.mascot-shell.dragging {
+  transform: translateY(1px) scale(0.985) rotate(-0.8deg);
+  box-shadow: 0 10px 18px rgba(37, 80, 125, 0.22);
 }
 
 .mascot-draggable::before {

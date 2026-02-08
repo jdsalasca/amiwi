@@ -49,6 +49,7 @@ export function loadSettings(): Settings {
       autoHideSeconds: clamp(parsed.autoHideSeconds ?? 6, 3, 30),
       snapMarginPx: clamp(parsed.snapMarginPx ?? 12, 4, 40),
       cuteBubblesEnabled: parsed.cuteBubblesEnabled ?? true,
+      bubblePack: parsed.bubblePack ?? defaultSettings.bubblePack,
     };
   } catch {
     return defaultSettings;

@@ -1,6 +1,6 @@
 [package]
 name = "amiwi"
-version = "0.8.18"
+version = "0.8.19"
 description = "Amiwi companion desktop app"
 authors = ["Amiwi Team"]
 edition = "2021"
@@ -23,6 +23,5 @@ tauri-plugin-opener = "2"
 tauri-plugin-global-shortcut = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-
 
 

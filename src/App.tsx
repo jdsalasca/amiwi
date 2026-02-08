@@ -94,6 +94,16 @@ function App() {
   const interactionThrottleRef = useRef(0);
   const windowDragUntilRef = useRef(0);
   const widgetBodyRef = useRef<HTMLElement | null>(null);
+  const manualDragRef = useRef({
+    active: false,
+    appWindowX: 0,
+    appWindowY: 0,
+    startScreenX: 0,
+    startScreenY: 0,
+    targetX: 0,
+    targetY: 0,
+    rafId: 0,
+  });
 
   const t = copy[settings.language];
   const isMusicActive = settings.musicReactive && systemMusicActive;
@@ -467,24 +477,70 @@ function App() {
     });
   }, [durations.focusSec]);
 
-  const handleMascotPointerDown = () => {
+  const handleMascotPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0 || showPanel) {
+      return;
+    }
+    event.preventDefault();
     registerInteraction();
-    windowDragUntilRef.current = Date.now() + 1800;
-    void getCurrentWindow().startDragging().catch(() => undefined);
+    windowDragUntilRef.current = Date.now() + 2400;
+    const appWindow = getCurrentWindow();
+    void appWindow.outerPosition().then((pos) => {
+      const drag = manualDragRef.current;
+      drag.active = true;
+      drag.appWindowX = pos.x;
+      drag.appWindowY = pos.y;
+      drag.startScreenX = event.screenX;
+      drag.startScreenY = event.screenY;
+      drag.targetX = pos.x;
+      drag.targetY = pos.y;
+    }).catch(() => undefined);
   };
 
-  const handleMainPointerDownCapture = (event: ReactPointerEvent<HTMLElement>) => {
-    registerInteraction();
-    if (showPanel || event.button !== 0) {
-      return;
-    }
-    const target = event.target as HTMLElement;
-    if (target.closest("button, input, select, textarea, details, summary, a, label")) {
-      return;
-    }
-    windowDragUntilRef.current = Date.now() + 2200;
-    void getCurrentWindow().startDragging().catch(() => undefined);
-  };
+  useEffect(() => {
+    const appWindow = getCurrentWindow();
+    const flushDragFrame = () => {
+      const drag = manualDragRef.current;
+      drag.rafId = 0;
+      if (!drag.active) {
+        return;
+      }
+      const targetX = Math.round(drag.targetX);
+      const targetY = Math.round(drag.targetY);
+      void appWindow.setPosition(new PhysicalPosition(targetX, targetY)).catch(() => undefined);
+    };
+    const onPointerMove = (event: PointerEvent) => {
+      const drag = manualDragRef.current;
+      if (!drag.active) {
+        return;
+      }
+      const dx = event.screenX - drag.startScreenX;
+      const dy = event.screenY - drag.startScreenY;
+      drag.targetX = drag.appWindowX + dx;
+      drag.targetY = drag.appWindowY + dy;
+      if (drag.rafId === 0) {
+        drag.rafId = window.requestAnimationFrame(flushDragFrame);
+      }
+    };
+    const stopDrag = () => {
+      const drag = manualDragRef.current;
+      drag.active = false;
+      if (drag.rafId !== 0) {
+        window.cancelAnimationFrame(drag.rafId);
+        drag.rafId = 0;
+      }
+      windowDragUntilRef.current = Date.now() + 900;
+    };
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", stopDrag);
+    window.addEventListener("pointercancel", stopDrag);
+    return () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", stopDrag);
+      window.removeEventListener("pointercancel", stopDrag);
+      stopDrag();
+    };
+  }, []);
 
   const bubbleActions: BubbleAction[] = useMemo(() => {
     return [
@@ -571,7 +627,6 @@ function App() {
       onMouseMove={handleShellMouseMove}
       onMouseEnter={registerInteraction}
       onMouseDown={registerInteraction}
-      onPointerDownCapture={handleMainPointerDownCapture}
     >
       {(!settings.ultraMinimal || showPanel) && (
         <div className="glass-header">
@@ -591,7 +646,7 @@ function App() {
         <div
           className="mascot-draggable"
           style={{ left: `${position.x}px`, top: `${position.y}px` }}
-          onMouseDown={handleMascotPointerDown}
+          onPointerDown={handleMascotPointerDown}
           data-tauri-drag-region
         >
           <div className="mascot-shell" data-tauri-drag-region>

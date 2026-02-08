@@ -36,6 +36,9 @@ export function loadSettings(): Settings {
     return {
       ...defaultSettings,
       ...parsed,
+      // Keep free movement stable across upgrades; avoid restoring stale "anchoring" behavior.
+      snapToEdgeEnabled: false,
+      clickThroughPermanent: false,
       bubbleModules: hasAnyBubble ? mergedBubbleModules : defaultSettings.bubbleModules,
       phraseFrequencySec: clamp(parsed.phraseFrequencySec ?? 85, 20, 300),
       opacity: clamp(parsed.opacity ?? 1, 0.55, 1),

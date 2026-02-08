@@ -63,6 +63,10 @@ export const copy = {
     onboardingBack: "Atrás",
     onboardingNext: "Siguiente",
     onboardingDone: "Empezar ahora",
+    updateReady: "Actualización lista",
+    updateNow: "Actualizar ahora",
+    updatingNow: "Actualizando...",
+    updateFailed: "Falló la actualización",
     advancedSettings: "Opciones avanzadas",
     phraseStudy: [
       "Vamos, paso a paso. Estoy contigo.",
@@ -162,6 +166,10 @@ export const copy = {
     onboardingBack: "Back",
     onboardingNext: "Next",
     onboardingDone: "Start now",
+    updateReady: "Update ready",
+    updateNow: "Update now",
+    updatingNow: "Updating...",
+    updateFailed: "Update failed",
     advancedSettings: "Advanced options",
     phraseStudy: [
       "One step at a time. I am with you.",

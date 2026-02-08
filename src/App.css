@@ -300,6 +300,13 @@ body {
   box-shadow: 0 0 14px hsla(var(--accent-hue, 210), 95%, 65%, 0.5);
 }
 
+.bubble-action.update-green {
+  border-color: rgba(73, 186, 122, 0.92);
+  background: linear-gradient(180deg, rgba(236, 255, 243, 0.98), rgba(197, 246, 216, 0.95));
+  color: #1c6a3f;
+  box-shadow: 0 0 14px rgba(73, 186, 122, 0.28);
+}
+
 .music-react-bubble {
   position: absolute;
   transform: translate(-50%, -50%);

@@ -4,7 +4,7 @@ import { LogicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow, monitorFromPoint } from "@tauri-apps/api/window";
 import { relaunch } from "@tauri-apps/plugin-process";
-import { check } from "@tauri-apps/plugin-updater";
+import { check, Update as AppUpdate } from "@tauri-apps/plugin-updater";
 import { assetByAvatarMood } from "./domain/assets";
 import { copy, STORAGE_KEY } from "./domain/config";
 import type { BubbleModuleId, FocusPhase, MusicDetection, Mood, PomodoroPreset, Settings } from "./domain/types";
@@ -12,11 +12,12 @@ import { clamp, formatMMSS, loadSettings, randomPick, resolveAsset } from "./uti
 import "./App.css";
 
 type BubbleAction = {
-  id: BubbleModuleId;
+  id: BubbleModuleId | "update";
   icon: string;
   label: string;
   onClick: () => void;
   pulse?: boolean;
+  tone?: "default" | "success";
 };
 
 const WINDOW_POSITION_KEY = `${STORAGE_KEY}.window.positionByMonitor`;
@@ -87,6 +88,8 @@ function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [selectedProfile, setSelectedProfile] = useState<"focus" | "calm" | "cozy">("focus");
+  const [pendingUpdate, setPendingUpdate] = useState<AppUpdate | null>(null);
+  const [updatingNow, setUpdatingNow] = useState(false);
 
   const durations = useMemo(() => getDurations(settings), [settings]);
   const [remainingSeconds, setRemainingSeconds] = useState(durations.focusSec);
@@ -176,17 +179,8 @@ function App() {
         if (!update || cancelled) {
           return;
         }
-        const prompt = settings.language === "es"
-          ? `Hay una nueva version disponible (${update.version}). Se instalara ahora y Amiwi se reiniciara.`
-          : `A new version is available (${update.version}). It will install now and Amiwi will restart.`;
-        if (!window.confirm(prompt)) {
-          return;
-        }
-        await update.downloadAndInstall();
-        if (cancelled) {
-          return;
-        }
-        await relaunch();
+        setPendingUpdate(update);
+        emitPhrase(`${t.updateReady}: v${update.version}`);
       } catch {
         // ignore updater errors to avoid blocking the app
       }
@@ -195,7 +189,22 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [settings.language]);
+  }, [t.updateReady]);
+
+  const installPendingUpdate = useCallback(async () => {
+    if (!pendingUpdate || updatingNow) {
+      return;
+    }
+    setUpdatingNow(true);
+    emitPhrase(t.updatingNow);
+    try {
+      await pendingUpdate.downloadAndInstall();
+      await relaunch();
+    } catch {
+      emitPhrase(t.updateFailed);
+      setUpdatingNow(false);
+    }
+  }, [pendingUpdate, t.updateFailed, t.updatingNow, updatingNow]);
 
   const update = <K extends keyof Settings>(key: K, value: Settings[K]): void => {
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -579,11 +588,22 @@ function App() {
   }, []);
 
   const bubbleActions: BubbleAction[] = useMemo(() => {
-    return [
+    const actions: BubbleAction[] = [
       { id: "focus", icon: focusRunning ? "■" : "▶", label: t.bubbleFocus, onClick: quickStartFocus },
       { id: "settings", icon: "⚙", label: t.bubbleSettings, onClick: () => setShowPanel(true) },
     ];
-  }, [focusRunning, quickStartFocus, t]);
+    if (pendingUpdate) {
+      actions.unshift({
+        id: "update",
+        icon: updatingNow ? "…" : "↟",
+        label: `${t.updateNow} v${pendingUpdate.version}`,
+        onClick: () => void installPendingUpdate(),
+        pulse: !updatingNow,
+        tone: "success",
+      });
+    }
+    return actions;
+  }, [focusRunning, installPendingUpdate, pendingUpdate, quickStartFocus, t, updatingNow]);
 
   const applyExperienceProfile = useCallback((profile: "focus" | "calm" | "cozy") => {
     setSelectedProfile(profile);
@@ -716,7 +736,7 @@ function App() {
               <button
                 key={action.id}
                 type="button"
-                className={`bubble-action ${action.pulse ? "music-pulse" : ""}`}
+                className={`bubble-action ${action.pulse ? "music-pulse" : ""} ${action.tone === "success" ? "update-green" : ""}`}
                 title={action.label}
                 onClick={action.onClick}
               >

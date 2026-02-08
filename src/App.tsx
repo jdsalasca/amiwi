@@ -129,6 +129,7 @@ function App() {
   const mascotCenterX = clamp(position.x + mascotWidth / 2, 24, stageWidth - 24);
   const rawPhraseY = clamp(position.y - 38, 0, stageHeight - 38);
   const actionY = clamp(position.y + mascotHeight + 2, 0, stageHeight - 36);
+  const updateTipY = clamp(actionY - 20, 0, stageHeight - 20);
   const timerX = clamp(stageWidth / 2, 26, stageWidth - 26);
   const timerY = 14;
   const phraseY = Math.abs(rawPhraseY - timerY) < 34 ? clamp(rawPhraseY + 34, 4, stageHeight - 38) : rawPhraseY;
@@ -731,19 +732,26 @@ function App() {
         </div>
 
         {!showPanel && bubbleActions.length > 0 && (
-          <div className="bubble-actions" style={{ left: `${mascotCenterX}px`, top: `${actionY}px` }}>
-            {bubbleActions.map((action) => (
-              <button
-                key={action.id}
-                type="button"
-                className={`bubble-action ${action.pulse ? "music-pulse" : ""} ${action.tone === "success" ? "update-green" : ""}`}
-                title={action.label}
-                onClick={action.onClick}
-              >
-                {action.icon}
-              </button>
-            ))}
-          </div>
+          <>
+            {pendingUpdate && !updatingNow && (
+              <div className="bubble-update-tip" style={{ left: `${mascotCenterX}px`, top: `${updateTipY}px` }}>
+                {t.updateAvailable} v{pendingUpdate.version}
+              </div>
+            )}
+            <div className="bubble-actions" style={{ left: `${mascotCenterX}px`, top: `${actionY}px` }}>
+              {bubbleActions.map((action) => (
+                <button
+                  key={action.id}
+                  type="button"
+                  className={`bubble-action ${action.pulse ? "music-pulse" : ""} ${action.tone === "success" ? "update-green" : ""}`}
+                  title={action.label}
+                  onClick={action.onClick}
+                >
+                  {action.icon}
+                </button>
+              ))}
+            </div>
+          </>
         )}
 
         {settings.showTimerBubble && (

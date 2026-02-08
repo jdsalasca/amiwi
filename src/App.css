@@ -283,6 +283,21 @@ body {
   z-index: 3;
 }
 
+.bubble-update-tip {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #1f6a41;
+  background: rgba(231, 253, 239, 0.92);
+  border: 1px solid rgba(97, 202, 140, 0.7);
+  border-radius: 999px;
+  padding: 2px 8px;
+  box-shadow: 0 4px 12px rgba(42, 122, 77, 0.2);
+  animation: bubbleIn 260ms ease;
+  z-index: 4;
+}
+
 .bubble-action {
   width: 30px;
   height: 30px;

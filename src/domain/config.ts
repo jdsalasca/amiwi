@@ -67,6 +67,7 @@ export const copy = {
     updateNow: "Actualizar ahora",
     updatingNow: "Actualizando...",
     updateFailed: "Falló la actualización",
+    updateAvailable: "Nueva versión",
     advancedSettings: "Opciones avanzadas",
     phraseStudy: [
       "Vamos, paso a paso. Estoy contigo.",
@@ -170,6 +171,7 @@ export const copy = {
     updateNow: "Update now",
     updatingNow: "Updating...",
     updateFailed: "Update failed",
+    updateAvailable: "New version",
     advancedSettings: "Advanced options",
     phraseStudy: [
       "One step at a time. I am with you.",

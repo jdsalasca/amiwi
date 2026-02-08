@@ -2,6 +2,17 @@
 
 Amiwi is a desktop companion for study and work, built with Tauri + React + TypeScript.
 
+## v0.8.13 (store-ready onboarding + polish)
+- Added first-run onboarding (60 seconds) with 3 guided steps.
+- Added quick relaunch onboarding button from settings.
+- Improved copywriting and overall UI clarity.
+- Kept premium liquid-glass enhancements and focus session progress UX.
+
+## v0.8.12 (liquid-glass quality upgrade)
+- Upgraded liquid-glass surface with cursor-reactive highlight and depth animation.
+- Added stronger focus-state presence with session progress bar and percentage.
+- Cleaned legacy styles and tightened visual consistency.
+
 ## v0.8.8 (visual system + scalable bubbles)
 - Mascot is now draggable across the full widget area.
 - Bubble architecture is now extensible through a unified bubble actions model.

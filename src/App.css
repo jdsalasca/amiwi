@@ -310,6 +310,12 @@ body {
   box-shadow: 0 4px 10px rgba(34, 67, 104, 0.14);
 }
 
+.experience-chip.active {
+  background: linear-gradient(180deg, rgba(123, 193, 255, 0.96), rgba(93, 169, 244, 0.9));
+  color: #ffffff;
+  border-color: rgba(92, 153, 232, 0.95);
+}
+
 @keyframes bubbleIn {
   from {
     opacity: 0;
@@ -502,6 +508,71 @@ button:active {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.chip.ghost {
+  background: rgba(255, 255, 255, 0.86);
+  color: #24507e;
+  border: 1px solid rgba(163, 201, 238, 0.9);
+}
+
+.onboarding-overlay {
+  position: absolute;
+  inset: 8px;
+  z-index: 12;
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  background: rgba(237, 246, 255, 0.44);
+  display: grid;
+  place-items: center;
+}
+
+.onboarding-card {
+  width: min(340px, 92%);
+  border-radius: 18px;
+  padding: 14px;
+  border: 1px solid rgba(165, 203, 242, 0.88);
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 16px 34px rgba(26, 61, 97, 0.22);
+}
+
+.onboarding-card h3 {
+  margin: 0;
+  font-size: 0.94rem;
+  color: #173e68;
+}
+
+.onboarding-card small {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.68rem;
+  color: #3b6089;
+}
+
+.onboarding-card p {
+  margin: 8px 0 10px;
+  font-size: 0.74rem;
+  color: #2e527a;
+}
+
+.onboarding-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.onboarding-summary {
+  font-size: 0.72rem;
+  color: #2a4f77;
+  display: grid;
+  gap: 4px;
+}
+
+.onboarding-actions {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
 }
 
 .bubble-modules-grid {

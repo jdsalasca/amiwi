@@ -20,6 +20,7 @@ type BubbleAction = {
 
 const WINDOW_POSITION_KEY = `${STORAGE_KEY}.window.positionByMonitor`;
 const DAILY_STATS_KEY = `${STORAGE_KEY}.daily.stats`;
+const ONBOARDING_KEY = `${STORAGE_KEY}.onboarding.v1`;
 
 type DailyStats = {
   date: string;
@@ -117,6 +118,9 @@ function App() {
   const [clickThroughActive, setClickThroughActive] = useState(false);
   const [dailyStats, setDailyStats] = useState<DailyStats>(() => loadDailyStats());
   const [pointerGlow, setPointerGlow] = useState({ x: 50, y: 22 });
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(0);
+  const [selectedProfile, setSelectedProfile] = useState<"focus" | "calm" | "cozy">("focus");
 
   const durations = useMemo(() => getDurations(settings), [settings]);
   const [remainingSeconds, setRemainingSeconds] = useState(durations.focusSec);
@@ -165,6 +169,14 @@ function App() {
       setDailyStats((prev) => (prev.date === today ? prev : { date: today, focusStarts: 0, snacks: 0 }));
     }, 60_000);
     return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const seen = localStorage.getItem(ONBOARDING_KEY);
+    if (!seen) {
+      setShowOnboarding(true);
+      setOnboardingStep(0);
+    }
   }, []);
 
   useEffect(() => {
@@ -560,7 +572,8 @@ function App() {
     return all.filter((action) => settings.bubbleModules[action.id]);
   }, [focusRunning, handleFeed, isMusicActive, quickStartFocus, settings.bubbleModules, settings.musicAmbient, smartPhrasePool, startWindowDrag, t, update]);
 
-  const applyExperienceProfile = (profile: "focus" | "calm" | "cozy") => {
+  const applyExperienceProfile = useCallback((profile: "focus" | "calm" | "cozy") => {
+    setSelectedProfile(profile);
     if (profile === "focus") {
       setSettings((prev) => ({
         ...prev,
@@ -594,7 +607,7 @@ function App() {
       musicAmbient: false,
     }));
     emitPhrase(randomPick(t.phraseBreak));
-  };
+  }, [t.phraseBreak, t.phraseDeepFocus, t.phraseWork]);
 
   const activateClickThroughPulse = () => {
     setClickThroughActive(true);
@@ -608,6 +621,13 @@ function App() {
   const openOrCloseSettings = (event: ReactMouseEvent<HTMLImageElement | HTMLDivElement>) => {
     event.preventDefault();
     setShowPanel((prev) => !prev);
+  };
+
+  const completeOnboarding = () => {
+    localStorage.setItem(ONBOARDING_KEY, "done");
+    setShowOnboarding(false);
+    setOnboardingStep(0);
+    emitPhrase(randomPick(smartPhrasePool()));
   };
 
   const handleShellMouseMove = (event: ReactMouseEvent<HTMLElement>) => {
@@ -825,6 +845,10 @@ function App() {
 
           <label>{t.globalShortcut}: {globalShortcutLabel}</label>
 
+          <button type="button" className="chip ghost" onClick={() => { setShowOnboarding(true); setOnboardingStep(0); }}>
+            {t.onboardingQuick}
+          </button>
+
           {settings.autoHideEnabled && (
             <label>
               {t.autoHideSec}: {settings.autoHideSeconds}s
@@ -870,6 +894,45 @@ function App() {
           <div className="panel-footer">
             <button type="button" className="chip" onClick={activateClickThroughPulse}>{t.clickThroughPulse}</button>
             <button type="button" className="chip" onClick={() => setShowPanel(false)}>{t.close}</button>
+          </div>
+        </section>
+      )}
+
+      {showOnboarding && (
+        <section className="onboarding-overlay" onMouseDown={(event) => event.stopPropagation()}>
+          <div className="onboarding-card">
+            <h3>{t.onboardingTitle}</h3>
+            <small>{onboardingStep === 0 ? t.onboardingStep1 : onboardingStep === 1 ? t.onboardingStep2 : t.onboardingStep3}</small>
+            <p>{onboardingStep === 0 ? t.onboardingHint1 : onboardingStep === 1 ? t.onboardingHint2 : t.onboardingHint3}</p>
+
+            {onboardingStep === 0 && (
+              <div className="onboarding-row">
+                <button type="button" className={`experience-chip ${settings.language === "es" ? "active" : ""}`} onClick={() => update("language", "es")}>Español</button>
+                <button type="button" className={`experience-chip ${settings.language === "en" ? "active" : ""}`} onClick={() => update("language", "en")}>English</button>
+              </div>
+            )}
+
+            {onboardingStep === 1 && (
+              <div className="onboarding-row">
+                <button type="button" className={`experience-chip ${selectedProfile === "focus" ? "active" : ""}`} onClick={() => applyExperienceProfile("focus")}>Focus</button>
+                <button type="button" className={`experience-chip ${selectedProfile === "calm" ? "active" : ""}`} onClick={() => applyExperienceProfile("calm")}>Calm</button>
+                <button type="button" className={`experience-chip ${selectedProfile === "cozy" ? "active" : ""}`} onClick={() => applyExperienceProfile("cozy")}>Cozy</button>
+              </div>
+            )}
+
+            {onboardingStep === 2 && (
+              <div className="onboarding-summary">
+                <span>{t.language}: {settings.language.toUpperCase()}</span>
+                <span>{t.theme}: {settings.themePreset}</span>
+                <span>{t.mode}: {settings.mode}</span>
+              </div>
+            )}
+
+            <div className="onboarding-actions">
+              {onboardingStep > 0 && <button type="button" className="chip ghost" onClick={() => setOnboardingStep((prev) => prev - 1)}>{t.onboardingBack}</button>}
+              {onboardingStep < 2 && <button type="button" className="chip" onClick={() => setOnboardingStep((prev) => prev + 1)}>{t.onboardingNext}</button>}
+              {onboardingStep === 2 && <button type="button" className="chip" onClick={completeOnboarding}>{t.onboardingDone}</button>}
+            </div>
           </div>
         </section>
       )}

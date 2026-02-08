@@ -353,6 +353,28 @@ body {
   text-overflow: ellipsis;
 }
 
+.music-meta {
+  margin-top: 8px;
+}
+
+.music-details {
+  margin: 6px auto 0;
+  font-size: 0.64rem;
+  color: #2e4e76;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.music-meta small {
+  display: block;
+  text-align: center;
+  margin-top: 4px;
+  font-size: 0.6rem;
+  color: #4b6790;
+}
+
 .settings-panel {
   position: absolute;
   left: 8px;

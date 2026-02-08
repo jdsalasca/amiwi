@@ -108,6 +108,8 @@ function App() {
   const [musicPulsePhrase, setMusicPulsePhrase] = useState("");
   const [systemMusicActive, setSystemMusicActive] = useState(false);
   const [systemMusicSource, setSystemMusicSource] = useState("");
+  const [systemMusicMethod, setSystemMusicMethod] = useState("none");
+  const [systemMusicTrusted, setSystemMusicTrusted] = useState(false);
   const [musicEnergy, setMusicEnergy] = useState(0);
   const [focusRunning, setFocusRunning] = useState(false);
   const [focusPhase, setFocusPhase] = useState<FocusPhase>("focus");
@@ -252,6 +254,8 @@ function App() {
     if (!settings.systemMusicDetect) {
       setSystemMusicActive(false);
       setSystemMusicSource("");
+      setSystemMusicMethod("disabled");
+      setSystemMusicTrusted(false);
       return;
     }
     let active = true;
@@ -271,12 +275,16 @@ function App() {
         }
         const nativeMethod = ["windows_gsmtc", "applescript_native", "itunes_com"].some((method) => res.method.includes(method));
         const accepted = nativeMethod && res.active;
+        setSystemMusicMethod(res.method || "unknown");
+        setSystemMusicTrusted(nativeMethod);
         setSystemMusicActive(accepted);
         setSystemMusicSource(accepted ? res.source : "");
       } catch {
         if (active) {
           setSystemMusicActive(false);
           setSystemMusicSource("");
+          setSystemMusicMethod("error");
+          setSystemMusicTrusted(false);
         }
       } finally {
         pollingRef.current = false;
@@ -691,8 +699,15 @@ function App() {
         )}
 
         {showPanel && (
-          <div className="music-pill">
-            {t.nowPlaying}: {isMusicActive ? (systemMusicSource || "active") : t.noMusic}
+          <div className="music-meta">
+            <div className="music-pill">
+              {t.nowPlaying}: {isMusicActive ? (systemMusicSource || "active") : t.noMusic}
+            </div>
+            <div className="music-details">
+              <span>{t.musicMethod}: {systemMusicMethod}</span>
+              <span>{t.musicTrust}: {systemMusicTrusted ? t.musicTrusted : t.musicUntrusted}</span>
+            </div>
+            {!systemMusicTrusted && settings.systemMusicDetect && <small>{t.musicNativeOnly}</small>}
           </div>
         )}
       </section>

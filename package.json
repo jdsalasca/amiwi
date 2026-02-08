@@ -1,7 +1,7 @@
 {
   "name": "amiwi",
   "private": true,
-  "version": "0.8.10",
+  "version": "0.8.11",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -24,4 +24,5 @@
     "@tauri-apps/cli": "^2"
   }
 }
+
 

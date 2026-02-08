@@ -100,6 +100,7 @@ function App() {
   const pollingRef = useRef(false);
   const interactionThrottleRef = useRef(0);
   const windowDragUntilRef = useRef(0);
+  const dragPermissionWarnedRef = useRef(false);
   const widgetBodyRef = useRef<HTMLElement | null>(null);
   const updaterCheckedRef = useRef(false);
   const manualDragRef = useRef({
@@ -475,7 +476,13 @@ function App() {
         return;
       }
 
-      await appWindow.setPosition(new PhysicalPosition(targetX, targetY)).catch(() => undefined);
+      await appWindow.setPosition(new PhysicalPosition(targetX, targetY)).catch((error) => {
+        if (!dragPermissionWarnedRef.current) {
+          // Surface permission or platform failures instead of silently swallowing drag bugs.
+          console.warn("[window-drag] setPosition failed while snapping to edge.", error);
+          dragPermissionWarnedRef.current = true;
+        }
+      });
       await persistByMonitor(targetX, targetY);
     };
 
@@ -490,7 +497,12 @@ function App() {
       if (!remembered) {
         return;
       }
-      await appWindow.setPosition(new PhysicalPosition(remembered.x, remembered.y)).catch(() => undefined);
+      await appWindow.setPosition(new PhysicalPosition(remembered.x, remembered.y)).catch((error) => {
+        if (!dragPermissionWarnedRef.current) {
+          console.warn("[window-drag] setPosition failed while restoring monitor position.", error);
+          dragPermissionWarnedRef.current = true;
+        }
+      });
     };
 
     void restoreForMonitor();
@@ -551,15 +563,36 @@ function App() {
       drag.startScreenY = screenY;
       drag.targetX = pos.x;
       drag.targetY = pos.y;
-    }).catch(() => undefined);
+    }).catch((error) => {
+      if (!dragPermissionWarnedRef.current) {
+        console.warn("[window-drag] outerPosition failed when initializing manual drag.", error);
+        dragPermissionWarnedRef.current = true;
+      }
+    });
   }, [registerInteraction, showPanel]);
+
+  const startWindowDrag = useCallback((screenX: number, screenY: number) => {
+    if (showPanel) {
+      return;
+    }
+    registerInteraction();
+    windowDragUntilRef.current = Date.now() + 2400;
+    const appWindow = getCurrentWindow();
+    void appWindow.startDragging().catch((error) => {
+      if (!dragPermissionWarnedRef.current) {
+        console.warn("[window-drag] native startDragging failed; falling back to manual drag.", error);
+        dragPermissionWarnedRef.current = true;
+      }
+      beginManualWindowDrag(screenX, screenY);
+    });
+  }, [beginManualWindowDrag, registerInteraction, showPanel]);
 
   const handleMascotPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0 || showPanel) {
       return;
     }
     event.preventDefault();
-    beginManualWindowDrag(event.screenX, event.screenY);
+    startWindowDrag(event.screenX, event.screenY);
   };
 
   const handleShellPointerDownCapture = (event: ReactPointerEvent<HTMLElement>) => {
@@ -570,7 +603,7 @@ function App() {
     if (target.closest("button, input, select, textarea, summary, details, a, label")) {
       return;
     }
-    beginManualWindowDrag(event.screenX, event.screenY);
+    startWindowDrag(event.screenX, event.screenY);
   };
 
   useEffect(() => {
@@ -583,7 +616,12 @@ function App() {
       }
       const targetX = Math.round(drag.targetX);
       const targetY = Math.round(drag.targetY);
-      void appWindow.setPosition(new PhysicalPosition(targetX, targetY)).catch(() => undefined);
+      void appWindow.setPosition(new PhysicalPosition(targetX, targetY)).catch((error) => {
+        if (!dragPermissionWarnedRef.current) {
+          console.warn("[window-drag] setPosition failed during manual drag frame.", error);
+          dragPermissionWarnedRef.current = true;
+        }
+      });
     };
     const onPointerMove = (event: PointerEvent) => {
       const drag = manualDragRef.current;

@@ -186,6 +186,124 @@ body {
   animation: avatarBob 4.4s ease-in-out infinite;
 }
 
+.anime-avatar {
+  position: relative;
+  width: min(170px, 86%);
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  filter:
+    drop-shadow(0 8px 14px rgba(39, 72, 114, 0.18))
+    drop-shadow(0 0 calc(8px + var(--music-energy, 0) * 16px) hsla(var(--accent-hue, 210), 90%, 65%, 0.35));
+  animation: avatarBob 4.2s ease-in-out infinite;
+}
+
+.anime-hair {
+  position: absolute;
+  inset: 6% 12% 30%;
+  border-radius: 56% 56% 44% 44%;
+  background: linear-gradient(180deg, #46394a 0%, #2f2738 100%);
+  box-shadow: inset 0 -6px 0 rgba(255, 255, 255, 0.08);
+}
+
+.anime-face {
+  position: absolute;
+  inset: 22% 18% 12%;
+  border-radius: 48% 48% 46% 46%;
+  background: radial-gradient(circle at 50% 22%, #ffe8dd 0%, #ffd7c6 62%, #f8c3af 100%);
+  border: 1px solid rgba(162, 108, 95, 0.35);
+}
+
+.anime-eye {
+  position: absolute;
+  top: 34%;
+  width: 20%;
+  height: 18%;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid rgba(75, 65, 78, 0.26);
+  overflow: hidden;
+}
+
+.anime-eye.left {
+  left: 20%;
+}
+
+.anime-eye.right {
+  right: 20%;
+}
+
+.anime-pupil {
+  position: absolute;
+  left: calc(50% + var(--eye-x, 0px));
+  top: calc(50% + var(--eye-y, 0px));
+  width: 48%;
+  height: 62%;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: radial-gradient(circle at 40% 30%, #6dbbff 0%, #27456f 72%);
+  transition: width 110ms ease, height 110ms ease;
+}
+
+.anime-pupil.blink {
+  width: 68%;
+  height: 10%;
+}
+
+.anime-mouth-wrap {
+  position: absolute;
+  left: 50%;
+  top: 60%;
+  width: 20%;
+  height: 14%;
+  transform: translateX(-50%);
+}
+
+.anime-mouth {
+  position: absolute;
+  inset: 0;
+  border-radius: 0 0 16px 16px;
+  border: 2px solid #9b5d60;
+  border-top: none;
+  background: rgba(255, 173, 186, 0.7);
+  transform: scaleY(0.55);
+  transform-origin: top;
+  transition: transform 120ms ease;
+}
+
+.anime-mouth.open {
+  transform: scaleY(1);
+}
+
+.anime-cheek {
+  position: absolute;
+  top: 54%;
+  width: 14%;
+  height: 9%;
+  border-radius: 999px;
+  background: rgba(255, 153, 170, 0.42);
+}
+
+.anime-cheek.left {
+  left: 12%;
+}
+
+.anime-cheek.right {
+  right: 12%;
+}
+
+.anime-avatar.step-0,
+.anime-avatar.step-2 {
+  transform: translateY(0);
+}
+
+.anime-avatar.step-1 {
+  transform: translateY(-1px) translateX(0.5px);
+}
+
+.anime-avatar.step-3 {
+  transform: translateY(1px) translateX(-0.5px);
+}
+
 .mascot-draggable {
   position: absolute;
   width: 170px;

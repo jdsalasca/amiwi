@@ -92,6 +92,9 @@ function App() {
   const [updatingNow, setUpdatingNow] = useState(false);
   const [showUpdateTip, setShowUpdateTip] = useState(false);
   const [hoveringActions, setHoveringActions] = useState(false);
+  const [animeBlinking, setAnimeBlinking] = useState(false);
+  const [animeMouthOpen, setAnimeMouthOpen] = useState(false);
+  const [animeStepFrame, setAnimeStepFrame] = useState(0);
 
   const durations = useMemo(() => getDurations(settings), [settings]);
   const [remainingSeconds, setRemainingSeconds] = useState(durations.focusSec);
@@ -116,6 +119,7 @@ function App() {
 
   const t = copy[settings.language];
   const isMusicActive = settings.musicReactive && systemMusicActive;
+  const isAnimeAvatar = settings.avatarStyle === "anime";
   const themeBaseHue = settings.themePreset === "mint" ? 165 : settings.themePreset === "rose" ? 345 : 205;
   const activeHue = Math.round(themeBaseHue + musicEnergy * 70);
   const stageWidth = widgetBodyRef.current?.clientWidth ?? 240;
@@ -141,6 +145,8 @@ function App() {
   const musicY = clamp(position.y + 10, 4, stageHeight - 28);
   const phaseTotalSeconds = focusPhase === "focus" ? durations.focusSec : durations.breakSec;
   const phaseProgress = clamp(1 - remainingSeconds / Math.max(phaseTotalSeconds, 1), 0, 1);
+  const animeEyeX = ((pointerGlow.x - 50) / 50) * 2.2;
+  const animeEyeY = ((pointerGlow.y - 50) / 50) * 1.6;
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -368,6 +374,59 @@ function App() {
     }, 180);
     return () => window.clearInterval(timer);
   }, [settings.musicAmbient, systemMusicActive]);
+
+  useEffect(() => {
+    if (!isAnimeAvatar) {
+      setAnimeBlinking(false);
+      return;
+    }
+    let disposed = false;
+    let blinkTimer = 0;
+    let resetTimer = 0;
+    const scheduleBlink = () => {
+      const delay = 1900 + Math.round(Math.random() * 2600);
+      blinkTimer = window.setTimeout(() => {
+        if (disposed) {
+          return;
+        }
+        setAnimeBlinking(true);
+        resetTimer = window.setTimeout(() => setAnimeBlinking(false), 130);
+        scheduleBlink();
+      }, delay);
+    };
+    scheduleBlink();
+    return () => {
+      disposed = true;
+      window.clearTimeout(blinkTimer);
+      window.clearTimeout(resetTimer);
+    };
+  }, [isAnimeAvatar]);
+
+  useEffect(() => {
+    if (!isAnimeAvatar) {
+      setAnimeMouthOpen(false);
+      return;
+    }
+    if (!isMusicActive && !focusRunning) {
+      setAnimeMouthOpen(false);
+      return;
+    }
+    const timer = window.setInterval(() => {
+      setAnimeMouthOpen((prev) => !prev);
+    }, isMusicActive ? 220 : 360);
+    return () => window.clearInterval(timer);
+  }, [focusRunning, isAnimeAvatar, isMusicActive]);
+
+  useEffect(() => {
+    if (!isAnimeAvatar) {
+      setAnimeStepFrame(0);
+      return;
+    }
+    const timer = window.setInterval(() => {
+      setAnimeStepFrame((prev) => (prev + 1) % 4);
+    }, isMusicActive ? 180 : 280);
+    return () => window.clearInterval(timer);
+  }, [isAnimeAvatar, isMusicActive]);
 
   useEffect(() => {
     if (!focusRunning) {
@@ -813,23 +872,46 @@ function App() {
         >
           <div className="mascot-hitbox" aria-hidden="true" />
           <div className="mascot-shell" style={{ width: `${mascotWidth}px`, height: `${mascotHeight}px` }}>
-            <img
-              className={`avatar ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
-              src={avatarAsset}
-              alt={`${settings.avatarStyle}-${mood}`}
-              loading="eager"
-              decoding="async"
-              draggable={false}
-              onDoubleClick={quickStartFocus}
-              onContextMenu={openOrCloseSettings}
-              onError={(event) => {
-                if (event.currentTarget.dataset.fallbackApplied === "1") {
-                  return;
-                }
-                event.currentTarget.dataset.fallbackApplied = "1";
-                event.currentTarget.src = fallbackAvatarAsset;
-              }}
-            />
+            {isAnimeAvatar ? (
+              <div
+                className={`anime-avatar step-${animeStepFrame} ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
+                onDoubleClick={quickStartFocus}
+                onContextMenu={openOrCloseSettings}
+              >
+                <div className="anime-hair" />
+                <div className="anime-face">
+                  <div className="anime-eye left" style={{ ["--eye-x" as string]: `${animeEyeX.toFixed(2)}px`, ["--eye-y" as string]: `${animeEyeY.toFixed(2)}px` }}>
+                    <span className={`anime-pupil ${animeBlinking ? "blink" : ""}`} />
+                  </div>
+                  <div className="anime-eye right" style={{ ["--eye-x" as string]: `${animeEyeX.toFixed(2)}px`, ["--eye-y" as string]: `${animeEyeY.toFixed(2)}px` }}>
+                    <span className={`anime-pupil ${animeBlinking ? "blink" : ""}`} />
+                  </div>
+                  <div className="anime-mouth-wrap">
+                    <span className={`anime-mouth ${animeMouthOpen ? "open" : ""}`} />
+                  </div>
+                  <div className="anime-cheek left" />
+                  <div className="anime-cheek right" />
+                </div>
+              </div>
+            ) : (
+              <img
+                className={`avatar ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
+                src={avatarAsset}
+                alt={`${settings.avatarStyle}-${mood}`}
+                loading="eager"
+                decoding="async"
+                draggable={false}
+                onDoubleClick={quickStartFocus}
+                onContextMenu={openOrCloseSettings}
+                onError={(event) => {
+                  if (event.currentTarget.dataset.fallbackApplied === "1") {
+                    return;
+                  }
+                  event.currentTarget.dataset.fallbackApplied = "1";
+                  event.currentTarget.src = fallbackAvatarAsset;
+                }}
+              />
+            )}
           </div>
         </div>
 
@@ -921,6 +1003,7 @@ function App() {
               <option value="cat">Cat</option>
               <option value="bunny">Bunny</option>
               <option value="fox">Fox</option>
+              <option value="anime">Anime (beta)</option>
             </select>
           </label>
 

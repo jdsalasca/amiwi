@@ -178,8 +178,8 @@ body {
 
 .mascot-draggable {
   position: absolute;
-  width: 150px;
-  height: 112px;
+  width: 170px;
+  height: 124px;
   cursor: move;
   touch-action: none;
 }

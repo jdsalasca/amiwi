@@ -102,17 +102,22 @@ function App() {
   const activeHue = Math.round(themeBaseHue + musicEnergy * 70);
   const stageWidth = widgetBodyRef.current?.clientWidth ?? 240;
   const stageHeight = widgetBodyRef.current?.clientHeight ?? 220;
+  const mascotWidth = 170;
+  const mascotHeight = 124;
   const position = useMemo(
-    () => ({ x: clamp((stageWidth - 150) / 2, 0, stageWidth - 150), y: clamp((stageHeight - 122) / 2, 0, stageHeight - 122) }),
+    () => ({
+      x: clamp((stageWidth - mascotWidth) / 2, 0, stageWidth - mascotWidth),
+      y: clamp((stageHeight - mascotHeight) / 2, 0, stageHeight - mascotHeight),
+    }),
     [stageHeight, stageWidth]
   );
-  const mascotCenterX = clamp(position.x + 75, 24, stageWidth - 24);
+  const mascotCenterX = clamp(position.x + mascotWidth / 2, 24, stageWidth - 24);
   const rawPhraseY = clamp(position.y - 38, 0, stageHeight - 38);
-  const actionY = clamp(position.y + 116, 0, stageHeight - 36);
+  const actionY = clamp(position.y + mascotHeight + 2, 0, stageHeight - 36);
   const timerX = clamp(stageWidth / 2, 26, stageWidth - 26);
   const timerY = 14;
   const phraseY = Math.abs(rawPhraseY - timerY) < 34 ? clamp(rawPhraseY + 34, 4, stageHeight - 38) : rawPhraseY;
-  const musicX = clamp(position.x + 115, 24, stageWidth - 24);
+  const musicX = clamp(position.x + mascotWidth - 24, 24, stageWidth - 24);
   const musicY = clamp(position.y + 10, 4, stageHeight - 28);
   const phaseTotalSeconds = focusPhase === "focus" ? durations.focusSec : durations.breakSec;
   const phaseProgress = clamp(1 - remainingSeconds / Math.max(phaseTotalSeconds, 1), 0, 1);
@@ -471,14 +476,10 @@ function App() {
     });
   }, [durations.focusSec]);
 
-  const startWindowDrag = useCallback(() => {
+  const handleMascotPointerDown = () => {
     registerInteraction();
     windowDragUntilRef.current = Date.now() + 1800;
     void getCurrentWindow().startDragging().catch(() => undefined);
-  }, [registerInteraction]);
-
-  const handleMascotPointerDown = () => {
-    startWindowDrag();
   };
 
   const handleMainMouseDownCapture = (event: ReactMouseEvent<HTMLElement>) => {
@@ -602,8 +603,13 @@ function App() {
       )}
 
       <section ref={widgetBodyRef} className="widget-body" style={{ transform: `scale(${settings.size})` }}>
-        <div className="mascot-draggable" style={{ left: `${position.x}px`, top: `${position.y}px` }} onMouseDown={handleMascotPointerDown}>
-          <div className="mascot-shell">
+        <div
+          className="mascot-draggable"
+          style={{ left: `${position.x}px`, top: `${position.y}px` }}
+          onMouseDown={handleMascotPointerDown}
+          data-tauri-drag-region
+        >
+          <div className="mascot-shell" data-tauri-drag-region>
             <img
               className={`avatar ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
               src={avatarAsset}

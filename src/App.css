@@ -298,6 +298,27 @@ body {
   z-index: 4;
 }
 
+.bubble-update-tip.intro {
+  animation:
+    bubbleIn 260ms ease,
+    updateTipFadeOut 420ms ease 4.55s forwards;
+}
+
+.bubble-update-tip.hover {
+  animation: bubbleIn 180ms ease;
+}
+
+@keyframes updateTipFadeOut {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-4px);
+  }
+}
+
 .bubble-action {
   width: 30px;
   height: 30px;

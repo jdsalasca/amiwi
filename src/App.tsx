@@ -90,6 +90,8 @@ function App() {
   const [selectedProfile, setSelectedProfile] = useState<"focus" | "calm" | "cozy">("focus");
   const [pendingUpdate, setPendingUpdate] = useState<AppUpdate | null>(null);
   const [updatingNow, setUpdatingNow] = useState(false);
+  const [showUpdateTip, setShowUpdateTip] = useState(false);
+  const [hoveringActions, setHoveringActions] = useState(false);
 
   const durations = useMemo(() => getDurations(settings), [settings]);
   const [remainingSeconds, setRemainingSeconds] = useState(durations.focusSec);
@@ -191,6 +193,16 @@ function App() {
       cancelled = true;
     };
   }, [t.updateReady]);
+
+  useEffect(() => {
+    if (!pendingUpdate || updatingNow) {
+      setShowUpdateTip(false);
+      return;
+    }
+    setShowUpdateTip(true);
+    const timer = window.setTimeout(() => setShowUpdateTip(false), 5000);
+    return () => window.clearTimeout(timer);
+  }, [pendingUpdate, updatingNow]);
 
   const installPendingUpdate = useCallback(async () => {
     if (!pendingUpdate || updatingNow) {
@@ -733,12 +745,20 @@ function App() {
 
         {!showPanel && bubbleActions.length > 0 && (
           <>
-            {pendingUpdate && !updatingNow && (
-              <div className="bubble-update-tip" style={{ left: `${mascotCenterX}px`, top: `${updateTipY}px` }}>
+            {pendingUpdate && !updatingNow && (showUpdateTip || hoveringActions) && (
+              <div
+                className={`bubble-update-tip ${showUpdateTip ? "intro" : "hover"}`}
+                style={{ left: `${mascotCenterX}px`, top: `${updateTipY}px` }}
+              >
                 {t.updateAvailable} v{pendingUpdate.version}
               </div>
             )}
-            <div className="bubble-actions" style={{ left: `${mascotCenterX}px`, top: `${actionY}px` }}>
+            <div
+              className="bubble-actions"
+              style={{ left: `${mascotCenterX}px`, top: `${actionY}px` }}
+              onMouseEnter={() => setHoveringActions(true)}
+              onMouseLeave={() => setHoveringActions(false)}
+            >
               {bubbleActions.map((action) => (
                 <button
                   key={action.id}

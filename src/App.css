@@ -255,6 +255,7 @@ body {
   padding: 6px 10px;
   box-shadow: 0 5px 14px rgba(42, 84, 125, 0.12);
   animation: bubbleIn 320ms ease;
+  pointer-events: none;
 }
 
 .timer-bubble {
@@ -268,6 +269,7 @@ body {
   background: rgba(255, 255, 255, 0.82);
   border: 1px solid rgba(167, 205, 244, 0.84);
   box-shadow: 0 4px 12px rgba(31, 63, 101, 0.16);
+  pointer-events: none;
 }
 
 .bubble-actions {
@@ -296,6 +298,7 @@ body {
   box-shadow: 0 4px 12px rgba(42, 122, 77, 0.2);
   animation: bubbleIn 260ms ease;
   z-index: 4;
+  pointer-events: none;
 }
 
 .bubble-update-tip.intro {
@@ -355,6 +358,7 @@ body {
   border: 1px solid rgba(181, 215, 250, 0.8);
   animation: pulse 1.2s ease-in-out infinite;
   z-index: 2;
+  pointer-events: none;
 }
 
 .experience-chip {
@@ -442,6 +446,7 @@ body {
   border: 1px solid rgba(165, 206, 246, 0.76);
   border-radius: 999px;
   padding: 3px 8px;
+  pointer-events: none;
 }
 
 .settings-panel {

@@ -535,11 +535,10 @@ function App() {
     });
   }, [durations.focusSec]);
 
-  const handleMascotPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0 || showPanel) {
+  const beginManualWindowDrag = useCallback((screenX: number, screenY: number) => {
+    if (showPanel) {
       return;
     }
-    event.preventDefault();
     registerInteraction();
     windowDragUntilRef.current = Date.now() + 2400;
     const appWindow = getCurrentWindow();
@@ -548,11 +547,30 @@ function App() {
       drag.active = true;
       drag.appWindowX = pos.x;
       drag.appWindowY = pos.y;
-      drag.startScreenX = event.screenX;
-      drag.startScreenY = event.screenY;
+      drag.startScreenX = screenX;
+      drag.startScreenY = screenY;
       drag.targetX = pos.x;
       drag.targetY = pos.y;
     }).catch(() => undefined);
+  }, [registerInteraction, showPanel]);
+
+  const handleMascotPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0 || showPanel) {
+      return;
+    }
+    event.preventDefault();
+    beginManualWindowDrag(event.screenX, event.screenY);
+  };
+
+  const handleShellPointerDownCapture = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.button !== 0 || showPanel) {
+      return;
+    }
+    const target = event.target as HTMLElement;
+    if (target.closest("button, input, select, textarea, summary, details, a, label")) {
+      return;
+    }
+    beginManualWindowDrag(event.screenX, event.screenY);
   };
 
   useEffect(() => {
@@ -696,6 +714,7 @@ function App() {
       onMouseMove={handleShellMouseMove}
       onMouseEnter={registerInteraction}
       onMouseDown={registerInteraction}
+      onPointerDownCapture={handleShellPointerDownCapture}
     >
       {(!settings.ultraMinimal || showPanel) && (
         <div className="glass-header">
@@ -716,9 +735,8 @@ function App() {
           className="mascot-draggable"
           style={{ left: `${position.x}px`, top: `${position.y}px` }}
           onPointerDown={handleMascotPointerDown}
-          data-tauri-drag-region
         >
-          <div className="mascot-shell" data-tauri-drag-region>
+          <div className="mascot-shell">
             <img
               className={`avatar ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
               src={avatarAsset}

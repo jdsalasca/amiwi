@@ -1,4 +1,4 @@
-import { MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { LogicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
 import { listen } from "@tauri-apps/api/event";
@@ -81,7 +81,6 @@ function App() {
   const [focusRunning, setFocusRunning] = useState(false);
   const [focusPhase, setFocusPhase] = useState<FocusPhase>("focus");
   const [dormant, setDormant] = useState(false);
-  const [clickThroughActive, setClickThroughActive] = useState(false);
   const [pointerGlow, setPointerGlow] = useState({ x: 50, y: 22 });
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
@@ -301,14 +300,6 @@ function App() {
     return () => window.clearInterval(timer);
   }, [durations.breakSec, durations.focusSec, focusPhase, focusRunning, t.phraseBreak, t.phraseDeepFocus]);
 
-  useEffect(() => {
-    const shouldIgnore = !showPanel && (clickThroughActive && dormant);
-    void getCurrentWindow().setIgnoreCursorEvents(shouldIgnore).catch(() => undefined);
-    return () => {
-      void getCurrentWindow().setIgnoreCursorEvents(false).catch(() => undefined);
-    };
-  }, [clickThroughActive, dormant, showPanel]);
-
   const registerInteraction = useCallback((): void => {
     const now = Date.now();
     if (now - interactionThrottleRef.current < 180 && !dormant) {
@@ -482,7 +473,7 @@ function App() {
     void getCurrentWindow().startDragging().catch(() => undefined);
   };
 
-  const handleMainMouseDownCapture = (event: ReactMouseEvent<HTMLElement>) => {
+  const handleMainPointerDownCapture = (event: ReactPointerEvent<HTMLElement>) => {
     registerInteraction();
     if (showPanel || event.button !== 0) {
       return;
@@ -542,12 +533,6 @@ function App() {
     emitPhrase(randomPick(t.phraseBreak));
   }, [t.phraseBreak, t.phraseDeepFocus, t.phraseWork]);
 
-  const activateClickThroughPulse = () => {
-    setClickThroughActive(true);
-    emitPhrase(t.clickThroughHint);
-    window.setTimeout(() => setClickThroughActive(false), 8000);
-  };
-
   const avatarAsset = useMemo(() => resolveAsset(assetByAvatarMood[settings.avatarStyle][mood]), [settings.avatarStyle, mood]);
   const fallbackAvatarAsset = useMemo(() => resolveAsset(assetByAvatarMood.cloud.happy), []);
 
@@ -586,7 +571,7 @@ function App() {
       onMouseMove={handleShellMouseMove}
       onMouseEnter={registerInteraction}
       onMouseDown={registerInteraction}
-      onMouseDownCapture={handleMainMouseDownCapture}
+      onPointerDownCapture={handleMainPointerDownCapture}
     >
       {(!settings.ultraMinimal || showPanel) && (
         <div className="glass-header">
@@ -616,6 +601,7 @@ function App() {
               alt={`${settings.avatarStyle}-${mood}`}
               loading="eager"
               decoding="async"
+              draggable={false}
               onDoubleClick={quickStartFocus}
               onContextMenu={openOrCloseSettings}
               onError={(event) => {
@@ -771,7 +757,6 @@ function App() {
             <label className="toggle-row"><input type="checkbox" checked={settings.systemMusicDetect} onChange={(event) => update("systemMusicDetect", event.currentTarget.checked)} />{t.detectSystemMusic}</label>
             <label className="toggle-row"><input type="checkbox" checked={settings.musicReactive} onChange={(event) => update("musicReactive", event.currentTarget.checked)} />{t.reactMusic}</label>
             <label className="toggle-row"><input type="checkbox" checked={settings.autoHideEnabled} onChange={(event) => update("autoHideEnabled", event.currentTarget.checked)} />{t.autoHide}</label>
-            <label className="toggle-row"><input type="checkbox" checked={settings.clickThroughPermanent} onChange={(event) => update("clickThroughPermanent", event.currentTarget.checked)} />{t.clickThroughPermanent}</label>
             <label className="toggle-row"><input type="checkbox" checked={settings.snapToEdgeEnabled} onChange={(event) => update("snapToEdgeEnabled", event.currentTarget.checked)} />{t.snapToEdge}</label>
             <label className="toggle-row"><input type="checkbox" checked={settings.ultraMinimal} onChange={(event) => update("ultraMinimal", event.currentTarget.checked)} />{t.ultraMinimal}</label>
             <label className="toggle-row"><input type="checkbox" checked={settings.musicAmbient} onChange={(event) => update("musicAmbient", event.currentTarget.checked)} />{t.musicAmbient}</label>
@@ -794,7 +779,6 @@ function App() {
 
           <div className="panel-footer">
             <button type="button" className="chip ghost" onClick={() => { setShowOnboarding(true); setOnboardingStep(0); }}>{t.onboardingQuick}</button>
-            <button type="button" className="chip" onClick={activateClickThroughPulse}>{t.clickThroughPulse}</button>
             <button type="button" className="chip" onClick={() => setShowPanel(false)}>{t.close}</button>
           </div>
         </section>

@@ -170,6 +170,8 @@ body {
   max-width: 74%;
   display: block;
   margin: 0 auto;
+  user-select: none;
+  -webkit-user-drag: none;
   filter:
     drop-shadow(0 8px 14px rgba(39, 72, 114, 0.18))
     drop-shadow(0 0 calc(8px + var(--music-energy, 0) * 16px) hsla(var(--accent-hue, 210), 90%, 65%, 0.35));

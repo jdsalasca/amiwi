@@ -551,6 +551,22 @@ body {
   pointer-events: none;
 }
 
+.dance-profile-bubble {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  max-width: 128px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: #24527c;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(167, 205, 244, 0.8);
+  box-shadow: 0 4px 10px rgba(31, 63, 101, 0.14);
+  z-index: 2;
+  pointer-events: none;
+}
+
 .experience-chip {
   width: auto;
   min-width: 44px;

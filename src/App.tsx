@@ -166,6 +166,18 @@ function App() {
     }
     return "calm";
   }, [focusPhase, focusRunning, isAnimeAvatar, isMusicActive, musicEnergy]);
+  const danceProfileLabel = useMemo(() => {
+    if (animeDanceProfile === "hype") {
+      return t.danceHype;
+    }
+    if (animeDanceProfile === "groove") {
+      return t.danceGroove;
+    }
+    if (animeDanceProfile === "calm") {
+      return t.danceCalm;
+    }
+    return t.danceIdle;
+  }, [animeDanceProfile, t.danceCalm, t.danceGroove, t.danceHype, t.danceIdle]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -980,6 +992,12 @@ function App() {
         {isMusicActive && settings.musicAmbient && (
           <div className="music-react-bubble" style={{ left: `${musicX}px`, top: `${musicY}px` }}>
             {musicPulsePhrase || "♪"}
+          </div>
+        )}
+
+        {isAnimeAvatar && isMusicActive && (
+          <div className="dance-profile-bubble" style={{ left: `${musicX}px`, top: `${musicY + 22}px` }}>
+            {t.danceProfile}: {danceProfileLabel}
           </div>
         )}
 

@@ -161,8 +161,32 @@ function App() {
   useEffect(() => {
     const appWindow = getCurrentWindow();
     const target = showPanel ? new LogicalSize(410, 500) : new LogicalSize(220, 240);
-    void appWindow.setSize(target).catch(() => undefined);
-    void appWindow.setResizable(showPanel).catch(() => undefined);
+    const keepVisibleAfterResize = async () => {
+      await appWindow.setSize(target).catch(() => undefined);
+      await appWindow.setResizable(showPanel).catch(() => undefined);
+      const [pos, size] = await Promise.all([appWindow.outerPosition(), appWindow.outerSize()]).catch(() => [null, null] as const);
+      if (!pos || !size) {
+        return;
+      }
+      const centerX = pos.x + Math.floor(size.width / 2);
+      const centerY = pos.y + Math.floor(size.height / 2);
+      const monitor = await monitorFromPoint(centerX, centerY);
+      if (!monitor) {
+        return;
+      }
+      const pad = 8;
+      const area = monitor.workArea;
+      const minX = area.position.x + pad;
+      const maxX = area.position.x + area.size.width - size.width - pad;
+      const minY = area.position.y + pad;
+      const maxY = area.position.y + area.size.height - size.height - pad;
+      const targetX = clamp(pos.x, minX, maxX);
+      const targetY = clamp(pos.y, minY, maxY);
+      if (targetX !== pos.x || targetY !== pos.y) {
+        await appWindow.setPosition(new PhysicalPosition(targetX, targetY)).catch(() => undefined);
+      }
+    };
+    void keepVisibleAfterResize();
   }, [showPanel]);
 
   useEffect(() => {
@@ -573,9 +597,6 @@ function App() {
   }, [registerInteraction, showPanel]);
 
   const startWindowDrag = useCallback((screenX: number, screenY: number) => {
-    if (showPanel) {
-      return;
-    }
     registerInteraction();
     windowDragUntilRef.current = Date.now() + 2400;
     const appWindow = getCurrentWindow();
@@ -586,7 +607,7 @@ function App() {
       }
       beginManualWindowDrag(screenX, screenY);
     });
-  }, [beginManualWindowDrag, registerInteraction, showPanel]);
+  }, [beginManualWindowDrag, registerInteraction]);
 
   const handleMascotPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0 || showPanel) {
@@ -609,6 +630,15 @@ function App() {
       return;
     }
     event.preventDefault();
+    startWindowDrag(event.screenX, event.screenY);
+  };
+
+  const handlePanelDragPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
     startWindowDrag(event.screenX, event.screenY);
   };
 
@@ -868,6 +898,12 @@ function App() {
 
       {showPanel && (
         <section className="settings-panel">
+          <div
+            className="panel-drag-hitbox"
+            data-tauri-drag-region
+            onPointerDown={handlePanelDragPointerDown}
+            title={t.bubbleMove}
+          />
           <label>
             {t.language}
             <select value={settings.language} onChange={(event) => update("language", event.currentTarget.value as Settings["language"])}>

@@ -20,6 +20,18 @@ type BubbleAction = {
   tone?: "default" | "success";
 };
 
+type CuteBubble = {
+  id: string;
+  x: number;
+  y: number;
+  driftX: number;
+  driftY: number;
+  delayMs: number;
+  sizePx: number;
+  lifeMs: number;
+  emoji: string;
+};
+
 const WINDOW_POSITION_KEY = `${STORAGE_KEY}.window.positionByMonitor`;
 const ONBOARDING_KEY = `${STORAGE_KEY}.onboarding.v1`;
 
@@ -95,6 +107,7 @@ function App() {
   const [animeBlinking, setAnimeBlinking] = useState(false);
   const [animeMouthOpen, setAnimeMouthOpen] = useState(false);
   const [animeStepFrame, setAnimeStepFrame] = useState(0);
+  const [cuteBubbles, setCuteBubbles] = useState<CuteBubble[]>([]);
 
   const durations = useMemo(() => getDurations(settings), [settings]);
   const [remainingSeconds, setRemainingSeconds] = useState(durations.focusSec);
@@ -178,6 +191,42 @@ function App() {
     }
     return t.danceIdle;
   }, [animeDanceProfile, t.danceCalm, t.danceGroove, t.danceHype, t.danceIdle]);
+
+  const spawnCuteBubbleBurst = useCallback((intensity: number = 1) => {
+    if (!settings.cuteBubblesEnabled || showPanel) {
+      return;
+    }
+    const icons = ["💗", "🫧", "⭐", "📘", "🐾", "🌸", "✨", "🧸"];
+    const amount = Math.max(3, Math.round(4 + intensity * 3));
+    const lifeBase = 1800 + Math.round(Math.random() * 700);
+    const seed = Date.now().toString(36);
+    const next: CuteBubble[] = Array.from({ length: amount }, (_, index) => {
+      const jitterX = (Math.random() - 0.5) * 54;
+      const jitterY = (Math.random() - 0.5) * 22;
+      const driftX = (Math.random() - 0.5) * 90;
+      const driftY = -56 - Math.random() * 72;
+      const sizePx = 14 + Math.round(Math.random() * 10);
+      const delayMs = Math.round(Math.random() * 220);
+      const lifeMs = lifeBase + Math.round(Math.random() * 700);
+      return {
+        id: `${seed}-${index}`,
+        x: clamp(mascotCenterX + jitterX, 14, stageWidth - 14),
+        y: clamp(position.y + mascotHeight * 0.56 + jitterY, 20, stageHeight - 10),
+        driftX,
+        driftY,
+        delayMs,
+        sizePx,
+        lifeMs,
+        emoji: randomPick(icons),
+      };
+    });
+    setCuteBubbles((prev) => [...prev, ...next].slice(-72));
+    const maxLife = Math.max(...next.map((b) => b.lifeMs + b.delayMs));
+    window.setTimeout(() => {
+      const ids = new Set(next.map((b) => b.id));
+      setCuteBubbles((prev) => prev.filter((b) => !ids.has(b.id)));
+    }, maxLife + 80);
+  }, [mascotCenterX, mascotHeight, position.y, settings.cuteBubblesEnabled, showPanel, stageHeight, stageWidth]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -341,6 +390,24 @@ function App() {
     }, 9000);
     return () => window.clearInterval(timer);
   }, [isMusicActive, t.phraseMusic]);
+
+  useEffect(() => {
+    if (!settings.cuteBubblesEnabled) {
+      return;
+    }
+    spawnCuteBubbleBurst(0.9);
+  }, [phraseTick, settings.cuteBubblesEnabled, spawnCuteBubbleBurst]);
+
+  useEffect(() => {
+    if (!settings.cuteBubblesEnabled || !isMusicActive) {
+      return;
+    }
+    spawnCuteBubbleBurst(1.4);
+    const timer = window.setInterval(() => {
+      spawnCuteBubbleBurst(1.2 + musicEnergy);
+    }, 3200);
+    return () => window.clearInterval(timer);
+  }, [isMusicActive, musicEnergy, settings.cuteBubblesEnabled, spawnCuteBubbleBurst]);
 
   useEffect(() => {
     if (!settings.systemMusicDetect) {
@@ -647,6 +714,9 @@ function App() {
   }, [settings.snapMarginPx, settings.snapToEdgeEnabled, showPanel]);
 
   const quickStartFocus = useCallback(() => {
+    if (settings.cuteBubblesEnabled) {
+      spawnCuteBubbleBurst(1.8);
+    }
     setFocusRunning((prev) => {
       if (prev) {
         setFocusPhase("focus");
@@ -660,7 +730,7 @@ function App() {
       update("mode", "study");
       return true;
     });
-  }, [durations.focusSec]);
+  }, [durations.focusSec, settings.cuteBubblesEnabled, spawnCuteBubbleBurst]);
 
   const beginManualWindowDrag = useCallback((screenX: number, screenY: number) => {
     if (showPanel) {
@@ -946,6 +1016,24 @@ function App() {
           </div>
         </div>
 
+        {settings.cuteBubblesEnabled && cuteBubbles.map((bubble) => (
+          <span
+            key={bubble.id}
+            className="cute-pop-bubble"
+            style={{
+              left: `${bubble.x}px`,
+              top: `${bubble.y}px`,
+              ["--drift-x" as string]: `${bubble.driftX.toFixed(1)}px`,
+              ["--drift-y" as string]: `${bubble.driftY.toFixed(1)}px`,
+              ["--bubble-life" as string]: `${bubble.lifeMs}ms`,
+              animationDelay: `${bubble.delayMs}ms`,
+              fontSize: `${bubble.sizePx}px`,
+            }}
+          >
+            {bubble.emoji}
+          </span>
+        ))}
+
         <div key={phraseTick} className="floating-phrase" style={{ left: `${mascotCenterX}px`, top: `${phraseY}px` }}>
           {phrase}
         </div>
@@ -1125,6 +1213,7 @@ function App() {
             <label className="toggle-row"><input type="checkbox" checked={settings.snapToEdgeEnabled} onChange={(event) => update("snapToEdgeEnabled", event.currentTarget.checked)} />{t.snapToEdge}</label>
             <label className="toggle-row"><input type="checkbox" checked={settings.ultraMinimal} onChange={(event) => update("ultraMinimal", event.currentTarget.checked)} />{t.ultraMinimal}</label>
             <label className="toggle-row"><input type="checkbox" checked={settings.musicAmbient} onChange={(event) => update("musicAmbient", event.currentTarget.checked)} />{t.musicAmbient}</label>
+            <label className="toggle-row"><input type="checkbox" checked={settings.cuteBubblesEnabled} onChange={(event) => update("cuteBubblesEnabled", event.currentTarget.checked)} />{t.cuteBubbles}</label>
 
             {settings.autoHideEnabled && (
               <label>

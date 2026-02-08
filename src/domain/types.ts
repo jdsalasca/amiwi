@@ -26,6 +26,7 @@ export type Settings = {
   ultraMinimal: boolean;
   showTimerBubble: boolean;
   musicAmbient: boolean;
+  cuteBubblesEnabled: boolean;
   clickThroughPermanent: boolean;
   dragAnywhereEnabled: boolean;
   snapToEdgeEnabled: boolean;

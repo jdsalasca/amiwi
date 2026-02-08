@@ -48,6 +48,7 @@ export function loadSettings(): Settings {
       customBreakMin: clamp(parsed.customBreakMin ?? 5, 1, 30),
       autoHideSeconds: clamp(parsed.autoHideSeconds ?? 6, 3, 30),
       snapMarginPx: clamp(parsed.snapMarginPx ?? 12, 4, 40),
+      cuteBubblesEnabled: parsed.cuteBubblesEnabled ?? true,
     };
   } catch {
     return defaultSettings;

@@ -448,6 +448,43 @@ body {
   pointer-events: none;
 }
 
+.cute-pop-bubble {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  min-width: 1.6em;
+  min-height: 1.6em;
+  padding: 0.16em;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(230, 244, 255, 0.58));
+  border: 1px solid rgba(176, 212, 246, 0.72);
+  box-shadow: 0 4px 12px rgba(42, 84, 125, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  z-index: 4;
+  animation: cuteBubbleRise var(--bubble-life, 2400ms) ease-out forwards;
+}
+
+@keyframes cuteBubbleRise {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--drift-x, 0px) * 0.2), calc(-50% + var(--drift-y, -40px) * 0.18)) scale(1);
+  }
+  70% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--drift-x, 0px) * 0.7), calc(-50% + var(--drift-y, -40px) * 0.72)) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--drift-x, 0px)), calc(-50% + var(--drift-y, -40px))) scale(0.78);
+  }
+}
+
 .timer-bubble {
   position: absolute;
   transform: translate(-50%, -50%);

@@ -7,6 +7,7 @@ import { relaunch } from "@tauri-apps/plugin-process";
 import { check, Update as AppUpdate } from "@tauri-apps/plugin-updater";
 import { assetByAvatarMood } from "./domain/assets";
 import { copy, STORAGE_KEY } from "./domain/config";
+import { resolvePetProfile, type PetMemoryEvent, type PetMemoryEventType } from "./domain/pets/profile";
 import type { BubbleModuleId, FocusPhase, MusicDetection, Mood, PomodoroPreset, Settings } from "./domain/types";
 import { clamp, formatMMSS, loadSettings, randomPick, resolveAsset } from "./utils/helpers";
 import "./App.css";
@@ -30,12 +31,6 @@ type CuteBubble = {
   sizePx: number;
   lifeMs: number;
   emoji: string;
-};
-
-type PetEventType = "petting" | "shake" | "focus_start" | "focus_stop" | "music_on" | "music_off";
-type PetEvent = {
-  type: PetEventType;
-  ts: number;
 };
 
 const WINDOW_POSITION_KEY = `${STORAGE_KEY}.window.positionByMonitor`;
@@ -122,13 +117,13 @@ function App() {
     const parsed = raw ? Number(raw) : 58;
     return Number.isFinite(parsed) ? clamp(parsed, 0, 100) : 58;
   });
-  const [petMemory, setPetMemory] = useState<PetEvent[]>(() => {
+  const [petMemory, setPetMemory] = useState<PetMemoryEvent[]>(() => {
     const raw = localStorage.getItem(PET_MEMORY_KEY);
     if (!raw) {
       return [];
     }
     try {
-      const parsed = JSON.parse(raw) as PetEvent[];
+      const parsed = JSON.parse(raw) as PetMemoryEvent[];
       return Array.isArray(parsed) ? parsed.slice(-8) : [];
     } catch {
       return [];
@@ -165,7 +160,24 @@ function App() {
 
   const t = copy[settings.language];
   const isMusicActive = settings.musicReactive && systemMusicActive;
-  const isAnimeAvatar = settings.avatarStyle === "anime";
+  const petProfile = useMemo(
+    () => resolvePetProfile(settings.avatarStyle),
+    [settings.avatarStyle]
+  );
+  const petContext = useMemo(
+    () => ({
+      language: settings.language,
+      mode: settings.mode,
+      mood,
+      focusRunning,
+      focusPhase,
+      isMusicActive,
+      bond: petBond,
+    }),
+    [focusPhase, focusRunning, isMusicActive, mood, petBond, settings.language, settings.mode]
+  );
+  const richTheme = petProfile.getRichTheme();
+  const isRichPetAvatar = richTheme !== null;
   const themeBaseHue = settings.themePreset === "mint" ? 165 : settings.themePreset === "rose" ? 345 : 205;
   const activeHue = Math.round(themeBaseHue + musicEnergy * 70);
   const stageWidth = widgetBodyRef.current?.clientWidth ?? 240;
@@ -194,7 +206,7 @@ function App() {
   const animeEyeX = ((pointerGlow.x - 50) / 50) * 2.2;
   const animeEyeY = ((pointerGlow.y - 50) / 50) * 1.6;
   const animeDanceProfile = useMemo<"idle" | "calm" | "groove" | "hype">(() => {
-    if (!isAnimeAvatar || !isMusicActive) {
+    if (!isRichPetAvatar || !isMusicActive) {
       return "idle";
     }
     const energy = clamp(musicEnergy, 0, 1);
@@ -211,7 +223,7 @@ function App() {
       return "groove";
     }
     return "calm";
-  }, [focusPhase, focusRunning, isAnimeAvatar, isMusicActive, musicEnergy]);
+  }, [focusPhase, focusRunning, isMusicActive, isRichPetAvatar, musicEnergy]);
   const danceProfileLabel = useMemo(() => {
     if (animeDanceProfile === "hype") {
       return t.danceHype;
@@ -256,20 +268,8 @@ function App() {
         : settings.bubblePack === "retro"
           ? ["🕹️", "🎲", "🌟", "🫧", "🎵", "📼", "🧡", "✨"]
           : ["💗", "🫧", "⭐", "📘", "🐾", "🌸", "✨", "🧸"];
-    if (isMusicActive) {
-      return [...packBase, "🎵", "🎶", "✨"];
-    }
-    if (focusRunning && focusPhase === "focus") {
-      return [...packBase, "📘", "✏️", "✅"];
-    }
-    if (settings.mode === "work") {
-      return [...packBase, "☕", "✅", "📘"];
-    }
-    if (settings.mode === "break") {
-      return [...packBase, "💗", "🌸", "🧸"];
-    }
-    return packBase;
-  }, [focusPhase, focusRunning, isMusicActive, settings.bubblePack, settings.mode]);
+    return [...packBase, ...petProfile.getBubbleIcons(petContext)];
+  }, [petContext, petProfile, settings.bubblePack]);
 
   const refreshDraggingVisual = useCallback((durationMs: number = 160) => {
     setMascotDraggingVisual(true);
@@ -440,7 +440,7 @@ function App() {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
-  const recordPetEvent = useCallback((type: PetEventType): void => {
+  const recordPetEvent = useCallback((type: PetMemoryEventType): void => {
     const now = Date.now();
     setPetMemory((prev) => [...prev, { type, ts: now }].slice(-8));
   }, []);
@@ -459,20 +459,15 @@ function App() {
     if (ageMs > 12 * 60 * 1000) {
       return null;
     }
-    if (latest.type === "petting") {
-      return petBond >= 80
-        ? (settings.language === "es" ? "💖 contigo me siento en casa" : "💖 with you I feel at home")
-        : t.pettingPhrase;
+    const profileLine = petProfile.getMemoryPhrase(latest.type, petContext);
+    if (profileLine) {
+      return profileLine;
     }
-    if (latest.type === "shake") {
-      return petBond >= 75
-        ? (settings.language === "es" ? "jajaja, que energia tan bonita ✨" : "haha, that energy was beautiful ✨")
-        : (settings.language === "es" ? "uff, eso fue intenso y divertido" : "wow, that was intense and fun");
+    if (latest.type === "petting") {
+      return t.pettingPhrase;
     }
     if (latest.type === "focus_start") {
-      return petBond >= 70
-        ? (settings.language === "es" ? "arrancamos juntos este bloque 💪" : "we start this block together 💪")
-        : randomPick(t.phraseDeepFocus);
+      return randomPick(t.phraseDeepFocus);
     }
     if (latest.type === "focus_stop") {
       return settings.language === "es" ? "bien hecho, cerraste un bloque" : "nice, you closed a full block";
@@ -483,8 +478,8 @@ function App() {
     if (latest.type === "music_off") {
       return settings.language === "es" ? "silencio suave... seguimos contigo" : "soft silence... I am still with you";
     }
-    return null;
-  }, [petBond, petMemory, settings.language, t.pettingPhrase, t.phraseDeepFocus]);
+    return settings.language === "es" ? "wow, eso tuvo mucha energia" : "wow, that had so much energy";
+  }, [petContext, petMemory, petProfile, settings.language, t.pettingPhrase, t.phraseDeepFocus]);
 
   const smartPhrasePool = useCallback((): readonly string[] => {
     const hour = new Date().getHours();
@@ -703,7 +698,7 @@ function App() {
   }, [settings.musicAmbient, systemMusicActive]);
 
   useEffect(() => {
-    if (!isAnimeAvatar) {
+    if (!isRichPetAvatar) {
       setAnimeBlinking(false);
       return;
     }
@@ -727,10 +722,10 @@ function App() {
       window.clearTimeout(blinkTimer);
       window.clearTimeout(resetTimer);
     };
-  }, [isAnimeAvatar]);
+  }, [isRichPetAvatar]);
 
   useEffect(() => {
-    if (!isAnimeAvatar) {
+    if (!isRichPetAvatar) {
       setAnimeMouthOpen(false);
       return;
     }
@@ -742,10 +737,10 @@ function App() {
       setAnimeMouthOpen((prev) => !prev);
     }, isMusicActive ? 220 : 360);
     return () => window.clearInterval(timer);
-  }, [focusRunning, isAnimeAvatar, isMusicActive]);
+  }, [focusRunning, isMusicActive, isRichPetAvatar]);
 
   useEffect(() => {
-    if (!isAnimeAvatar) {
+    if (!isRichPetAvatar) {
       setAnimeStepFrame(0);
       return;
     }
@@ -753,7 +748,7 @@ function App() {
       setAnimeStepFrame((prev) => (prev + 1) % 4);
     }, isMusicActive ? 180 : 280);
     return () => window.clearInterval(timer);
-  }, [isAnimeAvatar, isMusicActive]);
+  }, [isMusicActive, isRichPetAvatar]);
 
   useEffect(() => {
     if (!focusRunning) {
@@ -1223,12 +1218,14 @@ function App() {
         >
           <div className="mascot-hitbox" aria-hidden="true" />
           <div className={`mascot-shell ${mascotDraggingVisual ? "dragging" : ""}`} style={{ width: `${mascotWidth}px`, height: `${mascotHeight}px` }}>
-            {isAnimeAvatar ? (
+            {isRichPetAvatar ? (
               <div
-                className={`anime-avatar step-${animeStepFrame} dance-${animeDanceProfile} ${mascotDraggingVisual ? "dragging" : ""} ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
+                className={`anime-avatar rich-beta ${richTheme?.speciesClass ?? "cat-beta"} step-${animeStepFrame} dance-${animeDanceProfile} ${mascotDraggingVisual ? "dragging" : ""} ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
                 onDoubleClick={quickStartFocus}
                 onContextMenu={openOrCloseSettings}
               >
+                <div className={`pet-ear left ${richTheme?.earShape ?? "cat"}`} />
+                <div className={`pet-ear right ${richTheme?.earShape ?? "cat"}`} />
                 <div className="anime-hair" />
                 <div className="anime-face">
                   <div className="anime-eye left" style={{ ["--eye-x" as string]: `${animeEyeX.toFixed(2)}px`, ["--eye-y" as string]: `${animeEyeY.toFixed(2)}px` }}>
@@ -1346,7 +1343,7 @@ function App() {
           </div>
         )}
 
-        {isAnimeAvatar && isMusicActive && (
+        {isRichPetAvatar && isMusicActive && (
           <div className="dance-profile-bubble" style={{ left: `${musicX}px`, top: `${musicY + 22}px` }}>
             {t.danceProfile}: {danceProfileLabel}
           </div>
@@ -1391,7 +1388,9 @@ function App() {
               <option value="cat">Cat</option>
               <option value="bunny">Bunny</option>
               <option value="fox">Fox</option>
-              <option value="anime">Anime (beta)</option>
+              <option value="cat_beta">Cat (beta)</option>
+              <option value="bunny_beta">Bunny (beta)</option>
+              <option value="anime">Anime Legacy (beta)</option>
             </select>
           </label>
 

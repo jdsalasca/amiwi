@@ -197,6 +197,48 @@ body {
   animation: avatarBob 4.2s ease-in-out infinite;
 }
 
+.anime-avatar.rich-beta .pet-ear {
+  position: absolute;
+  top: 2%;
+  width: 23%;
+  height: 28%;
+  background: linear-gradient(180deg, #4b3d51 0%, #31283a 100%);
+  border: 1px solid rgba(32, 24, 37, 0.34);
+  z-index: 0;
+}
+
+.anime-avatar.rich-beta .pet-ear.left {
+  left: 16%;
+}
+
+.anime-avatar.rich-beta .pet-ear.right {
+  right: 16%;
+}
+
+.anime-avatar.rich-beta .pet-ear.cat {
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+  border-radius: 22% 22% 10% 10%;
+}
+
+.anime-avatar.rich-beta .pet-ear.bunny {
+  top: -10%;
+  width: 18%;
+  height: 40%;
+  border-radius: 999px;
+}
+
+.anime-avatar.rich-beta.cat-beta .anime-hair {
+  background: linear-gradient(180deg, #564858 0%, #372e3f 100%);
+}
+
+.anime-avatar.rich-beta.bunny-beta .anime-hair {
+  background: linear-gradient(180deg, #8b7f95 0%, #61586d 100%);
+}
+
+.anime-avatar.rich-beta.bunny-beta .anime-face {
+  background: radial-gradient(circle at 50% 22%, #fff0ea 0%, #ffe1d7 62%, #f4cdc1 100%);
+}
+
 .anime-hair {
   position: absolute;
   inset: 6% 12% 30%;

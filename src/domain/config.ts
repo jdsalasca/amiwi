@@ -205,7 +205,7 @@ export const copy = {
 
 export const defaultSettings: Settings = {
   language: "es",
-  avatarStyle: "cloud",
+  avatarStyle: "cat",
   phraseFrequencySec: 110,
   opacity: 1,
   size: 1,

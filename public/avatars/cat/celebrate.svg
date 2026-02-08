@@ -1,9 +1,22 @@
 <svg xmlns='http://www.w3.org/2000/svg' width='220' height='180' viewBox='0 0 220 180'>
+  <defs>
+    <linearGradient id='fur' x1='0' x2='0' y1='0' y2='1'>
+      <stop offset='0%' stop-color='#ffe8cf'/>
+      <stop offset='100%' stop-color='#ffd8b7'/>
+    </linearGradient>
+  </defs>
   <rect width='220' height='180' fill='transparent'/>
-  <ellipse cx='110' cy='94' rx='62' ry='54' fill='#ffe9d6' stroke='#7f5a3f' stroke-width='5'/>
-  <ellipse cx='84' cy='88' rx='10' ry='8' fill='#fff'/>
-  <ellipse cx='136' cy='88' rx='10' ry='8' fill='#fff'/>
-  <text x='110' y='91' font-size='16' text-anchor='middle' fill='#7f5a3f' font-family='Courier New'>*  *</text>
-  <text x='110' y='116' font-size='20' text-anchor='middle' fill='#7f5a3f' font-family='Courier New'>ω</text>
-  <text x='160' y='52' font-size='18' text-anchor='middle' fill='#7f5a3f' font-family='Courier New'>+</text>
+  <ellipse cx='110' cy='98' rx='70' ry='52' fill='url(#fur)'/>
+  <path d='M60 72 L74 38 L92 72' fill='#ffd8b7' stroke='#8a5f3d' stroke-width='4' stroke-linejoin='round'/>
+  <path d='M128 72 L146 38 L160 72' fill='#ffd8b7' stroke='#8a5f3d' stroke-width='4' stroke-linejoin='round'/>
+  <ellipse cx='110' cy='98' rx='70' ry='52' fill='none' stroke='#8a5f3d' stroke-width='4.5'/>
+  <ellipse cx='86' cy='95' rx='10' ry='12' fill='#fff'/>
+  <ellipse cx='134' cy='95' rx='10' ry='12' fill='#fff'/>
+  <circle cx='86' cy='97' r='4.5' fill='#3f2d20'/>
+  <circle cx='134' cy='97' r='4.5' fill='#3f2d20'/>
+  <ellipse cx='110' cy='113' rx='8' ry='6' fill='#ff9cae'/>
+  <path d='M110 120 Q100 126 94 121' stroke='#6e4a31' stroke-width='3' fill='none' stroke-linecap='round'/>
+  <path d='M110 120 Q120 126 126 121' stroke='#6e4a31' stroke-width='3' fill='none' stroke-linecap='round'/>
+  <path d='M55 64 L64 53 L71 63 M154 64 L163 53 L170 63' stroke='#ff9abf' stroke-width='5' stroke-linecap='round' stroke-linejoin='round' fill='none'/>
+  <path d='M82 116 L58 112 M82 121 L58 123 M138 116 L162 112 M138 121 L162 123' stroke='#8a5f3d' stroke-width='2.2' stroke-linecap='round' opacity='0.78'/>
 </svg>

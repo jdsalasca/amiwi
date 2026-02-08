@@ -95,6 +95,7 @@ body {
   border-color: transparent;
   box-shadow: none;
   backdrop-filter: none;
+  padding: 4px;
 }
 
 .glass-shell.mascot-only::before,
@@ -156,22 +157,22 @@ body {
   padding: 0;
   border-radius: 18px;
   text-align: center;
-  min-height: 216px;
+  min-height: 206px;
   overflow: visible;
 }
 
 .ultra-minimal .widget-body {
-  min-height: 188px;
+  min-height: 176px;
 }
 
 .avatar {
-  width: 176px;
-  max-width: 78%;
+  width: 162px;
+  max-width: 74%;
   display: block;
-  margin: 0;
+  margin: 0 auto;
   filter:
-    drop-shadow(0 8px 14px rgba(39, 72, 114, 0.24))
-    drop-shadow(0 0 calc(8px + var(--music-energy, 0) * 20px) hsla(var(--accent-hue, 210), 90%, 65%, 0.45));
+    drop-shadow(0 8px 14px rgba(39, 72, 114, 0.18))
+    drop-shadow(0 0 calc(8px + var(--music-energy, 0) * 16px) hsla(var(--accent-hue, 210), 90%, 65%, 0.35));
   animation: avatarBob 4.4s ease-in-out infinite;
 }
 
@@ -183,13 +184,26 @@ body {
   touch-action: none;
 }
 
+.mascot-shell {
+  width: 170px;
+  height: 124px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 50% 46%, rgba(240, 249, 255, 0.96), rgba(198, 223, 245, 0.44) 66%, rgba(175, 206, 237, 0.14) 79%, transparent 83%),
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.8), transparent 42%);
+  border: 1px solid rgba(182, 216, 249, 0.36);
+  backdrop-filter: blur(8px);
+}
+
 .mascot-draggable::before {
   content: "";
   position: absolute;
   left: -24px;
   top: -20px;
-  width: 196px;
-  height: 156px;
+  width: 198px;
+  height: 154px;
   border-radius: 999px;
   background: radial-gradient(circle at 45% 45%, rgba(255, 255, 255, 0.48), rgba(191, 222, 255, 0.1) 66%, transparent 74%);
   filter: blur(2px);
@@ -229,55 +243,55 @@ body {
 .floating-phrase {
   position: absolute;
   transform: translateX(-50%);
-  max-width: 78%;
-  font-size: 0.84rem;
+  max-width: 82%;
+  font-size: 0.72rem;
   line-height: 1.25;
   color: #1f426a;
-  background: rgba(255, 255, 255, 0.84);
-  border: 1px solid rgba(174, 209, 246, 0.76);
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(174, 209, 246, 0.64);
   border-radius: 999px;
-  padding: 7px 11px;
-  box-shadow: 0 7px 18px rgba(42, 84, 125, 0.15);
+  padding: 6px 10px;
+  box-shadow: 0 5px 14px rgba(42, 84, 125, 0.12);
   animation: bubbleIn 320ms ease;
 }
 
 .timer-bubble {
   position: absolute;
   transform: translate(-50%, -50%);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   border-radius: 999px;
-  padding: 5px 10px;
+  padding: 4px 8px;
   color: #1f3f65;
   background: rgba(255, 255, 255, 0.82);
   border: 1px solid rgba(167, 205, 244, 0.84);
-  box-shadow: 0 6px 16px rgba(31, 63, 101, 0.18);
+  box-shadow: 0 4px 12px rgba(31, 63, 101, 0.16);
 }
 
 .bubble-actions {
   position: absolute;
   transform: translateX(-50%);
   display: inline-flex;
-  gap: 8px;
-  padding: 7px 9px;
+  gap: 5px;
+  padding: 4px 5px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(167, 201, 237, 0.74);
+  background: rgba(255, 255, 255, 0.64);
+  border: 1px solid rgba(167, 201, 237, 0.66);
   backdrop-filter: blur(8px);
   z-index: 3;
 }
 
 .bubble-action {
-  width: 38px;
-  height: 38px;
+  width: 30px;
+  height: 30px;
   border-radius: 999px;
   border: 1px solid rgba(169, 207, 246, 0.82);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(242, 249, 255, 0.9));
   color: #214670;
-  font-size: 0.9rem;
+  font-size: 0.72rem;
   font-weight: 700;
   padding: 0;
-  box-shadow: 0 5px 13px rgba(44, 81, 120, 0.17);
+  box-shadow: 0 3px 10px rgba(44, 81, 120, 0.15);
 }
 
 .bubble-action.music-pulse {
@@ -373,16 +387,16 @@ body {
 .session-progress {
   position: absolute;
   left: 50%;
-  bottom: 56px;
+  bottom: 48px;
   transform: translateX(-50%);
   z-index: 3;
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   color: #224a74;
   font-weight: 800;
   background: rgba(255, 255, 255, 0.78);
   border: 1px solid rgba(165, 206, 246, 0.76);
   border-radius: 999px;
-  padding: 4px 9px;
+  padding: 3px 8px;
 }
 
 .settings-panel {
@@ -430,16 +444,6 @@ label {
   gap: 5px;
   margin-bottom: 8px;
   font-size: 0.75rem;
-}
-
-.field-label {
-  display: block;
-  font-size: 0.75rem;
-  margin-bottom: 6px;
-}
-
-.bubble-modules-wrap {
-  margin-bottom: 8px;
 }
 
 .toggle-row {
@@ -578,17 +582,6 @@ button:active {
   display: flex;
   justify-content: flex-end;
   gap: 7px;
-}
-
-.bubble-modules-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.bubble-module-toggle {
-  font-size: 0.72rem;
-  margin-bottom: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

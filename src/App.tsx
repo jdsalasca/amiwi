@@ -18,14 +18,7 @@ type BubbleAction = {
 };
 
 const WINDOW_POSITION_KEY = `${STORAGE_KEY}.window.positionByMonitor`;
-const DAILY_STATS_KEY = `${STORAGE_KEY}.daily.stats`;
 const ONBOARDING_KEY = `${STORAGE_KEY}.onboarding.v1`;
-
-type DailyStats = {
-  date: string;
-  focusStarts: number;
-  snacks: number;
-};
 
 function getDurations(settings: Settings): { focusSec: number; breakSec: number } {
   if (settings.pomodoroPreset === "50-10") {
@@ -73,32 +66,6 @@ function loadStoredWindowPositions(): Record<string, { x: number; y: number }> {
   }
 }
 
-function todayIsoDate(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function loadDailyStats(): DailyStats {
-  const fallback: DailyStats = { date: todayIsoDate(), focusStarts: 0, snacks: 0 };
-  const raw = localStorage.getItem(DAILY_STATS_KEY);
-  if (!raw) {
-    return fallback;
-  }
-  try {
-    const parsed = JSON.parse(raw) as Partial<DailyStats>;
-    const parsedDate = typeof parsed.date === "string" ? parsed.date : fallback.date;
-    if (parsedDate !== fallback.date) {
-      return fallback;
-    }
-    return {
-      date: parsedDate,
-      focusStarts: Number.isFinite(parsed.focusStarts) ? Number(parsed.focusStarts) : 0,
-      snacks: Number.isFinite(parsed.snacks) ? Number(parsed.snacks) : 0,
-    };
-  } catch {
-    return fallback;
-  }
-}
-
 function App() {
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
   const [showPanel, setShowPanel] = useState(false);
@@ -115,7 +82,6 @@ function App() {
   const [focusPhase, setFocusPhase] = useState<FocusPhase>("focus");
   const [dormant, setDormant] = useState(false);
   const [clickThroughActive, setClickThroughActive] = useState(false);
-  const [dailyStats, setDailyStats] = useState<DailyStats>(() => loadDailyStats());
   const [pointerGlow, setPointerGlow] = useState({ x: 50, y: 22 });
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
@@ -134,10 +100,6 @@ function App() {
   const isMusicActive = settings.musicReactive && systemMusicActive;
   const themeBaseHue = settings.themePreset === "mint" ? 165 : settings.themePreset === "rose" ? 345 : 205;
   const activeHue = Math.round(themeBaseHue + musicEnergy * 70);
-  const globalShortcutLabel = navigator.platform.toLowerCase().includes("mac")
-    ? "Cmd+Shift+A"
-    : "Ctrl+Shift+A (fallback Ctrl+Alt+A)";
-
   const stageWidth = widgetBodyRef.current?.clientWidth ?? 240;
   const stageHeight = widgetBodyRef.current?.clientHeight ?? 220;
   const position = useMemo(
@@ -145,10 +107,11 @@ function App() {
     [stageHeight, stageWidth]
   );
   const mascotCenterX = clamp(position.x + 75, 24, stageWidth - 24);
-  const phraseY = clamp(position.y - 38, 0, stageHeight - 38);
+  const rawPhraseY = clamp(position.y - 38, 0, stageHeight - 38);
   const actionY = clamp(position.y + 116, 0, stageHeight - 36);
   const timerX = clamp(stageWidth / 2, 26, stageWidth - 26);
   const timerY = 14;
+  const phraseY = Math.abs(rawPhraseY - timerY) < 34 ? clamp(rawPhraseY + 34, 4, stageHeight - 38) : rawPhraseY;
   const musicX = clamp(position.x + 115, 24, stageWidth - 24);
   const musicY = clamp(position.y + 10, 4, stageHeight - 28);
   const phaseTotalSeconds = focusPhase === "focus" ? durations.focusSec : durations.breakSec;
@@ -157,18 +120,6 @@ function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   }, [settings]);
-
-  useEffect(() => {
-    localStorage.setItem(DAILY_STATS_KEY, JSON.stringify(dailyStats));
-  }, [dailyStats]);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      const today = todayIsoDate();
-      setDailyStats((prev) => (prev.date === today ? prev : { date: today, focusStarts: 0, snacks: 0 }));
-    }, 60_000);
-    return () => window.clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     const seen = localStorage.getItem(ONBOARDING_KEY);
@@ -184,7 +135,7 @@ function App() {
 
   useEffect(() => {
     const appWindow = getCurrentWindow();
-    const target = showPanel ? new LogicalSize(420, 520) : new LogicalSize(240, 260);
+    const target = showPanel ? new LogicalSize(410, 500) : new LogicalSize(220, 240);
     void appWindow.setSize(target).catch(() => undefined);
     void appWindow.setResizable(showPanel).catch(() => undefined);
   }, [showPanel]);
@@ -199,14 +150,6 @@ function App() {
   const update = <K extends keyof Settings>(key: K, value: Settings[K]): void => {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
-
-  const bumpDailyMetric = useCallback((metric: "focusStarts" | "snacks") => {
-    const today = todayIsoDate();
-    setDailyStats((prev) => {
-      const base = prev.date === today ? prev : { date: today, focusStarts: 0, snacks: 0 };
-      return { ...base, [metric]: base[metric] + 1 };
-    });
-  }, []);
 
   const emitPhrase = (text: string): void => {
     setPhrase(text);
@@ -520,14 +463,13 @@ function App() {
         setMood("happy");
         return false;
       }
-      bumpDailyMetric("focusStarts");
       setFocusPhase("focus");
       setRemainingSeconds(durations.focusSec);
       setMood("focus");
       update("mode", "study");
       return true;
     });
-  }, [bumpDailyMetric, durations.focusSec]);
+  }, [durations.focusSec]);
 
   const startWindowDrag = useCallback(() => {
     registerInteraction();
@@ -539,20 +481,25 @@ function App() {
     startWindowDrag();
   };
 
+  const handleMainMouseDownCapture = (event: ReactMouseEvent<HTMLElement>) => {
+    registerInteraction();
+    if (showPanel || event.button !== 0) {
+      return;
+    }
+    const target = event.target as HTMLElement;
+    if (target.closest("button, input, select, textarea, details, summary, a, label")) {
+      return;
+    }
+    windowDragUntilRef.current = Date.now() + 2200;
+    void getCurrentWindow().startDragging().catch(() => undefined);
+  };
+
   const bubbleActions: BubbleAction[] = useMemo(() => {
-    const all: BubbleAction[] = [
+    return [
       { id: "focus", icon: focusRunning ? "■" : "▶", label: t.bubbleFocus, onClick: quickStartFocus },
-      { id: "phrase", icon: "💬", label: t.bubblePhrase, onClick: () => emitPhrase(randomPick(smartPhrasePool())) },
-      {
-        id: "move",
-        icon: "✥",
-        label: t.bubbleMove,
-        onClick: () => undefined,
-      },
       { id: "settings", icon: "⚙", label: t.bubbleSettings, onClick: () => setShowPanel(true) },
     ];
-    return all.filter((action) => action.id === "settings" || (action.id !== "move" && settings.bubbleModules[action.id]));
-  }, [focusRunning, quickStartFocus, settings.bubbleModules, smartPhrasePool, t]);
+  }, [focusRunning, quickStartFocus, t]);
 
   const applyExperienceProfile = useCallback((profile: "focus" | "calm" | "cozy") => {
     setSelectedProfile(profile);
@@ -560,6 +507,7 @@ function App() {
       setSettings((prev) => ({
         ...prev,
         themePreset: "ocean",
+        avatarStyle: "fox",
         mode: "study",
         phraseFrequencySec: 85,
         autoHideEnabled: true,
@@ -572,6 +520,7 @@ function App() {
       setSettings((prev) => ({
         ...prev,
         themePreset: "mint",
+        avatarStyle: "cloud",
         mode: "work",
         phraseFrequencySec: 130,
         autoHideEnabled: true,
@@ -583,6 +532,7 @@ function App() {
     setSettings((prev) => ({
       ...prev,
       themePreset: "rose",
+      avatarStyle: "cat",
       mode: "break",
       phraseFrequencySec: 170,
       autoHideEnabled: false,
@@ -635,6 +585,7 @@ function App() {
       onMouseMove={handleShellMouseMove}
       onMouseEnter={registerInteraction}
       onMouseDown={registerInteraction}
+      onMouseDownCapture={handleMainMouseDownCapture}
     >
       {(!settings.ultraMinimal || showPanel) && (
         <div className="glass-header">
@@ -652,22 +603,24 @@ function App() {
 
       <section ref={widgetBodyRef} className="widget-body" style={{ transform: `scale(${settings.size})` }}>
         <div className="mascot-draggable" style={{ left: `${position.x}px`, top: `${position.y}px` }} onMouseDown={handleMascotPointerDown}>
-          <img
-            className={`avatar ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
-            src={avatarAsset}
-            alt={`${settings.avatarStyle}-${mood}`}
-            loading="eager"
-            decoding="async"
-            onDoubleClick={quickStartFocus}
-            onContextMenu={openOrCloseSettings}
-            onError={(event) => {
-              if (event.currentTarget.dataset.fallbackApplied === "1") {
-                return;
-              }
-              event.currentTarget.dataset.fallbackApplied = "1";
-              event.currentTarget.src = fallbackAvatarAsset;
-            }}
-          />
+          <div className="mascot-shell">
+            <img
+              className={`avatar ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
+              src={avatarAsset}
+              alt={`${settings.avatarStyle}-${mood}`}
+              loading="eager"
+              decoding="async"
+              onDoubleClick={quickStartFocus}
+              onContextMenu={openOrCloseSettings}
+              onError={(event) => {
+                if (event.currentTarget.dataset.fallbackApplied === "1") {
+                  return;
+                }
+                event.currentTarget.dataset.fallbackApplied = "1";
+                event.currentTarget.src = fallbackAvatarAsset;
+              }}
+            />
+          </div>
         </div>
 
         <div key={phraseTick} className="floating-phrase" style={{ left: `${mascotCenterX}px`, top: `${phraseY}px` }}>
@@ -767,15 +720,7 @@ function App() {
             </select>
           </label>
 
-          <label className="toggle-row"><input type="checkbox" checked={settings.alwaysOnTop} onChange={(event) => update("alwaysOnTop", event.currentTarget.checked)} />{t.alwaysOnTop}</label>
-          <label className="toggle-row"><input type="checkbox" checked={settings.systemMusicDetect} onChange={(event) => update("systemMusicDetect", event.currentTarget.checked)} />{t.detectSystemMusic}</label>
           <label className="toggle-row"><input type="checkbox" checked={settings.showTimerBubble} onChange={(event) => update("showTimerBubble", event.currentTarget.checked)} />{t.showTimerBubble}</label>
-
-          <label>{t.globalShortcut}: {globalShortcutLabel}</label>
-
-          <button type="button" className="chip ghost" onClick={() => { setShowOnboarding(true); setOnboardingStep(0); }}>
-            {t.onboardingQuick}
-          </button>
 
           <details className="advanced-settings">
             <summary>{t.advancedSettings}</summary>
@@ -813,9 +758,11 @@ function App() {
 
             <label>
               {t.size}: {settings.size.toFixed(2)}x
-              <input type="range" min={0.8} max={1.4} step={0.05} value={settings.size} onChange={(event) => update("size", Number(event.currentTarget.value))} />
+              <input type="range" min={0.85} max={1.35} step={0.05} value={settings.size} onChange={(event) => update("size", Number(event.currentTarget.value))} />
             </label>
 
+            <label className="toggle-row"><input type="checkbox" checked={settings.alwaysOnTop} onChange={(event) => update("alwaysOnTop", event.currentTarget.checked)} />{t.alwaysOnTop}</label>
+            <label className="toggle-row"><input type="checkbox" checked={settings.systemMusicDetect} onChange={(event) => update("systemMusicDetect", event.currentTarget.checked)} />{t.detectSystemMusic}</label>
             <label className="toggle-row"><input type="checkbox" checked={settings.musicReactive} onChange={(event) => update("musicReactive", event.currentTarget.checked)} />{t.reactMusic}</label>
             <label className="toggle-row"><input type="checkbox" checked={settings.autoHideEnabled} onChange={(event) => update("autoHideEnabled", event.currentTarget.checked)} />{t.autoHide}</label>
             <label className="toggle-row"><input type="checkbox" checked={settings.clickThroughPermanent} onChange={(event) => update("clickThroughPermanent", event.currentTarget.checked)} />{t.clickThroughPermanent}</label>
@@ -837,36 +784,10 @@ function App() {
               </label>
             )}
 
-            <div className="bubble-modules-wrap">
-              <span className="field-label">{t.bubbleModules}</span>
-              <div className="bubble-modules-grid">
-                {([
-                  ["focus", t.bubbleFocus],
-                  ["feed", t.bubbleFeed],
-                  ["phrase", t.bubblePhrase],
-                  ["music", t.bubbleMusic],
-                  ["move", t.bubbleMove],
-                  ["settings", t.bubbleSettings],
-                ] as const).map(([id, label]) => (
-                  <label key={id} className="toggle-row bubble-module-toggle">
-                    <input
-                      type="checkbox"
-                      checked={settings.bubbleModules[id]}
-                      onChange={(event) =>
-                        update("bubbleModules", {
-                          ...settings.bubbleModules,
-                          [id]: event.currentTarget.checked,
-                        })
-                      }
-                    />
-                    {label}
-                  </label>
-                ))}
-              </div>
-            </div>
           </details>
 
           <div className="panel-footer">
+            <button type="button" className="chip ghost" onClick={() => { setShowOnboarding(true); setOnboardingStep(0); }}>{t.onboardingQuick}</button>
             <button type="button" className="chip" onClick={activateClickThroughPulse}>{t.clickThroughPulse}</button>
             <button type="button" className="chip" onClick={() => setShowPanel(false)}>{t.close}</button>
           </div>

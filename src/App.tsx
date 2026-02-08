@@ -120,14 +120,15 @@ function App() {
   const activeHue = Math.round(themeBaseHue + musicEnergy * 70);
   const stageWidth = widgetBodyRef.current?.clientWidth ?? 240;
   const stageHeight = widgetBodyRef.current?.clientHeight ?? 220;
-  const mascotWidth = 170;
-  const mascotHeight = 124;
+  const mascotScale = clamp(settings.mascotScale, 0.7, 1.45);
+  const mascotWidth = Math.round(170 * mascotScale);
+  const mascotHeight = Math.round(124 * mascotScale);
   const position = useMemo(
     () => ({
       x: clamp((stageWidth - mascotWidth) / 2, 0, stageWidth - mascotWidth),
       y: clamp((stageHeight - mascotHeight) / 2, 0, stageHeight - mascotHeight),
     }),
-    [stageHeight, stageWidth]
+    [mascotHeight, mascotWidth, stageHeight, stageWidth]
   );
   const mascotCenterX = clamp(position.x + mascotWidth / 2, 24, stageWidth - 24);
   const rawPhraseY = clamp(position.y - 38, 0, stageHeight - 38);
@@ -776,12 +777,12 @@ function App() {
       <section ref={widgetBodyRef} className="widget-body" style={{ transform: `scale(${settings.size})` }}>
         <div
           className="mascot-draggable"
-          style={{ left: `${position.x}px`, top: `${position.y}px` }}
+          style={{ left: `${position.x}px`, top: `${position.y}px`, width: `${mascotWidth}px`, height: `${mascotHeight}px` }}
           onPointerDown={handleMascotPointerDown}
           data-tauri-drag-region
         >
           <div className="mascot-hitbox" aria-hidden="true" />
-          <div className="mascot-shell">
+          <div className="mascot-shell" style={{ width: `${mascotWidth}px`, height: `${mascotHeight}px` }}>
             <img
               className={`avatar ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
               src={avatarAsset}
@@ -953,6 +954,11 @@ function App() {
             <label>
               {t.size}: {settings.size.toFixed(2)}x
               <input type="range" min={0.85} max={1.35} step={0.05} value={settings.size} onChange={(event) => update("size", Number(event.currentTarget.value))} />
+            </label>
+
+            <label>
+              {t.mascotSize}: {settings.mascotScale.toFixed(2)}x
+              <input type="range" min={0.7} max={1.45} step={0.05} value={settings.mascotScale} onChange={(event) => update("mascotScale", Number(event.currentTarget.value))} />
             </label>
 
             <label className="toggle-row"><input type="checkbox" checked={settings.alwaysOnTop} onChange={(event) => update("alwaysOnTop", event.currentTarget.checked)} />{t.alwaysOnTop}</label>

@@ -13,6 +13,7 @@ export type Settings = {
   phraseFrequencySec: number;
   opacity: number;
   size: number;
+  mascotScale: number;
   mode: Mode;
   alwaysOnTop: boolean;
   systemMusicDetect: boolean;

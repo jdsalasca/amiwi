@@ -191,12 +191,26 @@ function App() {
     }
     return t.danceIdle;
   }, [animeDanceProfile, t.danceCalm, t.danceGroove, t.danceHype, t.danceIdle]);
+  const cuteIconPool = useMemo<readonly string[]>(() => {
+    if (isMusicActive) {
+      return ["🫧", "🎵", "🎶", "✨", "💗", "🌟", "🧸"];
+    }
+    if (focusRunning && focusPhase === "focus") {
+      return ["📘", "📚", "✏️", "✨", "🫧", "🌟", "🐾"];
+    }
+    if (settings.mode === "work") {
+      return ["☕", "✅", "📘", "🫧", "✨", "🐾"];
+    }
+    if (settings.mode === "break") {
+      return ["💗", "🌸", "🫧", "⭐", "🧸", "🐥"];
+    }
+    return ["💗", "🫧", "⭐", "📘", "🐾", "🌸", "✨", "🧸"];
+  }, [focusPhase, focusRunning, isMusicActive, settings.mode]);
 
   const spawnCuteBubbleBurst = useCallback((intensity: number = 1) => {
     if (!settings.cuteBubblesEnabled || showPanel) {
       return;
     }
-    const icons = ["💗", "🫧", "⭐", "📘", "🐾", "🌸", "✨", "🧸"];
     const amount = Math.max(3, Math.round(4 + intensity * 3));
     const lifeBase = 1800 + Math.round(Math.random() * 700);
     const seed = Date.now().toString(36);
@@ -217,7 +231,7 @@ function App() {
         delayMs,
         sizePx,
         lifeMs,
-        emoji: randomPick(icons),
+        emoji: randomPick(cuteIconPool),
       };
     });
     setCuteBubbles((prev) => [...prev, ...next].slice(-72));
@@ -226,7 +240,7 @@ function App() {
       const ids = new Set(next.map((b) => b.id));
       setCuteBubbles((prev) => prev.filter((b) => !ids.has(b.id)));
     }, maxLife + 80);
-  }, [mascotCenterX, mascotHeight, position.y, settings.cuteBubblesEnabled, showPanel, stageHeight, stageWidth]);
+  }, [cuteIconPool, mascotCenterX, mascotHeight, position.y, settings.cuteBubblesEnabled, showPanel, stageHeight, stageWidth]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));

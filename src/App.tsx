@@ -131,6 +131,12 @@ function App() {
     targetY: 0,
     rafId: 0,
   });
+  const shakeRef = useRef({
+    lastX: 0,
+    lastY: 0,
+    lastTime: 0,
+    cooldownUntil: 0,
+  });
 
   const t = copy[settings.language];
   const isMusicActive = settings.musicReactive && systemMusicActive;
@@ -467,6 +473,52 @@ function App() {
       void unlistenPromise.then((unlisten) => unlisten()).catch(() => undefined);
     };
   }, [refreshDraggingVisual]);
+
+  useEffect(() => {
+    if (!settings.cuteBubblesEnabled) {
+      return;
+    }
+    const appWindow = getCurrentWindow();
+    let disposed = false;
+    const unlistenPromise = appWindow.onMoved(() => {
+      if (disposed) {
+        return;
+      }
+      void appWindow.outerPosition().then((pos) => {
+        const now = Date.now();
+        const prev = shakeRef.current;
+        if (prev.lastTime === 0) {
+          prev.lastX = pos.x;
+          prev.lastY = pos.y;
+          prev.lastTime = now;
+          return;
+        }
+        const dt = Math.max(1, now - prev.lastTime);
+        const dx = pos.x - prev.lastX;
+        const dy = pos.y - prev.lastY;
+        const speed = Math.hypot(dx, dy) / dt;
+        prev.lastX = pos.x;
+        prev.lastY = pos.y;
+        prev.lastTime = now;
+        if (now < prev.cooldownUntil || showPanel) {
+          return;
+        }
+        if (speed > 0.72) {
+          prev.cooldownUntil = now + 1700;
+          spawnCuteBubbleBurst(2.4);
+          setMood("celebrate");
+          emitPhrase(randomPick(t.phraseFeed));
+          window.setTimeout(() => {
+            setMood(settings.mode === "study" ? "focus" : settings.mode === "work" ? "happy" : "break");
+          }, 820);
+        }
+      }).catch(() => undefined);
+    });
+    return () => {
+      disposed = true;
+      void unlistenPromise.then((unlisten) => unlisten()).catch(() => undefined);
+    };
+  }, [settings.cuteBubblesEnabled, settings.mode, showPanel, spawnCuteBubbleBurst, t.phraseFeed]);
 
   useEffect(() => {
     if (!settings.systemMusicDetect) {

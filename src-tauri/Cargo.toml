@@ -1,6 +1,6 @@
 [package]
 name = "amiwi"
-version = "0.8.35"
+version = "0.8.36"
 description = "Amiwi companion desktop app"
 authors = ["Amiwi Team"]
 edition = "2021"

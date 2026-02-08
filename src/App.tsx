@@ -116,6 +116,7 @@ function App() {
   const [dormant, setDormant] = useState(false);
   const [clickThroughActive, setClickThroughActive] = useState(false);
   const [dailyStats, setDailyStats] = useState<DailyStats>(() => loadDailyStats());
+  const [pointerGlow, setPointerGlow] = useState({ x: 50, y: 22 });
 
   const durations = useMemo(() => getDurations(settings), [settings]);
   const [remainingSeconds, setRemainingSeconds] = useState(durations.focusSec);
@@ -147,6 +148,8 @@ function App() {
   const timerY = clamp(position.y + 92, 6, stageHeight - 28);
   const musicX = clamp(position.x + 115, 24, stageWidth - 24);
   const musicY = clamp(position.y + 10, 4, stageHeight - 28);
+  const phaseTotalSeconds = focusPhase === "focus" ? durations.focusSec : durations.breakSec;
+  const phaseProgress = clamp(1 - remainingSeconds / Math.max(phaseTotalSeconds, 1), 0, 1);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -607,15 +610,27 @@ function App() {
     setShowPanel((prev) => !prev);
   };
 
+  const handleShellMouseMove = (event: ReactMouseEvent<HTMLElement>) => {
+    registerInteraction();
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = clamp(((event.clientX - rect.left) / Math.max(rect.width, 1)) * 100, 0, 100);
+    const y = clamp(((event.clientY - rect.top) / Math.max(rect.height, 1)) * 100, 0, 100);
+    setPointerGlow((prev) => (
+      Math.abs(prev.x - x) > 0.6 || Math.abs(prev.y - y) > 0.6 ? { x, y } : prev
+    ));
+  };
+
   return (
     <main
-      className={`glass-shell theme-${settings.themePreset} ${dormant ? "dormant" : ""} ${settings.ultraMinimal ? "ultra-minimal" : ""}`}
+      className={`glass-shell theme-${settings.themePreset} ${focusRunning ? "focus-running" : ""} ${dormant ? "dormant" : ""} ${settings.ultraMinimal ? "ultra-minimal" : ""}`}
       style={{
         opacity: settings.opacity,
         ["--accent-hue" as string]: `${activeHue}`,
-        ["--music-energy" as string]: `${musicEnergy.toFixed(2)}`
+        ["--music-energy" as string]: `${musicEnergy.toFixed(2)}`,
+        ["--glass-x" as string]: `${pointerGlow.x.toFixed(1)}%`,
+        ["--glass-y" as string]: `${pointerGlow.y.toFixed(1)}%`,
       }}
-      onMouseMove={registerInteraction}
+      onMouseMove={handleShellMouseMove}
       onMouseEnter={registerInteraction}
       onMouseDown={registerInteraction}
     >
@@ -689,6 +704,15 @@ function App() {
         {settings.showTimerBubble && (
           <div className="timer-bubble" style={{ left: `${timerX}px`, top: `${timerY}px` }}>
             {focusRunning ? (focusPhase === "focus" ? "🍅" : "☕") : "⏱"} {formatMMSS(remainingSeconds)}
+          </div>
+        )}
+
+        {focusRunning && (
+          <div className="session-progress">
+            <div className="session-progress-track">
+              <div className="session-progress-fill" style={{ width: `${Math.round(phaseProgress * 100)}%` }} />
+            </div>
+            <span>{Math.round(phaseProgress * 100)}%</span>
           </div>
         )}
 

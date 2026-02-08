@@ -63,6 +63,7 @@ export const copy = {
     onboardingBack: "Atrás",
     onboardingNext: "Siguiente",
     onboardingDone: "Empezar ahora",
+    advancedSettings: "Opciones avanzadas",
     phraseStudy: [
       "Vamos, paso a paso. Estoy contigo.",
       "Un bloque mas y celebramos.",
@@ -161,6 +162,7 @@ export const copy = {
     onboardingBack: "Back",
     onboardingNext: "Next",
     onboardingDone: "Start now",
+    advancedSettings: "Advanced options",
     phraseStudy: [
       "One step at a time. I am with you.",
       "One more block and we celebrate.",

@@ -148,8 +148,8 @@ function App() {
   const mascotCenterX = clamp(position.x + 75, 24, stageWidth - 24);
   const phraseY = clamp(position.y - 38, 0, stageHeight - 38);
   const actionY = clamp(position.y + 116, 0, stageHeight - 36);
-  const timerX = clamp(position.x + 88, 24, stageWidth - 42);
-  const timerY = clamp(position.y + 92, 6, stageHeight - 28);
+  const timerX = clamp(stageWidth / 2, 26, stageWidth - 26);
+  const timerY = 22;
   const musicX = clamp(position.x + 115, 24, stageWidth - 24);
   const musicY = clamp(position.y + 10, 4, stageHeight - 28);
   const phaseTotalSeconds = focusPhase === "focus" ? durations.focusSec : durations.breakSec;
@@ -306,7 +306,7 @@ function App() {
       }
     };
     void check();
-    const timer = window.setInterval(() => void check(), 6_000);
+    const timer = window.setInterval(() => void check(), 12_000);
     return () => {
       active = false;
       window.clearInterval(timer);
@@ -642,7 +642,7 @@ function App() {
 
   return (
     <main
-      className={`glass-shell theme-${settings.themePreset} ${focusRunning ? "focus-running" : ""} ${dormant ? "dormant" : ""} ${settings.ultraMinimal ? "ultra-minimal" : ""}`}
+      className={`glass-shell theme-${settings.themePreset} ${!showPanel ? "mascot-only" : ""} ${focusRunning ? "focus-running" : ""} ${dormant ? "dormant" : ""} ${settings.ultraMinimal ? "ultra-minimal" : ""}`}
       style={{
         opacity: settings.opacity,
         ["--accent-hue" as string]: `${activeHue}`,
@@ -713,14 +713,6 @@ function App() {
           </div>
         )}
 
-        {!showPanel && (
-          <div className="experience-row">
-            <button type="button" className="experience-chip" onClick={() => applyExperienceProfile("focus")}>Focus</button>
-            <button type="button" className="experience-chip" onClick={() => applyExperienceProfile("calm")}>Calm</button>
-            <button type="button" className="experience-chip" onClick={() => applyExperienceProfile("cozy")}>Cozy</button>
-          </div>
-        )}
-
         {settings.showTimerBubble && (
           <div className="timer-bubble" style={{ left: `${timerX}px`, top: `${timerY}px` }}>
             {focusRunning ? (focusPhase === "focus" ? "🍅" : "☕") : "⏱"} {formatMMSS(remainingSeconds)}
@@ -788,6 +780,15 @@ function App() {
           </label>
 
           <label>
+            Vibe
+            <div className="onboarding-row">
+              <button type="button" className={`experience-chip ${selectedProfile === "focus" ? "active" : ""}`} onClick={() => applyExperienceProfile("focus")}>Focus</button>
+              <button type="button" className={`experience-chip ${selectedProfile === "calm" ? "active" : ""}`} onClick={() => applyExperienceProfile("calm")}>Calm</button>
+              <button type="button" className={`experience-chip ${selectedProfile === "cozy" ? "active" : ""}`} onClick={() => applyExperienceProfile("cozy")}>Cozy</button>
+            </div>
+          </label>
+
+          <label>
             {t.mode}
             <select value={settings.mode} onChange={(event) => update("mode", event.currentTarget.value as Settings["mode"])}>
               <option value="study">{t.focus}</option>
@@ -796,49 +797,8 @@ function App() {
             </select>
           </label>
 
-          <label>
-            {t.preset}
-            <select value={settings.pomodoroPreset} onChange={(event) => update("pomodoroPreset", event.currentTarget.value as PomodoroPreset)}>
-              <option value="25-5">25 / 5</option>
-              <option value="50-10">50 / 10</option>
-              <option value="custom">Custom</option>
-            </select>
-          </label>
-
-          {settings.pomodoroPreset === "custom" && (
-            <>
-              <label>
-                {t.focusMin}: {settings.customFocusMin}
-                <input type="range" min={5} max={120} value={settings.customFocusMin} onChange={(event) => update("customFocusMin", Number(event.currentTarget.value))} />
-              </label>
-              <label>
-                {t.breakMin}: {settings.customBreakMin}
-                <input type="range" min={1} max={30} value={settings.customBreakMin} onChange={(event) => update("customBreakMin", Number(event.currentTarget.value))} />
-              </label>
-            </>
-          )}
-
-          <label>
-            {t.phraseFreq}: {settings.phraseFrequencySec}s
-            <input type="range" min={20} max={300} value={settings.phraseFrequencySec} onChange={(event) => update("phraseFrequencySec", Number(event.currentTarget.value))} />
-          </label>
-
-          <label>
-            {t.opacity}: {settings.opacity.toFixed(2)}
-            <input type="range" min={0.55} max={1} step={0.05} value={settings.opacity} onChange={(event) => update("opacity", Number(event.currentTarget.value))} />
-          </label>
-
-          <label>
-            {t.size}: {settings.size.toFixed(2)}x
-            <input type="range" min={0.8} max={1.4} step={0.05} value={settings.size} onChange={(event) => update("size", Number(event.currentTarget.value))} />
-          </label>
-
           <label className="toggle-row"><input type="checkbox" checked={settings.alwaysOnTop} onChange={(event) => update("alwaysOnTop", event.currentTarget.checked)} />{t.alwaysOnTop}</label>
           <label className="toggle-row"><input type="checkbox" checked={settings.systemMusicDetect} onChange={(event) => update("systemMusicDetect", event.currentTarget.checked)} />{t.detectSystemMusic}</label>
-          <label className="toggle-row"><input type="checkbox" checked={settings.musicReactive} onChange={(event) => update("musicReactive", event.currentTarget.checked)} />{t.reactMusic}</label>
-          <label className="toggle-row"><input type="checkbox" checked={settings.autoHideEnabled} onChange={(event) => update("autoHideEnabled", event.currentTarget.checked)} />{t.autoHide}</label>
-          <label className="toggle-row"><input type="checkbox" checked={settings.clickThroughPermanent} onChange={(event) => update("clickThroughPermanent", event.currentTarget.checked)} />{t.clickThroughPermanent}</label>
-          <label className="toggle-row"><input type="checkbox" checked={settings.snapToEdgeEnabled} onChange={(event) => update("snapToEdgeEnabled", event.currentTarget.checked)} />{t.snapToEdge}</label>
           <label className="toggle-row"><input type="checkbox" checked={settings.ultraMinimal} onChange={(event) => update("ultraMinimal", event.currentTarget.checked)} />{t.ultraMinimal}</label>
           <label className="toggle-row"><input type="checkbox" checked={settings.showTimerBubble} onChange={(event) => update("showTimerBubble", event.currentTarget.checked)} />{t.showTimerBubble}</label>
           <label className="toggle-row"><input type="checkbox" checked={settings.musicAmbient} onChange={(event) => update("musicAmbient", event.currentTarget.checked)} />{t.musicAmbient}</label>
@@ -849,47 +809,92 @@ function App() {
             {t.onboardingQuick}
           </button>
 
-          {settings.autoHideEnabled && (
+          <details className="advanced-settings">
+            <summary>{t.advancedSettings}</summary>
             <label>
-              {t.autoHideSec}: {settings.autoHideSeconds}s
-              <input type="range" min={3} max={30} value={settings.autoHideSeconds} onChange={(event) => update("autoHideSeconds", Number(event.currentTarget.value))} />
+              {t.preset}
+              <select value={settings.pomodoroPreset} onChange={(event) => update("pomodoroPreset", event.currentTarget.value as PomodoroPreset)}>
+                <option value="25-5">25 / 5</option>
+                <option value="50-10">50 / 10</option>
+                <option value="custom">Custom</option>
+              </select>
             </label>
-          )}
 
-          {settings.snapToEdgeEnabled && (
-            <label>
-              {t.snapMargin}: {settings.snapMarginPx}px
-              <input type="range" min={4} max={40} value={settings.snapMarginPx} onChange={(event) => update("snapMarginPx", Number(event.currentTarget.value))} />
-            </label>
-          )}
-
-          <div className="bubble-modules-wrap">
-            <span className="field-label">{t.bubbleModules}</span>
-            <div className="bubble-modules-grid">
-              {([
-                ["focus", t.bubbleFocus],
-                ["feed", t.bubbleFeed],
-                ["phrase", t.bubblePhrase],
-                ["music", t.bubbleMusic],
-                ["move", t.bubbleMove],
-                ["settings", t.bubbleSettings],
-              ] as const).map(([id, label]) => (
-                <label key={id} className="toggle-row bubble-module-toggle">
-                  <input
-                    type="checkbox"
-                    checked={settings.bubbleModules[id]}
-                    onChange={(event) =>
-                      update("bubbleModules", {
-                        ...settings.bubbleModules,
-                        [id]: event.currentTarget.checked,
-                      })
-                    }
-                  />
-                  {label}
+            {settings.pomodoroPreset === "custom" && (
+              <>
+                <label>
+                  {t.focusMin}: {settings.customFocusMin}
+                  <input type="range" min={5} max={120} value={settings.customFocusMin} onChange={(event) => update("customFocusMin", Number(event.currentTarget.value))} />
                 </label>
-              ))}
+                <label>
+                  {t.breakMin}: {settings.customBreakMin}
+                  <input type="range" min={1} max={30} value={settings.customBreakMin} onChange={(event) => update("customBreakMin", Number(event.currentTarget.value))} />
+                </label>
+              </>
+            )}
+
+            <label>
+              {t.phraseFreq}: {settings.phraseFrequencySec}s
+              <input type="range" min={20} max={300} value={settings.phraseFrequencySec} onChange={(event) => update("phraseFrequencySec", Number(event.currentTarget.value))} />
+            </label>
+
+            <label>
+              {t.opacity}: {settings.opacity.toFixed(2)}
+              <input type="range" min={0.55} max={1} step={0.05} value={settings.opacity} onChange={(event) => update("opacity", Number(event.currentTarget.value))} />
+            </label>
+
+            <label>
+              {t.size}: {settings.size.toFixed(2)}x
+              <input type="range" min={0.8} max={1.4} step={0.05} value={settings.size} onChange={(event) => update("size", Number(event.currentTarget.value))} />
+            </label>
+
+            <label className="toggle-row"><input type="checkbox" checked={settings.musicReactive} onChange={(event) => update("musicReactive", event.currentTarget.checked)} />{t.reactMusic}</label>
+            <label className="toggle-row"><input type="checkbox" checked={settings.autoHideEnabled} onChange={(event) => update("autoHideEnabled", event.currentTarget.checked)} />{t.autoHide}</label>
+            <label className="toggle-row"><input type="checkbox" checked={settings.clickThroughPermanent} onChange={(event) => update("clickThroughPermanent", event.currentTarget.checked)} />{t.clickThroughPermanent}</label>
+            <label className="toggle-row"><input type="checkbox" checked={settings.snapToEdgeEnabled} onChange={(event) => update("snapToEdgeEnabled", event.currentTarget.checked)} />{t.snapToEdge}</label>
+
+            {settings.autoHideEnabled && (
+              <label>
+                {t.autoHideSec}: {settings.autoHideSeconds}s
+                <input type="range" min={3} max={30} value={settings.autoHideSeconds} onChange={(event) => update("autoHideSeconds", Number(event.currentTarget.value))} />
+              </label>
+            )}
+
+            {settings.snapToEdgeEnabled && (
+              <label>
+                {t.snapMargin}: {settings.snapMarginPx}px
+                <input type="range" min={4} max={40} value={settings.snapMarginPx} onChange={(event) => update("snapMarginPx", Number(event.currentTarget.value))} />
+              </label>
+            )}
+
+            <div className="bubble-modules-wrap">
+              <span className="field-label">{t.bubbleModules}</span>
+              <div className="bubble-modules-grid">
+                {([
+                  ["focus", t.bubbleFocus],
+                  ["feed", t.bubbleFeed],
+                  ["phrase", t.bubblePhrase],
+                  ["music", t.bubbleMusic],
+                  ["move", t.bubbleMove],
+                  ["settings", t.bubbleSettings],
+                ] as const).map(([id, label]) => (
+                  <label key={id} className="toggle-row bubble-module-toggle">
+                    <input
+                      type="checkbox"
+                      checked={settings.bubbleModules[id]}
+                      onChange={(event) =>
+                        update("bubbleModules", {
+                          ...settings.bubbleModules,
+                          [id]: event.currentTarget.checked,
+                        })
+                      }
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
+          </details>
 
           <div className="panel-footer">
             <button type="button" className="chip" onClick={activateClickThroughPulse}>{t.clickThroughPulse}</button>

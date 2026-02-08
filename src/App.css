@@ -90,6 +90,18 @@ body {
     0 0 24px hsla(var(--accent-hue, 210), 86%, 72%, 0.26);
 }
 
+.glass-shell.mascot-only {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.glass-shell.mascot-only::before,
+.glass-shell.mascot-only::after {
+  opacity: 0;
+}
+
 .glass-header {
   display: flex;
   align-items: center;
@@ -184,6 +196,19 @@ body {
   height: 112px;
   cursor: move;
   touch-action: none;
+}
+
+.mascot-draggable::before {
+  content: "";
+  position: absolute;
+  left: -24px;
+  top: -20px;
+  width: 196px;
+  height: 156px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 45% 45%, rgba(255, 255, 255, 0.48), rgba(191, 222, 255, 0.1) 66%, transparent 74%);
+  filter: blur(2px);
+  z-index: -1;
 }
 
 .mascot-draggable:active {
@@ -413,6 +438,22 @@ body {
   background: rgba(248, 252, 255, 0.8);
   border: 1px solid rgba(173, 212, 251, 0.7);
   box-shadow: 0 10px 20px rgba(27, 63, 97, 0.16);
+}
+
+.advanced-settings {
+  border: 1px solid rgba(170, 209, 247, 0.84);
+  border-radius: 12px;
+  padding: 6px 8px;
+  margin-top: 8px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.advanced-settings summary {
+  cursor: pointer;
+  color: #2a4f78;
+  font-size: 0.74rem;
+  font-weight: 700;
+  margin-bottom: 6px;
 }
 
 .ultra-minimal .settings-panel {

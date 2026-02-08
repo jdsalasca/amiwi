@@ -2,6 +2,8 @@ use serde::Serialize;
 use std::process::Command;
 use tauri::Emitter;
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
 
 #[derive(Serialize)]
 struct MusicDetection {
@@ -36,10 +38,23 @@ async fn detect_system_music() -> MusicDetection {
 
 #[cfg(target_os = "windows")]
 fn detect_system_music_impl() -> MusicDetection {
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
+    let run_powershell = |script: &str| {
+        Command::new("powershell")
+            .args([
+                "-NoProfile",
+                "-NonInteractive",
+                "-WindowStyle",
+                "Hidden",
+                "-Command",
+                script,
+            ])
+            .creation_flags(CREATE_NO_WINDOW)
+            .output()
+    };
+
     let native_script = "$ErrorActionPreference='SilentlyContinue'; try { $manager=[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager,Windows.Media.Control,ContentType=WindowsRuntime]::RequestAsync().GetAwaiter().GetResult(); if($null -eq $manager){ '0||windows_gsmtc'; exit 0 }; $sessions=$manager.GetSessions(); foreach($session in $sessions){ $info=$session.GetPlaybackInfo(); if($null -ne $info -and $info.PlaybackStatus.ToString() -eq 'Playing'){ $source=$session.SourceAppUserModelId; if([string]::IsNullOrWhiteSpace($source)){ $source='system' }; $source=$source -replace '\\|','/'; '1|' + $source + '|windows_gsmtc'; exit 0 } }; '0||windows_gsmtc' } catch { '0||windows_gsmtc_error' }";
-    let native_output = Command::new("powershell")
-        .args(["-NoProfile", "-Command", native_script])
-        .output();
+    let native_output = run_powershell(native_script);
 
     if let Ok(result) = native_output {
         let line = String::from_utf8_lossy(&result.stdout).trim().to_string();
@@ -51,9 +66,7 @@ fn detect_system_music_impl() -> MusicDetection {
     }
 
     let heuristic_script = "$ErrorActionPreference='SilentlyContinue'; try { try { $itunes = New-Object -ComObject iTunes.Application; if($itunes.PlayerState -eq 1){ '1|iTunes|itunes_com'; exit 0 } } catch {}; $names=@('Spotify','AppleMusic','iTunes','vlc'); $samples=@{}; foreach($name in $names){ $proc=Get-Process -Name $name -ErrorAction SilentlyContinue | Select-Object -First 1; if($null -ne $proc){ $samples[$name]=[double]$proc.TotalProcessorTime.TotalMilliseconds } }; Start-Sleep -Milliseconds 650; foreach($name in $samples.Keys){ $proc=Get-Process -Name $name -ErrorAction SilentlyContinue | Select-Object -First 1; if($null -ne $proc){ $delta=[double]$proc.TotalProcessorTime.TotalMilliseconds - $samples[$name]; if($delta -gt 15){ '1|' + $proc.ProcessName + '|process_cpu_heuristic'; exit 0 } } }; if($samples.Count -gt 0){ $source=($samples.Keys | Select-Object -First 1); '0|' + $source + '|process_cpu_heuristic'; exit 0 }; '0||process_cpu_heuristic' } catch { '0||process_cpu_heuristic_error' }";
-    let heuristic_output = Command::new("powershell")
-        .args(["-NoProfile", "-Command", heuristic_script])
-        .output();
+    let heuristic_output = run_powershell(heuristic_script);
 
     if let Ok(result) = heuristic_output {
         let line = String::from_utf8_lossy(&result.stdout).trim().to_string();

@@ -42,6 +42,12 @@ export const copy = {
     bubbleSettings: "Ajustes",
     bubblePhrase: "Frase",
     bubbleMusic: "Music",
+    bubbleMove: "Mover",
+    theme: "Tema",
+    bubbleModules: "Burbujas activas",
+    clickThroughPermanent: "Click-through permanente",
+    snapToEdge: "Snap al borde",
+    snapMargin: "Margen snap",
     phraseStudy: [
       "Vamos, paso a paso. Estoy contigo.",
       "Un bloque mas y celebramos.",
@@ -119,6 +125,12 @@ export const copy = {
     bubbleSettings: "Settings",
     bubblePhrase: "Phrase",
     bubbleMusic: "Music",
+    bubbleMove: "Move",
+    theme: "Theme",
+    bubbleModules: "Enabled bubbles",
+    clickThroughPermanent: "Permanent click-through",
+    snapToEdge: "Snap to edge",
+    snapMargin: "Snap margin",
     phraseStudy: [
       "One step at a time. I am with you.",
       "One more block and we celebrate.",
@@ -177,5 +189,16 @@ export const defaultSettings: Settings = {
   ultraMinimal: true,
   showTimerBubble: true,
   musicAmbient: true,
+  clickThroughPermanent: false,
+  snapToEdgeEnabled: true,
+  snapMarginPx: 12,
+  themePreset: "ocean",
+  bubbleModules: {
+    focus: true,
+    feed: true,
+    phrase: true,
+    music: true,
+    move: true,
+    settings: true,
+  },
 };
-

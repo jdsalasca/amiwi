@@ -4,6 +4,8 @@ export type Mood = "happy" | "focus" | "tired" | "break" | "celebrate";
 export type AvatarStyle = "blob" | "cat" | "bunny" | "fox" | "cloud" | "pixel";
 export type PomodoroPreset = "25-5" | "50-10" | "custom";
 export type FocusPhase = "focus" | "break";
+export type ThemePreset = "ocean" | "mint" | "rose";
+export type BubbleModuleId = "focus" | "feed" | "phrase" | "music" | "move" | "settings";
 
 export type Settings = {
   language: Lang;
@@ -23,6 +25,11 @@ export type Settings = {
   ultraMinimal: boolean;
   showTimerBubble: boolean;
   musicAmbient: boolean;
+  clickThroughPermanent: boolean;
+  snapToEdgeEnabled: boolean;
+  snapMarginPx: number;
+  themePreset: ThemePreset;
+  bubbleModules: Record<BubbleModuleId, boolean>;
 };
 
 export type MusicDetection = {
@@ -30,4 +37,3 @@ export type MusicDetection = {
   source: string;
   method: string;
 };
-

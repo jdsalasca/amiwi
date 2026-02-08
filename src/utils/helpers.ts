@@ -31,15 +31,19 @@ export function loadSettings(): Settings {
     return {
       ...defaultSettings,
       ...parsed,
+      bubbleModules: {
+        ...defaultSettings.bubbleModules,
+        ...parsed.bubbleModules,
+      },
       phraseFrequencySec: clamp(parsed.phraseFrequencySec ?? 85, 20, 300),
       opacity: clamp(parsed.opacity ?? 1, 0.55, 1),
       size: clamp(parsed.size ?? 1, 0.8, 1.4),
       customFocusMin: clamp(parsed.customFocusMin ?? 30, 5, 120),
       customBreakMin: clamp(parsed.customBreakMin ?? 5, 1, 30),
       autoHideSeconds: clamp(parsed.autoHideSeconds ?? 6, 3, 30),
+      snapMarginPx: clamp(parsed.snapMarginPx ?? 12, 4, 40),
     };
   } catch {
     return defaultSettings;
   }
 }
-

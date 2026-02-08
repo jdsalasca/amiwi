@@ -10,6 +10,19 @@ struct MusicDetection {
     method: String,
 }
 
+fn parse_detection_line(line: &str) -> Option<MusicDetection> {
+    let mut parts = line.trim().splitn(3, '|');
+    let active = parts.next()?;
+    let source = parts.next().unwrap_or_default().to_string();
+    let method = parts.next().unwrap_or("unknown").to_string();
+    let active = matches!(active, "1" | "true" | "True");
+    Some(MusicDetection {
+        active,
+        source,
+        method,
+    })
+}
+
 #[tauri::command]
 async fn detect_system_music() -> MusicDetection {
     tauri::async_runtime::spawn_blocking(detect_system_music_impl)
@@ -23,51 +36,77 @@ async fn detect_system_music() -> MusicDetection {
 
 #[cfg(target_os = "windows")]
 fn detect_system_music_impl() -> MusicDetection {
-    let script = "Get-Process Spotify,AppleMusic,iTunes,vlc -ErrorAction SilentlyContinue | Select-Object -ExpandProperty ProcessName | Select-Object -First 1";
-
-    let output = Command::new("powershell")
-        .args(["-NoProfile", "-Command", script])
+    let native_script = "$ErrorActionPreference='SilentlyContinue'; try { $manager=[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager,Windows.Media.Control,ContentType=WindowsRuntime]::RequestAsync().GetAwaiter().GetResult(); if($null -eq $manager){ '0||windows_gsmtc'; exit 0 }; $sessions=$manager.GetSessions(); foreach($session in $sessions){ $info=$session.GetPlaybackInfo(); if($null -ne $info -and $info.PlaybackStatus.ToString() -eq 'Playing'){ $source=$session.SourceAppUserModelId; if([string]::IsNullOrWhiteSpace($source)){ $source='system' }; $source=$source -replace '\\|','/'; '1|' + $source + '|windows_gsmtc'; exit 0 } }; '0||windows_gsmtc' } catch { '0||windows_gsmtc_error' }";
+    let native_output = Command::new("powershell")
+        .args(["-NoProfile", "-Command", native_script])
         .output();
 
-    if let Ok(result) = output {
-        let source = String::from_utf8_lossy(&result.stdout).trim().to_string();
-        if !source.is_empty() {
-            return MusicDetection {
-                active: true,
-                source,
-                method: "process_presence_beta".to_string(),
-            };
+    if let Ok(result) = native_output {
+        let line = String::from_utf8_lossy(&result.stdout).trim().to_string();
+        if let Some(parsed) = parse_detection_line(&line) {
+            if parsed.method != "windows_gsmtc_error" {
+                return parsed;
+            }
+        }
+    }
+
+    let heuristic_script = "$ErrorActionPreference='SilentlyContinue'; try { try { $itunes = New-Object -ComObject iTunes.Application; if($itunes.PlayerState -eq 1){ '1|iTunes|itunes_com'; exit 0 } } catch {}; $names=@('Spotify','AppleMusic','iTunes','vlc'); $samples=@{}; foreach($name in $names){ $proc=Get-Process -Name $name -ErrorAction SilentlyContinue | Select-Object -First 1; if($null -ne $proc){ $samples[$name]=[double]$proc.TotalProcessorTime.TotalMilliseconds } }; Start-Sleep -Milliseconds 650; foreach($name in $samples.Keys){ $proc=Get-Process -Name $name -ErrorAction SilentlyContinue | Select-Object -First 1; if($null -ne $proc){ $delta=[double]$proc.TotalProcessorTime.TotalMilliseconds - $samples[$name]; if($delta -gt 15){ '1|' + $proc.ProcessName + '|process_cpu_heuristic'; exit 0 } } }; if($samples.Count -gt 0){ $source=($samples.Keys | Select-Object -First 1); '0|' + $source + '|process_cpu_heuristic'; exit 0 }; '0||process_cpu_heuristic' } catch { '0||process_cpu_heuristic_error' }";
+    let heuristic_output = Command::new("powershell")
+        .args(["-NoProfile", "-Command", heuristic_script])
+        .output();
+
+    if let Ok(result) = heuristic_output {
+        let line = String::from_utf8_lossy(&result.stdout).trim().to_string();
+        if let Some(parsed) = parse_detection_line(&line) {
+            return parsed;
         }
     }
 
     MusicDetection {
         active: false,
         source: String::new(),
-        method: "process_presence_beta".to_string(),
+        method: "windows_detection_failed".to_string(),
     }
 }
 
 #[cfg(target_os = "macos")]
 fn detect_system_music_impl() -> MusicDetection {
-    let script = "for app in Spotify Music VLC; do pgrep -x \"$app\" >/dev/null && echo $app && exit 0; done";
+    let native_output = Command::new("osascript")
+        .args([
+            "-e",
+            "if application \"Spotify\" is running then tell application \"Spotify\" to if player state is playing then return \"1|Spotify|applescript_native\"",
+            "-e",
+            "if application \"Music\" is running then tell application \"Music\" to if player state is playing then return \"1|Music|applescript_native\"",
+            "-e",
+            "return \"0||applescript_native\"",
+        ])
+        .output();
 
-    let output = Command::new("sh").args(["-c", script]).output();
+    if let Ok(result) = native_output {
+        let line = String::from_utf8_lossy(&result.stdout).trim().to_string();
+        if let Some(parsed) = parse_detection_line(&line) {
+            return parsed;
+        }
+    }
 
-    if let Ok(result) = output {
-        let source = String::from_utf8_lossy(&result.stdout).trim().to_string();
-        if !source.is_empty() {
-            return MusicDetection {
-                active: true,
-                source,
-                method: "process_presence_beta".to_string(),
-            };
+    let fallback = Command::new("sh")
+        .args([
+            "-c",
+            "for app in Spotify Music VLC; do pgrep -x \"$app\" >/dev/null && echo \"0|$app|process_presence_beta\" && exit 0; done; echo \"0||process_presence_beta\"",
+        ])
+        .output();
+
+    if let Ok(result) = fallback {
+        let line = String::from_utf8_lossy(&result.stdout).trim().to_string();
+        if let Some(parsed) = parse_detection_line(&line) {
+            return parsed;
         }
     }
 
     MusicDetection {
         active: false,
         source: String::new(),
-        method: "process_presence_beta".to_string(),
+        method: "mac_detection_failed".to_string(),
     }
 }
 
@@ -84,6 +123,9 @@ fn detect_system_music_impl() -> MusicDetection {
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
+            #[cfg(target_os = "macos")]
+            let shortcut = Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::KeyA);
+            #[cfg(not(target_os = "macos"))]
             let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyA);
             let app_handle = app.handle().clone();
 

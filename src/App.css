@@ -21,6 +21,10 @@ body {
 }
 
 .glass-shell {
+  --btn-start: #7ec8ff;
+  --btn-end: #5aa8ff;
+  --chip-start: #8fd8ff;
+  --chip-end: #6ab9ff;
   width: 100%;
   height: 100%;
   position: relative;
@@ -37,6 +41,20 @@ body {
   overflow: hidden;
   will-change: transform, opacity;
   transition: transform 220ms ease, opacity 220ms ease;
+}
+
+.glass-shell.theme-mint {
+  --btn-start: #73d8bf;
+  --btn-end: #49bfa4;
+  --chip-start: #8be3ce;
+  --chip-end: #63cab3;
+}
+
+.glass-shell.theme-rose {
+  --btn-start: #ff9ac1;
+  --btn-end: #f273a5;
+  --chip-start: #ffb0cf;
+  --chip-end: #f58ab4;
 }
 
 .glass-shell.dormant {
@@ -309,6 +327,16 @@ label {
   font-size: 0.75rem;
 }
 
+.field-label {
+  display: block;
+  font-size: 0.75rem;
+  margin-bottom: 6px;
+}
+
+.bubble-modules-wrap {
+  margin-bottom: 8px;
+}
+
 .toggle-row {
   flex-direction: row;
   align-items: center;
@@ -336,7 +364,7 @@ input[type="file"] {
 
 button {
   border: none;
-  background: linear-gradient(180deg, #7ec8ff, #5aa8ff);
+  background: linear-gradient(180deg, var(--btn-start), var(--btn-end));
   color: #ffffff;
   font-weight: 700;
   cursor: pointer;
@@ -356,7 +384,7 @@ button:active {
   width: auto;
   padding: 6px 9px;
   border-radius: 999px;
-  background: linear-gradient(180deg, #8fd8ff, #6ab9ff);
+  background: linear-gradient(180deg, var(--chip-start), var(--chip-end));
   font-size: 0.72rem;
   min-width: 34px;
 }
@@ -384,6 +412,17 @@ button:active {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.bubble-modules-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.bubble-module-toggle {
+  font-size: 0.72rem;
+  margin-bottom: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

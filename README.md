@@ -18,6 +18,20 @@ Amiwi is a desktop companion for study and work, built with Tauri + React + Type
   - `src/utils/helpers.ts`
 - Reinforced liquid-glass consistency and visual behavior around draggable mascot.
 
+## v0.8.9 (multi-monitor move + installer branding)
+- Fixed window movement workflow so users can move Amiwi across monitors reliably.
+- Added dedicated `move` bubble (`↕`) that initiates native window dragging.
+- Added shortcut interaction: `Shift + drag mascot` to move the full desktop window.
+- Tuned edge snap behavior to reduce interference while crossing screens.
+- Improved system music detection behavior:
+  - native-first detection attempts by OS
+  - stronger fallback heuristics when native path is unavailable.
+- Added new immediate-value requirements document: `REQUIREMENTS_VALUE_NOW_v0.9.md`.
+- Installer branding updated with custom cat image:
+  - regenerated app and installer icons
+  - custom NSIS header/sidebar images
+  - custom WiX banner/dialog images.
+
 ## v0.8.7 (windows startup crash hotfix)
 - Fixed startup crash on Windows when global shortcut is already taken.
 - App no longer panics on shortcut registration failure.

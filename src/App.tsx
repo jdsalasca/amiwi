@@ -1,22 +1,25 @@
 import { ChangeEvent, MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { LogicalSize } from "@tauri-apps/api/dpi";
+import { LogicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
 import { listen } from "@tauri-apps/api/event";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getCurrentWindow, monitorFromPoint } from "@tauri-apps/api/window";
 import { assetByAvatarMood } from "./domain/assets";
 import { copy, STORAGE_KEY } from "./domain/config";
-import type { FocusPhase, MusicDetection, Mood, PomodoroPreset, Settings } from "./domain/types";
+import type { BubbleModuleId, FocusPhase, MusicDetection, Mood, PomodoroPreset, Settings } from "./domain/types";
 import { useMascotDrag } from "./hooks/useMascotDrag";
 import { clamp, formatMMSS, loadSettings, randomPick, resolveAsset } from "./utils/helpers";
 import "./App.css";
 
 type BubbleAction = {
-  id: string;
+  id: BubbleModuleId;
   icon: string;
   label: string;
   onClick: () => void;
+  onPointerDown?: (event: React.PointerEvent<HTMLButtonElement>) => void;
   pulse?: boolean;
 };
+
+const WINDOW_POSITION_KEY = `${STORAGE_KEY}.window.positionByMonitor`;
 
 function getDurations(settings: Settings): { focusSec: number; breakSec: number } {
   if (settings.pomodoroPreset === "50-10") {
@@ -44,6 +47,23 @@ function playSoftBeep(): void {
     osc.stop(ctx.currentTime + 0.18);
   } catch {
     // noop
+  }
+}
+
+function monitorStorageKey(monitor: { name: string | null; position: { x: number; y: number }; size: { width: number; height: number } }): string {
+  return `${monitor.name ?? "monitor"}:${monitor.position.x},${monitor.position.y}:${monitor.size.width}x${monitor.size.height}`;
+}
+
+function loadStoredWindowPositions(): Record<string, { x: number; y: number }> {
+  const raw = localStorage.getItem(WINDOW_POSITION_KEY);
+  if (!raw) {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(raw) as Record<string, { x: number; y: number }>;
+    return parsed ?? {};
+  } catch {
+    return {};
   }
 }
 
@@ -88,7 +108,8 @@ function App() {
 
   const t = copy[settings.language];
   const isMusicActive = settings.musicReactive && (musicPlaying || systemMusicActive);
-  const activeHue = Math.round(200 + musicEnergy * 110);
+  const themeBaseHue = settings.themePreset === "mint" ? 165 : settings.themePreset === "rose" ? 345 : 205;
+  const activeHue = Math.round(themeBaseHue + musicEnergy * 70);
   const globalShortcutLabel = navigator.platform.toLowerCase().includes("mac")
     ? "Cmd+Shift+A"
     : "Ctrl+Shift+A (fallback Ctrl+Alt+A)";
@@ -218,7 +239,7 @@ function App() {
       }
     };
     void check();
-    const timer = window.setInterval(() => void check(), 20_000);
+    const timer = window.setInterval(() => void check(), 6_000);
     return () => {
       active = false;
       window.clearInterval(timer);
@@ -318,12 +339,12 @@ function App() {
   }, [durations.breakSec, durations.focusSec, focusPhase, focusRunning, t.phraseBreak, t.phraseDeepFocus]);
 
   useEffect(() => {
-    const shouldIgnore = clickThroughActive && dormant && !showPanel;
+    const shouldIgnore = !showPanel && (settings.clickThroughPermanent || (clickThroughActive && dormant));
     void getCurrentWindow().setIgnoreCursorEvents(shouldIgnore).catch(() => undefined);
     return () => {
       void getCurrentWindow().setIgnoreCursorEvents(false).catch(() => undefined);
     };
-  }, [clickThroughActive, dormant, showPanel]);
+  }, [clickThroughActive, dormant, settings.clickThroughPermanent, showPanel]);
 
   const registerInteraction = useCallback((): void => {
     const now = Date.now();
@@ -371,6 +392,107 @@ function App() {
     };
   }, [registerInteraction]);
 
+  useEffect(() => {
+    if (!settings.snapToEdgeEnabled) {
+      return;
+    }
+
+    const appWindow = getCurrentWindow();
+    let disposed = false;
+    let moveTimeout: number | null = null;
+
+    const persistByMonitor = async (x: number, y: number) => {
+      const size = await appWindow.outerSize();
+      const monitor = await monitorFromPoint(x + Math.floor(size.width / 2), y + Math.floor(size.height / 2));
+      if (!monitor) {
+        return;
+      }
+      const key = monitorStorageKey(monitor);
+      const map = loadStoredWindowPositions();
+      map[key] = { x, y };
+      localStorage.setItem(WINDOW_POSITION_KEY, JSON.stringify(map));
+    };
+
+    const snapToClosestEdge = async () => {
+      if (disposed || showPanel) {
+        return;
+      }
+      const [pos, size] = await Promise.all([appWindow.outerPosition(), appWindow.outerSize()]);
+      const centerX = pos.x + Math.floor(size.width / 2);
+      const centerY = pos.y + Math.floor(size.height / 2);
+      const monitor = await monitorFromPoint(centerX, centerY);
+      if (!monitor) {
+        return;
+      }
+      const area = monitor.workArea;
+      const minX = area.position.x + settings.snapMarginPx;
+      const maxX = area.position.x + area.size.width - size.width - settings.snapMarginPx;
+      const minY = area.position.y + settings.snapMarginPx;
+      const maxY = area.position.y + area.size.height - size.height - settings.snapMarginPx;
+      const leftDistance = Math.abs(pos.x - minX);
+      const rightDistance = Math.abs(maxX - pos.x);
+      const topDistance = Math.abs(pos.y - minY);
+      const bottomDistance = Math.abs(maxY - pos.y);
+      const minDistance = Math.min(leftDistance, rightDistance, topDistance, bottomDistance);
+
+      let targetX = clamp(pos.x, minX, maxX);
+      let targetY = clamp(pos.y, minY, maxY);
+
+      if (minDistance === leftDistance) {
+        targetX = minX;
+      } else if (minDistance === rightDistance) {
+        targetX = maxX;
+      } else if (minDistance === topDistance) {
+        targetY = minY;
+      } else {
+        targetY = maxY;
+      }
+
+      if (Math.abs(targetX - pos.x) <= 1 && Math.abs(targetY - pos.y) <= 1) {
+        await persistByMonitor(pos.x, pos.y);
+        return;
+      }
+
+      await appWindow.setPosition(new PhysicalPosition(targetX, targetY)).catch(() => undefined);
+      await persistByMonitor(targetX, targetY);
+    };
+
+    const restoreForMonitor = async () => {
+      const [pos, size] = await Promise.all([appWindow.outerPosition(), appWindow.outerSize()]);
+      const monitor = await monitorFromPoint(pos.x + Math.floor(size.width / 2), pos.y + Math.floor(size.height / 2));
+      if (!monitor) {
+        return;
+      }
+      const map = loadStoredWindowPositions();
+      const remembered = map[monitorStorageKey(monitor)];
+      if (!remembered) {
+        return;
+      }
+      await appWindow.setPosition(new PhysicalPosition(remembered.x, remembered.y)).catch(() => undefined);
+    };
+
+    void restoreForMonitor();
+    const unlistenPromise = appWindow.onMoved(() => {
+      if (showPanel) {
+        return;
+      }
+      if (moveTimeout !== null) {
+        window.clearTimeout(moveTimeout);
+      }
+      moveTimeout = window.setTimeout(() => {
+        void snapToClosestEdge();
+      }, 420);
+    });
+
+    return () => {
+      disposed = true;
+      if (moveTimeout !== null) {
+        window.clearTimeout(moveTimeout);
+      }
+      void unlistenPromise.then((unlisten) => unlisten()).catch(() => undefined);
+    };
+  }, [settings.snapMarginPx, settings.snapToEdgeEnabled, showPanel]);
+
   const quickStartFocus = useCallback(() => {
     setFocusRunning((prev) => {
       if (prev) {
@@ -392,19 +514,44 @@ function App() {
     emitPhrase(randomPick(t.phraseFeed));
   }, [t.phraseFeed]);
 
-  const bubbleActions: BubbleAction[] = useMemo(() => [
-    { id: "focus", icon: focusRunning ? "■" : "▶", label: t.bubbleFocus, onClick: quickStartFocus },
-    { id: "feed", icon: "🍪", label: t.bubbleFeed, onClick: handleFeed },
-    { id: "phrase", icon: "💬", label: t.bubblePhrase, onClick: () => emitPhrase(randomPick(smartPhrasePool())) },
-    {
-      id: "music",
-      icon: "♪",
-      label: t.bubbleMusic,
-      onClick: () => update("musicAmbient", !settings.musicAmbient),
-      pulse: isMusicActive
-    },
-    { id: "settings", icon: "⚙", label: t.bubbleSettings, onClick: () => setShowPanel(true) },
-  ], [focusRunning, handleFeed, isMusicActive, quickStartFocus, settings.musicAmbient, smartPhrasePool, t, update]);
+  const startWindowDrag = useCallback((event?: React.PointerEvent<HTMLElement>) => {
+    event?.preventDefault();
+    event?.stopPropagation();
+    registerInteraction();
+    void getCurrentWindow().startDragging().catch(() => undefined);
+  }, [registerInteraction]);
+
+  const handleMascotPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.shiftKey) {
+      startWindowDrag(event);
+      return;
+    }
+    startDrag(event);
+  };
+
+  const bubbleActions: BubbleAction[] = useMemo(() => {
+    const all: BubbleAction[] = [
+      { id: "focus", icon: focusRunning ? "■" : "▶", label: t.bubbleFocus, onClick: quickStartFocus },
+      { id: "feed", icon: "🍪", label: t.bubbleFeed, onClick: handleFeed },
+      { id: "phrase", icon: "💬", label: t.bubblePhrase, onClick: () => emitPhrase(randomPick(smartPhrasePool())) },
+      {
+        id: "music",
+        icon: "♪",
+        label: t.bubbleMusic,
+        onClick: () => update("musicAmbient", !settings.musicAmbient),
+        pulse: isMusicActive
+      },
+      {
+        id: "move",
+        icon: "↕",
+        label: t.bubbleMove,
+        onClick: () => undefined,
+        onPointerDown: (event) => startWindowDrag(event),
+      },
+      { id: "settings", icon: "⚙", label: t.bubbleSettings, onClick: () => setShowPanel(true) },
+    ];
+    return all.filter((action) => settings.bubbleModules[action.id]);
+  }, [focusRunning, handleFeed, isMusicActive, quickStartFocus, settings.bubbleModules, settings.musicAmbient, smartPhrasePool, startWindowDrag, t, update]);
 
   const handleMusicFile = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0];
@@ -441,7 +588,7 @@ function App() {
 
   return (
     <main
-      className={`glass-shell ${dormant ? "dormant" : ""} ${settings.ultraMinimal ? "ultra-minimal" : ""}`}
+      className={`glass-shell theme-${settings.themePreset} ${dormant ? "dormant" : ""} ${settings.ultraMinimal ? "ultra-minimal" : ""}`}
       style={{
         opacity: settings.opacity,
         ["--accent-hue" as string]: `${activeHue}`,
@@ -466,7 +613,7 @@ function App() {
       )}
 
       <section ref={widgetBodyRef} className="widget-body" style={{ transform: `scale(${settings.size})` }}>
-        <div className="mascot-draggable" style={{ left: `${position.x}px`, top: `${position.y}px` }} onPointerDown={startDrag}>
+        <div className="mascot-draggable" style={{ left: `${position.x}px`, top: `${position.y}px` }} onPointerDown={handleMascotPointerDown}>
           {!avatarBroken ? (
             <img
               className={`avatar ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
@@ -497,6 +644,7 @@ function App() {
                 type="button"
                 className={`bubble-action ${action.pulse ? "music-pulse" : ""}`}
                 title={action.label}
+                onPointerDown={action.onPointerDown}
                 onClick={action.onClick}
               >
                 {action.icon}
@@ -543,6 +691,15 @@ function App() {
               <option value="cat">Cat</option>
               <option value="bunny">Bunny</option>
               <option value="fox">Fox</option>
+            </select>
+          </label>
+
+          <label>
+            {t.theme}
+            <select value={settings.themePreset} onChange={(event) => update("themePreset", event.currentTarget.value as Settings["themePreset"])}>
+              <option value="ocean">Ocean</option>
+              <option value="mint">Mint</option>
+              <option value="rose">Rose</option>
             </select>
           </label>
 
@@ -596,6 +753,8 @@ function App() {
           <label className="toggle-row"><input type="checkbox" checked={settings.systemMusicDetect} onChange={(event) => update("systemMusicDetect", event.currentTarget.checked)} />{t.detectSystemMusic}</label>
           <label className="toggle-row"><input type="checkbox" checked={settings.musicReactive} onChange={(event) => update("musicReactive", event.currentTarget.checked)} />{t.reactMusic}</label>
           <label className="toggle-row"><input type="checkbox" checked={settings.autoHideEnabled} onChange={(event) => update("autoHideEnabled", event.currentTarget.checked)} />{t.autoHide}</label>
+          <label className="toggle-row"><input type="checkbox" checked={settings.clickThroughPermanent} onChange={(event) => update("clickThroughPermanent", event.currentTarget.checked)} />{t.clickThroughPermanent}</label>
+          <label className="toggle-row"><input type="checkbox" checked={settings.snapToEdgeEnabled} onChange={(event) => update("snapToEdgeEnabled", event.currentTarget.checked)} />{t.snapToEdge}</label>
           <label className="toggle-row"><input type="checkbox" checked={settings.ultraMinimal} onChange={(event) => update("ultraMinimal", event.currentTarget.checked)} />{t.ultraMinimal}</label>
           <label className="toggle-row"><input type="checkbox" checked={settings.showTimerBubble} onChange={(event) => update("showTimerBubble", event.currentTarget.checked)} />{t.showTimerBubble}</label>
           <label className="toggle-row"><input type="checkbox" checked={settings.musicAmbient} onChange={(event) => update("musicAmbient", event.currentTarget.checked)} />{t.musicAmbient}</label>
@@ -608,6 +767,41 @@ function App() {
               <input type="range" min={3} max={30} value={settings.autoHideSeconds} onChange={(event) => update("autoHideSeconds", Number(event.currentTarget.value))} />
             </label>
           )}
+
+          {settings.snapToEdgeEnabled && (
+            <label>
+              {t.snapMargin}: {settings.snapMarginPx}px
+              <input type="range" min={4} max={40} value={settings.snapMarginPx} onChange={(event) => update("snapMarginPx", Number(event.currentTarget.value))} />
+            </label>
+          )}
+
+          <div className="bubble-modules-wrap">
+            <span className="field-label">{t.bubbleModules}</span>
+            <div className="bubble-modules-grid">
+              {([
+                ["focus", t.bubbleFocus],
+                ["feed", t.bubbleFeed],
+                ["phrase", t.bubblePhrase],
+                ["music", t.bubbleMusic],
+                ["move", t.bubbleMove],
+                ["settings", t.bubbleSettings],
+              ] as const).map(([id, label]) => (
+                <label key={id} className="toggle-row bubble-module-toggle">
+                  <input
+                    type="checkbox"
+                    checked={settings.bubbleModules[id]}
+                    onChange={(event) =>
+                      update("bubbleModules", {
+                        ...settings.bubbleModules,
+                        [id]: event.currentTarget.checked,
+                      })
+                    }
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
 
           <label>
             {t.uploadTrack}

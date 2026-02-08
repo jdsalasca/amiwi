@@ -34,6 +34,7 @@ type CuteBubble = {
 
 const WINDOW_POSITION_KEY = `${STORAGE_KEY}.window.positionByMonitor`;
 const ONBOARDING_KEY = `${STORAGE_KEY}.onboarding.v1`;
+const PET_BOND_KEY = `${STORAGE_KEY}.pet.bond.v1`;
 
 function getDurations(settings: Settings): { focusSec: number; breakSec: number } {
   if (settings.pomodoroPreset === "50-10") {
@@ -109,6 +110,11 @@ function App() {
   const [animeStepFrame, setAnimeStepFrame] = useState(0);
   const [cuteBubbles, setCuteBubbles] = useState<CuteBubble[]>([]);
   const [mascotDraggingVisual, setMascotDraggingVisual] = useState(false);
+  const [petBond, setPetBond] = useState<number>(() => {
+    const raw = localStorage.getItem(PET_BOND_KEY);
+    const parsed = raw ? Number(raw) : 58;
+    return Number.isFinite(parsed) ? clamp(parsed, 0, 100) : 58;
+  });
 
   const durations = useMemo(() => getDurations(settings), [settings]);
   const [remainingSeconds, setRemainingSeconds] = useState(durations.focusSec);
@@ -199,6 +205,8 @@ function App() {
     }
     return t.danceIdle;
   }, [animeDanceProfile, t.danceCalm, t.danceGroove, t.danceHype, t.danceIdle]);
+  const petBondTone = petBond >= 82 ? "spark" : petBond >= 55 ? "warm" : "soft";
+  const petBondEmoji = petBond >= 82 ? "💖" : petBond >= 55 ? "💛" : "🤍";
   const cuteIconPool = useMemo<readonly string[]>(() => {
     const packBase = settings.bubblePack === "study"
       ? ["📘", "📚", "✏️", "📝", "☕", "✅", "✨", "🫧"]
@@ -271,6 +279,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   }, [settings]);
+
+  useEffect(() => {
+    localStorage.setItem(PET_BOND_KEY, String(Math.round(clamp(petBond, 0, 100))));
+  }, [petBond]);
 
   useEffect(() => {
     return () => {
@@ -456,6 +468,21 @@ function App() {
     }, 3200);
     return () => window.clearInterval(timer);
   }, [isMusicActive, musicEnergy, settings.cuteBubblesEnabled, spawnCuteBubbleBurst]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setPetBond((prev) => {
+        let next = prev;
+        if (focusRunning || isMusicActive) {
+          next += 0.08;
+        } else {
+          next -= 0.18;
+        }
+        return clamp(next, 0, 100);
+      });
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [focusRunning, isMusicActive]);
 
   useEffect(() => {
     const appWindow = getCurrentWindow();
@@ -843,6 +870,19 @@ function App() {
     });
   }, [durations.focusSec, settings.cuteBubblesEnabled, spawnCuteBubbleBurst]);
 
+  const petPetting = useCallback(() => {
+    registerInteraction();
+    setPetBond((prev) => clamp(prev + 3.2, 0, 100));
+    setMood("celebrate");
+    emitPhrase(t.pettingPhrase);
+    if (settings.cuteBubblesEnabled) {
+      spawnCuteBubbleBurst(1.6);
+    }
+    window.setTimeout(() => {
+      setMood(settings.mode === "study" ? "focus" : settings.mode === "work" ? "happy" : "break");
+    }, 900);
+  }, [registerInteraction, settings.cuteBubblesEnabled, settings.mode, spawnCuteBubbleBurst, t.pettingPhrase]);
+
   const beginManualWindowDrag = useCallback((screenX: number, screenY: number) => {
     if (showPanel) {
       return;
@@ -970,6 +1010,7 @@ function App() {
   const bubbleActions: BubbleAction[] = useMemo(() => {
     const actions: BubbleAction[] = [
       { id: "focus", icon: focusRunning ? "■" : "▶", label: t.bubbleFocus, onClick: quickStartFocus },
+      { id: "feed", icon: "❤", label: t.bubblePet, onClick: petPetting, tone: "success" },
       { id: "settings", icon: "⚙", label: t.bubbleSettings, onClick: () => setShowPanel(true) },
     ];
     if (pendingUpdate) {
@@ -983,7 +1024,7 @@ function App() {
       });
     }
     return actions;
-  }, [focusRunning, installPendingUpdate, pendingUpdate, quickStartFocus, t, updatingNow]);
+  }, [focusRunning, installPendingUpdate, pendingUpdate, petPetting, quickStartFocus, t, updatingNow]);
 
   const applyExperienceProfile = useCallback((profile: "focus" | "calm" | "cozy") => {
     setSelectedProfile(profile);
@@ -1152,6 +1193,12 @@ function App() {
         <div key={phraseTick} className="floating-phrase" style={{ left: `${mascotCenterX}px`, top: `${phraseY}px` }}>
           {phrase}
         </div>
+
+        {!showPanel && (
+          <div className={`bond-bubble ${petBondTone}`} style={{ left: `${clamp(mascotCenterX - 58, 24, stageWidth - 24)}px`, top: `${clamp(position.y + 8, 10, stageHeight - 20)}px` }}>
+            {petBondEmoji} {t.bondLabel}: {Math.round(petBond)}
+          </div>
+        )}
 
         {!showPanel && bubbleActions.length > 0 && (
           <>

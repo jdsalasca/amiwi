@@ -304,6 +304,63 @@ body {
   transform: translateY(1px) translateX(-0.5px);
 }
 
+.anime-avatar.dance-idle {
+  animation-duration: 4.2s;
+}
+
+.anime-avatar.dance-calm {
+  animation:
+    avatarBob 3.8s ease-in-out infinite,
+    animeCalmSway 2.6s ease-in-out infinite;
+}
+
+.anime-avatar.dance-groove {
+  animation:
+    avatarBob 2.3s ease-in-out infinite,
+    animeGroove 920ms ease-in-out infinite;
+}
+
+.anime-avatar.dance-hype {
+  animation:
+    avatarBob 1.7s ease-in-out infinite,
+    animeHype 520ms ease-in-out infinite;
+}
+
+.anime-avatar.dance-calm .anime-hair,
+.anime-avatar.dance-groove .anime-hair,
+.anime-avatar.dance-hype .anime-hair {
+  animation: animeHairBounce 1.1s ease-in-out infinite;
+}
+
+@keyframes animeCalmSway {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(1.2deg); }
+  50% { transform: rotate(0deg); }
+  75% { transform: rotate(-1.2deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes animeGroove {
+  0% { transform: translateX(0) rotate(0deg); }
+  25% { transform: translateX(2px) rotate(1.4deg); }
+  50% { transform: translateX(0) rotate(0deg); }
+  75% { transform: translateX(-2px) rotate(-1.4deg); }
+  100% { transform: translateX(0) rotate(0deg); }
+}
+
+@keyframes animeHype {
+  0% { transform: translateY(0) scale(1); }
+  40% { transform: translateY(-2px) scale(1.015); }
+  70% { transform: translateY(1px) scale(0.99); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes animeHairBounce {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-0.8px); }
+  100% { transform: translateY(0); }
+}
+
 .mascot-draggable {
   position: absolute;
   width: 170px;

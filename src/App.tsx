@@ -147,6 +147,25 @@ function App() {
   const phaseProgress = clamp(1 - remainingSeconds / Math.max(phaseTotalSeconds, 1), 0, 1);
   const animeEyeX = ((pointerGlow.x - 50) / 50) * 2.2;
   const animeEyeY = ((pointerGlow.y - 50) / 50) * 1.6;
+  const animeDanceProfile = useMemo<"idle" | "calm" | "groove" | "hype">(() => {
+    if (!isAnimeAvatar || !isMusicActive) {
+      return "idle";
+    }
+    const energy = clamp(musicEnergy, 0, 1);
+    if (focusRunning && focusPhase === "focus") {
+      if (energy > 0.62) {
+        return "groove";
+      }
+      return "calm";
+    }
+    if (energy > 0.74) {
+      return "hype";
+    }
+    if (energy > 0.4) {
+      return "groove";
+    }
+    return "calm";
+  }, [focusPhase, focusRunning, isAnimeAvatar, isMusicActive, musicEnergy]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -874,7 +893,7 @@ function App() {
           <div className="mascot-shell" style={{ width: `${mascotWidth}px`, height: `${mascotHeight}px` }}>
             {isAnimeAvatar ? (
               <div
-                className={`anime-avatar step-${animeStepFrame} ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
+                className={`anime-avatar step-${animeStepFrame} dance-${animeDanceProfile} ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
                 onDoubleClick={quickStartFocus}
                 onContextMenu={openOrCloseSettings}
               >

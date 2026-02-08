@@ -490,6 +490,21 @@ body {
   border-color: rgba(238, 170, 210, 0.72);
 }
 
+.memory-bubble {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: 0.52rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(242, 249, 255, 0.84);
+  border: 1px solid rgba(174, 209, 246, 0.68);
+  color: #38638f;
+  box-shadow: 0 3px 8px rgba(44, 84, 125, 0.14);
+  pointer-events: none;
+  z-index: 4;
+}
+
 .cute-pop-bubble {
   position: absolute;
   transform: translate(-50%, -50%);

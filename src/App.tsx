@@ -32,9 +32,16 @@ type CuteBubble = {
   emoji: string;
 };
 
+type PetEventType = "petting" | "shake" | "focus_start" | "focus_stop" | "music_on" | "music_off";
+type PetEvent = {
+  type: PetEventType;
+  ts: number;
+};
+
 const WINDOW_POSITION_KEY = `${STORAGE_KEY}.window.positionByMonitor`;
 const ONBOARDING_KEY = `${STORAGE_KEY}.onboarding.v1`;
 const PET_BOND_KEY = `${STORAGE_KEY}.pet.bond.v1`;
+const PET_MEMORY_KEY = `${STORAGE_KEY}.pet.memory.v1`;
 
 function getDurations(settings: Settings): { focusSec: number; breakSec: number } {
   if (settings.pomodoroPreset === "50-10") {
@@ -114,6 +121,18 @@ function App() {
     const raw = localStorage.getItem(PET_BOND_KEY);
     const parsed = raw ? Number(raw) : 58;
     return Number.isFinite(parsed) ? clamp(parsed, 0, 100) : 58;
+  });
+  const [petMemory, setPetMemory] = useState<PetEvent[]>(() => {
+    const raw = localStorage.getItem(PET_MEMORY_KEY);
+    if (!raw) {
+      return [];
+    }
+    try {
+      const parsed = JSON.parse(raw) as PetEvent[];
+      return Array.isArray(parsed) ? parsed.slice(-8) : [];
+    } catch {
+      return [];
+    }
   });
 
   const durations = useMemo(() => getDurations(settings), [settings]);
@@ -207,6 +226,28 @@ function App() {
   }, [animeDanceProfile, t.danceCalm, t.danceGroove, t.danceHype, t.danceIdle]);
   const petBondTone = petBond >= 82 ? "spark" : petBond >= 55 ? "warm" : "soft";
   const petBondEmoji = petBond >= 82 ? "💖" : petBond >= 55 ? "💛" : "🤍";
+  const latestMemoryLabel = useMemo(() => {
+    const latest = petMemory[petMemory.length - 1];
+    if (!latest) {
+      return "";
+    }
+    if (latest.type === "petting") {
+      return settings.language === "es" ? "recuerdo: mimo" : "memory: pet";
+    }
+    if (latest.type === "shake") {
+      return settings.language === "es" ? "recuerdo: shake" : "memory: shake";
+    }
+    if (latest.type === "focus_start") {
+      return settings.language === "es" ? "recuerdo: foco on" : "memory: focus on";
+    }
+    if (latest.type === "focus_stop") {
+      return settings.language === "es" ? "recuerdo: foco off" : "memory: focus off";
+    }
+    if (latest.type === "music_on") {
+      return settings.language === "es" ? "recuerdo: musica on" : "memory: music on";
+    }
+    return settings.language === "es" ? "recuerdo: musica off" : "memory: music off";
+  }, [petMemory, settings.language]);
   const cuteIconPool = useMemo<readonly string[]>(() => {
     const packBase = settings.bubblePack === "study"
       ? ["📘", "📚", "✏️", "📝", "☕", "✅", "✨", "🫧"]
@@ -283,6 +324,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem(PET_BOND_KEY, String(Math.round(clamp(petBond, 0, 100))));
   }, [petBond]);
+
+  useEffect(() => {
+    localStorage.setItem(PET_MEMORY_KEY, JSON.stringify(petMemory.slice(-8)));
+  }, [petMemory]);
 
   useEffect(() => {
     return () => {
@@ -395,10 +440,51 @@ function App() {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
+  const recordPetEvent = useCallback((type: PetEventType): void => {
+    const now = Date.now();
+    setPetMemory((prev) => [...prev, { type, ts: now }].slice(-8));
+  }, []);
+
   const emitPhrase = (text: string): void => {
     setPhrase(text);
     setPhraseTick((prev) => prev + 1);
   };
+
+  const memoryDrivenPhrase = useCallback((): string | null => {
+    const latest = petMemory[petMemory.length - 1];
+    if (!latest) {
+      return null;
+    }
+    const ageMs = Date.now() - latest.ts;
+    if (ageMs > 12 * 60 * 1000) {
+      return null;
+    }
+    if (latest.type === "petting") {
+      return petBond >= 80
+        ? (settings.language === "es" ? "💖 contigo me siento en casa" : "💖 with you I feel at home")
+        : t.pettingPhrase;
+    }
+    if (latest.type === "shake") {
+      return petBond >= 75
+        ? (settings.language === "es" ? "jajaja, que energia tan bonita ✨" : "haha, that energy was beautiful ✨")
+        : (settings.language === "es" ? "uff, eso fue intenso y divertido" : "wow, that was intense and fun");
+    }
+    if (latest.type === "focus_start") {
+      return petBond >= 70
+        ? (settings.language === "es" ? "arrancamos juntos este bloque 💪" : "we start this block together 💪")
+        : randomPick(t.phraseDeepFocus);
+    }
+    if (latest.type === "focus_stop") {
+      return settings.language === "es" ? "bien hecho, cerraste un bloque" : "nice, you closed a full block";
+    }
+    if (latest.type === "music_on") {
+      return settings.language === "es" ? "esa cancion me puso feliz 🎶" : "that song made me happy 🎶";
+    }
+    if (latest.type === "music_off") {
+      return settings.language === "es" ? "silencio suave... seguimos contigo" : "soft silence... I am still with you";
+    }
+    return null;
+  }, [petBond, petMemory, settings.language, t.pettingPhrase, t.phraseDeepFocus]);
 
   const smartPhrasePool = useCallback((): readonly string[] => {
     const hour = new Date().getHours();
@@ -424,20 +510,20 @@ function App() {
   }, [focusPhase, focusRunning, isMusicActive, settings.mode, t]);
 
   useEffect(() => {
-    emitPhrase(randomPick(smartPhrasePool()));
+    emitPhrase(memoryDrivenPhrase() ?? randomPick(smartPhrasePool()));
     if (isMusicActive) {
       setMood("celebrate");
       return;
     }
     setMood(settings.mode === "study" ? "focus" : settings.mode === "work" ? "happy" : "break");
-  }, [isMusicActive, settings.mode, smartPhrasePool]);
+  }, [isMusicActive, memoryDrivenPhrase, settings.mode, smartPhrasePool]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      emitPhrase(randomPick(smartPhrasePool()));
+      emitPhrase(memoryDrivenPhrase() ?? randomPick(smartPhrasePool()));
     }, settings.phraseFrequencySec * 1000);
     return () => window.clearInterval(timer);
-  }, [settings.phraseFrequencySec, smartPhrasePool]);
+  }, [memoryDrivenPhrase, settings.phraseFrequencySec, smartPhrasePool]);
 
   useEffect(() => {
     if (!isMusicActive) {
@@ -450,6 +536,10 @@ function App() {
     }, 9000);
     return () => window.clearInterval(timer);
   }, [isMusicActive, t.phraseMusic]);
+
+  useEffect(() => {
+    recordPetEvent(isMusicActive ? "music_on" : "music_off");
+  }, [isMusicActive, recordPetEvent]);
 
   useEffect(() => {
     if (!settings.cuteBubblesEnabled) {
@@ -534,6 +624,7 @@ function App() {
           prev.cooldownUntil = now + 1700;
           spawnCuteBubbleBurst(2.4);
           setMood("celebrate");
+          recordPetEvent("shake");
           emitPhrase(randomPick(t.phraseFeed));
           window.setTimeout(() => {
             setMood(settings.mode === "study" ? "focus" : settings.mode === "work" ? "happy" : "break");
@@ -545,7 +636,7 @@ function App() {
       disposed = true;
       void unlistenPromise.then((unlisten) => unlisten()).catch(() => undefined);
     };
-  }, [settings.cuteBubblesEnabled, settings.mode, showPanel, spawnCuteBubbleBurst, t.phraseFeed]);
+  }, [recordPetEvent, settings.cuteBubblesEnabled, settings.mode, showPanel, spawnCuteBubbleBurst, t.phraseFeed]);
 
   useEffect(() => {
     if (!settings.systemMusicDetect) {
@@ -857,22 +948,25 @@ function App() {
     }
     setFocusRunning((prev) => {
       if (prev) {
+        recordPetEvent("focus_stop");
         setFocusPhase("focus");
         setRemainingSeconds(durations.focusSec);
         setMood("happy");
         return false;
       }
+      recordPetEvent("focus_start");
       setFocusPhase("focus");
       setRemainingSeconds(durations.focusSec);
       setMood("focus");
       update("mode", "study");
       return true;
     });
-  }, [durations.focusSec, settings.cuteBubblesEnabled, spawnCuteBubbleBurst]);
+  }, [durations.focusSec, recordPetEvent, settings.cuteBubblesEnabled, spawnCuteBubbleBurst]);
 
   const petPetting = useCallback(() => {
     registerInteraction();
     setPetBond((prev) => clamp(prev + 3.2, 0, 100));
+    recordPetEvent("petting");
     setMood("celebrate");
     emitPhrase(t.pettingPhrase);
     if (settings.cuteBubblesEnabled) {
@@ -881,7 +975,7 @@ function App() {
     window.setTimeout(() => {
       setMood(settings.mode === "study" ? "focus" : settings.mode === "work" ? "happy" : "break");
     }, 900);
-  }, [registerInteraction, settings.cuteBubblesEnabled, settings.mode, spawnCuteBubbleBurst, t.pettingPhrase]);
+  }, [recordPetEvent, registerInteraction, settings.cuteBubblesEnabled, settings.mode, spawnCuteBubbleBurst, t.pettingPhrase]);
 
   const beginManualWindowDrag = useCallback((screenX: number, screenY: number) => {
     if (showPanel) {
@@ -1195,9 +1289,16 @@ function App() {
         </div>
 
         {!showPanel && (
-          <div className={`bond-bubble ${petBondTone}`} style={{ left: `${clamp(mascotCenterX - 58, 24, stageWidth - 24)}px`, top: `${clamp(position.y + 8, 10, stageHeight - 20)}px` }}>
-            {petBondEmoji} {t.bondLabel}: {Math.round(petBond)}
-          </div>
+          <>
+            <div className={`bond-bubble ${petBondTone}`} style={{ left: `${clamp(mascotCenterX - 58, 24, stageWidth - 24)}px`, top: `${clamp(position.y + 8, 10, stageHeight - 20)}px` }}>
+              {petBondEmoji} {t.bondLabel}: {Math.round(petBond)}
+            </div>
+            {latestMemoryLabel && (
+              <div className="memory-bubble" style={{ left: `${clamp(mascotCenterX - 44, 24, stageWidth - 24)}px`, top: `${clamp(position.y + 24, 20, stageHeight - 12)}px` }}>
+                {latestMemoryLabel}
+              </div>
+            )}
+          </>
         )}
 
         {!showPanel && bubbleActions.length > 0 && (

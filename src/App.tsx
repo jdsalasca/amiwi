@@ -14,7 +14,6 @@ type BubbleAction = {
   icon: string;
   label: string;
   onClick: () => void;
-  onPointerDown?: (event: React.PointerEvent<HTMLButtonElement>) => void;
   pulse?: boolean;
 };
 
@@ -149,7 +148,7 @@ function App() {
   const phraseY = clamp(position.y - 38, 0, stageHeight - 38);
   const actionY = clamp(position.y + 116, 0, stageHeight - 36);
   const timerX = clamp(stageWidth / 2, 26, stageWidth - 26);
-  const timerY = 22;
+  const timerY = 14;
   const musicX = clamp(position.x + 115, 24, stageWidth - 24);
   const musicY = clamp(position.y + 10, 4, stageHeight - 28);
   const phaseTotalSeconds = focusPhase === "focus" ? durations.focusSec : durations.breakSec;
@@ -355,12 +354,12 @@ function App() {
   }, [durations.breakSec, durations.focusSec, focusPhase, focusRunning, t.phraseBreak, t.phraseDeepFocus]);
 
   useEffect(() => {
-    const shouldIgnore = !showPanel && (settings.clickThroughPermanent || (clickThroughActive && dormant));
+    const shouldIgnore = !showPanel && (clickThroughActive && dormant);
     void getCurrentWindow().setIgnoreCursorEvents(shouldIgnore).catch(() => undefined);
     return () => {
       void getCurrentWindow().setIgnoreCursorEvents(false).catch(() => undefined);
     };
-  }, [clickThroughActive, dormant, settings.clickThroughPermanent, showPanel]);
+  }, [clickThroughActive, dormant, showPanel]);
 
   const registerInteraction = useCallback((): void => {
     const now = Date.now();
@@ -530,47 +529,30 @@ function App() {
     });
   }, [bumpDailyMetric, durations.focusSec]);
 
-  const handleFeed = useCallback(() => {
-    bumpDailyMetric("snacks");
-    setMood("celebrate");
-    emitPhrase(randomPick(t.phraseFeed));
-  }, [bumpDailyMetric, t.phraseFeed]);
-
-  const startWindowDrag = useCallback((event?: React.PointerEvent<HTMLElement>) => {
-    event?.preventDefault();
-    event?.stopPropagation();
+  const startWindowDrag = useCallback(() => {
     registerInteraction();
     windowDragUntilRef.current = Date.now() + 1800;
     void getCurrentWindow().startDragging().catch(() => undefined);
   }, [registerInteraction]);
 
-  const handleMascotPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    startWindowDrag(event);
+  const handleMascotPointerDown = () => {
+    startWindowDrag();
   };
 
   const bubbleActions: BubbleAction[] = useMemo(() => {
     const all: BubbleAction[] = [
       { id: "focus", icon: focusRunning ? "■" : "▶", label: t.bubbleFocus, onClick: quickStartFocus },
-      { id: "feed", icon: "🍪", label: t.bubbleFeed, onClick: handleFeed },
       { id: "phrase", icon: "💬", label: t.bubblePhrase, onClick: () => emitPhrase(randomPick(smartPhrasePool())) },
       {
-        id: "music",
-        icon: "♪",
-        label: t.bubbleMusic,
-        onClick: () => update("musicAmbient", !settings.musicAmbient),
-        pulse: isMusicActive
-      },
-      {
         id: "move",
-        icon: "↕",
+        icon: "✥",
         label: t.bubbleMove,
         onClick: () => undefined,
-        onPointerDown: (event) => startWindowDrag(event),
       },
       { id: "settings", icon: "⚙", label: t.bubbleSettings, onClick: () => setShowPanel(true) },
     ];
-    return all.filter((action) => settings.bubbleModules[action.id]);
-  }, [focusRunning, handleFeed, isMusicActive, quickStartFocus, settings.bubbleModules, settings.musicAmbient, smartPhrasePool, startWindowDrag, t, update]);
+    return all.filter((action) => action.id === "settings" || (action.id !== "move" && settings.bubbleModules[action.id]));
+  }, [focusRunning, quickStartFocus, settings.bubbleModules, smartPhrasePool, t]);
 
   const applyExperienceProfile = useCallback((profile: "focus" | "calm" | "cozy") => {
     setSelectedProfile(profile);
@@ -669,11 +651,7 @@ function App() {
       )}
 
       <section ref={widgetBodyRef} className="widget-body" style={{ transform: `scale(${settings.size})` }}>
-        <div className="impact-pill">
-          🔥 {dailyStats.focusStarts} foco | 🍪 {dailyStats.snacks}
-        </div>
-
-        <div className="mascot-draggable" style={{ left: `${position.x}px`, top: `${position.y}px` }} onPointerDown={handleMascotPointerDown}>
+        <div className="mascot-draggable" style={{ left: `${position.x}px`, top: `${position.y}px` }} onMouseDown={handleMascotPointerDown}>
           <img
             className={`avatar ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
             src={avatarAsset}
@@ -704,7 +682,6 @@ function App() {
                 type="button"
                 className={`bubble-action ${action.pulse ? "music-pulse" : ""}`}
                 title={action.label}
-                onPointerDown={action.onPointerDown}
                 onClick={action.onClick}
               >
                 {action.icon}
@@ -719,14 +696,7 @@ function App() {
           </div>
         )}
 
-        {focusRunning && (
-          <div className="session-progress">
-            <div className="session-progress-track">
-              <div className="session-progress-fill" style={{ width: `${Math.round(phaseProgress * 100)}%` }} />
-            </div>
-            <span>{Math.round(phaseProgress * 100)}%</span>
-          </div>
-        )}
+        {focusRunning && <div className="session-progress">{Math.round(phaseProgress * 100)}%</div>}
 
         {isMusicActive && settings.musicAmbient && (
           <div className="music-react-bubble" style={{ left: `${musicX}px`, top: `${musicY}px` }}>
@@ -799,9 +769,7 @@ function App() {
 
           <label className="toggle-row"><input type="checkbox" checked={settings.alwaysOnTop} onChange={(event) => update("alwaysOnTop", event.currentTarget.checked)} />{t.alwaysOnTop}</label>
           <label className="toggle-row"><input type="checkbox" checked={settings.systemMusicDetect} onChange={(event) => update("systemMusicDetect", event.currentTarget.checked)} />{t.detectSystemMusic}</label>
-          <label className="toggle-row"><input type="checkbox" checked={settings.ultraMinimal} onChange={(event) => update("ultraMinimal", event.currentTarget.checked)} />{t.ultraMinimal}</label>
           <label className="toggle-row"><input type="checkbox" checked={settings.showTimerBubble} onChange={(event) => update("showTimerBubble", event.currentTarget.checked)} />{t.showTimerBubble}</label>
-          <label className="toggle-row"><input type="checkbox" checked={settings.musicAmbient} onChange={(event) => update("musicAmbient", event.currentTarget.checked)} />{t.musicAmbient}</label>
 
           <label>{t.globalShortcut}: {globalShortcutLabel}</label>
 
@@ -852,6 +820,8 @@ function App() {
             <label className="toggle-row"><input type="checkbox" checked={settings.autoHideEnabled} onChange={(event) => update("autoHideEnabled", event.currentTarget.checked)} />{t.autoHide}</label>
             <label className="toggle-row"><input type="checkbox" checked={settings.clickThroughPermanent} onChange={(event) => update("clickThroughPermanent", event.currentTarget.checked)} />{t.clickThroughPermanent}</label>
             <label className="toggle-row"><input type="checkbox" checked={settings.snapToEdgeEnabled} onChange={(event) => update("snapToEdgeEnabled", event.currentTarget.checked)} />{t.snapToEdge}</label>
+            <label className="toggle-row"><input type="checkbox" checked={settings.ultraMinimal} onChange={(event) => update("ultraMinimal", event.currentTarget.checked)} />{t.ultraMinimal}</label>
+            <label className="toggle-row"><input type="checkbox" checked={settings.musicAmbient} onChange={(event) => update("musicAmbient", event.currentTarget.checked)} />{t.musicAmbient}</label>
 
             {settings.autoHideEnabled && (
               <label>

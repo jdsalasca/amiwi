@@ -156,27 +156,12 @@ body {
   padding: 0;
   border-radius: 18px;
   text-align: center;
-  min-height: 208px;
+  min-height: 216px;
   overflow: visible;
 }
 
 .ultra-minimal .widget-body {
   min-height: 188px;
-}
-
-.impact-pill {
-  position: absolute;
-  right: 8px;
-  top: 2px;
-  z-index: 4;
-  font-size: 0.66rem;
-  font-weight: 700;
-  color: #1e456f;
-  background: rgba(255, 255, 255, 0.74);
-  border: 1px solid rgba(167, 203, 239, 0.8);
-  border-radius: 999px;
-  padding: 4px 8px;
-  box-shadow: 0 4px 12px rgba(31, 63, 101, 0.14);
 }
 
 .avatar {
@@ -244,22 +229,22 @@ body {
 .floating-phrase {
   position: absolute;
   transform: translateX(-50%);
-  max-width: 88%;
-  font-size: 0.8rem;
+  max-width: 78%;
+  font-size: 0.84rem;
   line-height: 1.25;
-  color: #244067;
-  background: rgba(255, 255, 255, 0.75);
-  border: 1px solid rgba(181, 215, 250, 0.8);
-  border-radius: 14px;
-  padding: 6px 9px;
-  box-shadow: 0 6px 18px rgba(42, 84, 125, 0.18);
+  color: #1f426a;
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(174, 209, 246, 0.76);
+  border-radius: 999px;
+  padding: 7px 11px;
+  box-shadow: 0 7px 18px rgba(42, 84, 125, 0.15);
   animation: bubbleIn 320ms ease;
 }
 
 .timer-bubble {
   position: absolute;
   transform: translate(-50%, -50%);
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   font-weight: 700;
   border-radius: 999px;
   padding: 5px 10px;
@@ -273,26 +258,26 @@ body {
   position: absolute;
   transform: translateX(-50%);
   display: inline-flex;
-  gap: 7px;
-  padding: 6px;
+  gap: 8px;
+  padding: 7px 9px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.56);
-  border: 1px solid rgba(167, 201, 237, 0.6);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(167, 201, 237, 0.74);
   backdrop-filter: blur(8px);
   z-index: 3;
 }
 
 .bubble-action {
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   border-radius: 999px;
   border: 1px solid rgba(169, 207, 246, 0.82);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(242, 249, 255, 0.9));
   color: #214670;
-  font-size: 0.82rem;
+  font-size: 0.9rem;
   font-weight: 700;
   padding: 0;
-  box-shadow: 0 4px 11px rgba(44, 81, 120, 0.15);
+  box-shadow: 0 5px 13px rgba(44, 81, 120, 0.17);
 }
 
 .bubble-action.music-pulse {
@@ -311,16 +296,6 @@ body {
   border: 1px solid rgba(181, 215, 250, 0.8);
   animation: pulse 1.2s ease-in-out infinite;
   z-index: 2;
-}
-
-.experience-row {
-  position: absolute;
-  left: 50%;
-  bottom: 2px;
-  transform: translateX(-50%);
-  display: inline-flex;
-  gap: 6px;
-  z-index: 3;
 }
 
 .experience-chip {
@@ -398,31 +373,16 @@ body {
 .session-progress {
   position: absolute;
   left: 50%;
-  bottom: 28px;
+  bottom: 56px;
   transform: translateX(-50%);
   z-index: 3;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 0.64rem;
-  color: #21476f;
-  font-weight: 700;
-}
-
-.session-progress-track {
-  width: 90px;
-  height: 8px;
+  font-size: 0.68rem;
+  color: #224a74;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(165, 206, 246, 0.76);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(162, 200, 240, 0.78);
-  overflow: hidden;
-}
-
-.session-progress-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, hsla(var(--accent-hue, 210), 88%, 62%, 0.95), hsla(calc(var(--accent-hue, 210) + 26), 90%, 72%, 0.95));
-  transition: width 280ms ease;
+  padding: 4px 9px;
 }
 
 .settings-panel {
@@ -446,6 +406,10 @@ body {
   padding: 6px 8px;
   margin-top: 8px;
   background: rgba(255, 255, 255, 0.7);
+}
+
+.advanced-settings[open] {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
 .advanced-settings summary {

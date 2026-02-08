@@ -42,6 +42,14 @@ body {
   transition: transform 220ms ease, opacity 220ms ease;
 }
 
+.glass-shell.drag-anywhere {
+  cursor: grab;
+}
+
+.glass-shell.drag-anywhere:active {
+  cursor: grabbing;
+}
+
 .glass-shell::before {
   content: "";
   position: absolute;

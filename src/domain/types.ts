@@ -26,6 +26,7 @@ export type Settings = {
   showTimerBubble: boolean;
   musicAmbient: boolean;
   clickThroughPermanent: boolean;
+  dragAnywhereEnabled: boolean;
   snapToEdgeEnabled: boolean;
   snapMarginPx: number;
   themePreset: ThemePreset;

@@ -592,6 +592,22 @@ function App() {
       return;
     }
     event.preventDefault();
+    event.stopPropagation();
+    if (settings.dragAnywhereEnabled) {
+      return;
+    }
+    startWindowDrag(event.screenX, event.screenY);
+  };
+
+  const handleShellPointerDownCapture = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.button !== 0 || !settings.dragAnywhereEnabled) {
+      return;
+    }
+    const target = event.target as HTMLElement;
+    if (target.closest("button, input, select, textarea, summary, details, a, label")) {
+      return;
+    }
+    event.preventDefault();
     startWindowDrag(event.screenX, event.screenY);
   };
 
@@ -730,7 +746,7 @@ function App() {
 
   return (
     <main
-      className={`glass-shell theme-${settings.themePreset} ${!showPanel ? "mascot-only" : ""} ${focusRunning ? "focus-running" : ""} ${dormant ? "dormant" : ""} ${settings.ultraMinimal ? "ultra-minimal" : ""}`}
+      className={`glass-shell theme-${settings.themePreset} ${!showPanel ? "mascot-only" : ""} ${focusRunning ? "focus-running" : ""} ${dormant ? "dormant" : ""} ${settings.ultraMinimal ? "ultra-minimal" : ""} ${settings.dragAnywhereEnabled ? "drag-anywhere" : ""}`}
       style={{
         opacity: settings.opacity,
         ["--accent-hue" as string]: `${activeHue}`,
@@ -741,6 +757,7 @@ function App() {
       onMouseMove={handleShellMouseMove}
       onMouseEnter={registerInteraction}
       onMouseDown={registerInteraction}
+      onPointerDownCapture={handleShellPointerDownCapture}
     >
       {(!settings.ultraMinimal || showPanel) && (
         <div className="glass-header">
@@ -942,6 +959,7 @@ function App() {
             <label className="toggle-row"><input type="checkbox" checked={settings.systemMusicDetect} onChange={(event) => update("systemMusicDetect", event.currentTarget.checked)} />{t.detectSystemMusic}</label>
             <label className="toggle-row"><input type="checkbox" checked={settings.musicReactive} onChange={(event) => update("musicReactive", event.currentTarget.checked)} />{t.reactMusic}</label>
             <label className="toggle-row"><input type="checkbox" checked={settings.autoHideEnabled} onChange={(event) => update("autoHideEnabled", event.currentTarget.checked)} />{t.autoHide}</label>
+            <label className="toggle-row"><input type="checkbox" checked={settings.dragAnywhereEnabled} onChange={(event) => update("dragAnywhereEnabled", event.currentTarget.checked)} />{t.dragAnywhere}</label>
             <label className="toggle-row"><input type="checkbox" checked={settings.snapToEdgeEnabled} onChange={(event) => update("snapToEdgeEnabled", event.currentTarget.checked)} />{t.snapToEdge}</label>
             <label className="toggle-row"><input type="checkbox" checked={settings.ultraMinimal} onChange={(event) => update("ultraMinimal", event.currentTarget.checked)} />{t.ultraMinimal}</label>
             <label className="toggle-row"><input type="checkbox" checked={settings.musicAmbient} onChange={(event) => update("musicAmbient", event.currentTarget.checked)} />{t.musicAmbient}</label>

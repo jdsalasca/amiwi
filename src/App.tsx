@@ -1,4 +1,4 @@
-import { ChangeEvent, MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { LogicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
 import { listen } from "@tauri-apps/api/event";
@@ -6,7 +6,6 @@ import { getCurrentWindow, monitorFromPoint } from "@tauri-apps/api/window";
 import { assetByAvatarMood } from "./domain/assets";
 import { copy, STORAGE_KEY } from "./domain/config";
 import type { BubbleModuleId, FocusPhase, MusicDetection, Mood, PomodoroPreset, Settings } from "./domain/types";
-import { useMascotDrag } from "./hooks/useMascotDrag";
 import { clamp, formatMMSS, loadSettings, randomPick, resolveAsset } from "./utils/helpers";
 import "./App.css";
 
@@ -20,6 +19,13 @@ type BubbleAction = {
 };
 
 const WINDOW_POSITION_KEY = `${STORAGE_KEY}.window.positionByMonitor`;
+const DAILY_STATS_KEY = `${STORAGE_KEY}.daily.stats`;
+
+type DailyStats = {
+  date: string;
+  focusStarts: number;
+  snacks: number;
+};
 
 function getDurations(settings: Settings): { focusSec: number; breakSec: number } {
   if (settings.pomodoroPreset === "50-10") {
@@ -67,6 +73,32 @@ function loadStoredWindowPositions(): Record<string, { x: number; y: number }> {
   }
 }
 
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function loadDailyStats(): DailyStats {
+  const fallback: DailyStats = { date: todayIsoDate(), focusStarts: 0, snacks: 0 };
+  const raw = localStorage.getItem(DAILY_STATS_KEY);
+  if (!raw) {
+    return fallback;
+  }
+  try {
+    const parsed = JSON.parse(raw) as Partial<DailyStats>;
+    const parsedDate = typeof parsed.date === "string" ? parsed.date : fallback.date;
+    if (parsedDate !== fallback.date) {
+      return fallback;
+    }
+    return {
+      date: parsedDate,
+      focusStarts: Number.isFinite(parsed.focusStarts) ? Number(parsed.focusStarts) : 0,
+      snacks: Number.isFinite(parsed.snacks) ? Number(parsed.snacks) : 0,
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 function App() {
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
   const [showPanel, setShowPanel] = useState(false);
@@ -76,15 +108,12 @@ function App() {
   const [musicPulsePhrase, setMusicPulsePhrase] = useState("");
   const [systemMusicActive, setSystemMusicActive] = useState(false);
   const [systemMusicSource, setSystemMusicSource] = useState("");
-  const [avatarBroken, setAvatarBroken] = useState(false);
-  const [musicTrackUrl, setMusicTrackUrl] = useState("");
-  const [musicTrackName, setMusicTrackName] = useState("");
-  const [musicPlaying, setMusicPlaying] = useState(false);
   const [musicEnergy, setMusicEnergy] = useState(0);
   const [focusRunning, setFocusRunning] = useState(false);
   const [focusPhase, setFocusPhase] = useState<FocusPhase>("focus");
   const [dormant, setDormant] = useState(false);
   const [clickThroughActive, setClickThroughActive] = useState(false);
+  const [dailyStats, setDailyStats] = useState<DailyStats>(() => loadDailyStats());
 
   const durations = useMemo(() => getDurations(settings), [settings]);
   const [remainingSeconds, setRemainingSeconds] = useState(durations.focusSec);
@@ -92,22 +121,11 @@ function App() {
   const hideTimerRef = useRef<number | null>(null);
   const pollingRef = useRef(false);
   const interactionThrottleRef = useRef(0);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const dataArrayRef = useRef<Uint8Array | null>(null);
-  const audioSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
-  const rafRef = useRef<number | null>(null);
+  const windowDragUntilRef = useRef(0);
   const widgetBodyRef = useRef<HTMLElement | null>(null);
 
-  const { position, startDrag } = useMascotDrag({
-    containerRef: widgetBodyRef,
-    storageKey: `${STORAGE_KEY}.mascot.position`,
-    mascotSize: { w: 150, h: 112 },
-    enabled: settings.ultraMinimal && !showPanel,
-  });
-
   const t = copy[settings.language];
-  const isMusicActive = settings.musicReactive && (musicPlaying || systemMusicActive);
+  const isMusicActive = settings.musicReactive && systemMusicActive;
   const themeBaseHue = settings.themePreset === "mint" ? 165 : settings.themePreset === "rose" ? 345 : 205;
   const activeHue = Math.round(themeBaseHue + musicEnergy * 70);
   const globalShortcutLabel = navigator.platform.toLowerCase().includes("mac")
@@ -116,6 +134,10 @@ function App() {
 
   const stageWidth = widgetBodyRef.current?.clientWidth ?? 240;
   const stageHeight = widgetBodyRef.current?.clientHeight ?? 220;
+  const position = useMemo(
+    () => ({ x: clamp((stageWidth - 150) / 2, 0, stageWidth - 150), y: clamp((stageHeight - 122) / 2, 0, stageHeight - 122) }),
+    [stageHeight, stageWidth]
+  );
   const mascotCenterX = clamp(position.x + 75, 24, stageWidth - 24);
   const phraseY = clamp(position.y - 38, 0, stageHeight - 38);
   const actionY = clamp(position.y + 116, 0, stageHeight - 36);
@@ -127,6 +149,18 @@ function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   }, [settings]);
+
+  useEffect(() => {
+    localStorage.setItem(DAILY_STATS_KEY, JSON.stringify(dailyStats));
+  }, [dailyStats]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const today = todayIsoDate();
+      setDailyStats((prev) => (prev.date === today ? prev : { date: today, focusStarts: 0, snacks: 0 }));
+    }, 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     void getCurrentWindow().setAlwaysOnTop(settings.alwaysOnTop).catch(() => undefined);
@@ -149,6 +183,14 @@ function App() {
   const update = <K extends keyof Settings>(key: K, value: Settings[K]): void => {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
+
+  const bumpDailyMetric = useCallback((metric: "focusStarts" | "snacks") => {
+    const today = todayIsoDate();
+    setDailyStats((prev) => {
+      const base = prev.date === today ? prev : { date: today, focusStarts: 0, snacks: 0 };
+      return { ...base, [metric]: base[metric] + 1 };
+    });
+  }, []);
 
   const emitPhrase = (text: string): void => {
     setPhrase(text);
@@ -227,8 +269,10 @@ function App() {
         if (!active) {
           return;
         }
-        setSystemMusicActive(res.active);
-        setSystemMusicSource(res.source);
+        const nativeMethod = ["windows_gsmtc", "applescript_native", "itunes_com"].some((method) => res.method.includes(method));
+        const accepted = nativeMethod && res.active;
+        setSystemMusicActive(accepted);
+        setSystemMusicSource(accepted ? res.source : "");
       } catch {
         if (active) {
           setSystemMusicActive(false);
@@ -249,69 +293,18 @@ function App() {
   useEffect(() => {
     if (!settings.musicAmbient) {
       setMusicEnergy(0);
-      if (rafRef.current !== null) {
-        window.cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
       return;
     }
-
-    if (!musicPlaying || !audioRef.current) {
-      if (systemMusicActive) {
-        const timer = window.setInterval(() => {
-          setMusicEnergy((prev) => {
-            const next = 0.35 + 0.2 * Math.sin(Date.now() / 600);
-            return Math.abs(next - prev) > 0.02 ? next : prev;
-          });
-        }, 240);
-        return () => window.clearInterval(timer);
-      }
+    if (!systemMusicActive) {
       setMusicEnergy(0);
       return;
     }
-
-    const w = window as Window & { __amiwiAudioCtx?: AudioContext };
-    const ctx = w.__amiwiAudioCtx ?? new window.AudioContext();
-    w.__amiwiAudioCtx = ctx;
-
-    if (!audioSourceRef.current) {
-      audioSourceRef.current = ctx.createMediaElementSource(audioRef.current);
-    }
-    if (!analyserRef.current) {
-      analyserRef.current = ctx.createAnalyser();
-      analyserRef.current.fftSize = 128;
-      analyserRef.current.smoothingTimeConstant = 0.72;
-      audioSourceRef.current.connect(analyserRef.current);
-      analyserRef.current.connect(ctx.destination);
-      dataArrayRef.current = new Uint8Array(analyserRef.current.frequencyBinCount);
-    }
-
-    let frameSkip = 0;
-    const loop = () => {
-      if (!analyserRef.current || !dataArrayRef.current) {
-        return;
-      }
-      frameSkip += 1;
-      if (frameSkip % 3 === 0) {
-        analyserRef.current.getByteFrequencyData(dataArrayRef.current);
-        let sum = 0;
-        for (let i = 0; i < dataArrayRef.current.length; i += 1) {
-          sum += dataArrayRef.current[i];
-        }
-        const normalized = clamp((sum / dataArrayRef.current.length) / 255, 0, 1);
-        setMusicEnergy((prev) => (Math.abs(prev - normalized) > 0.03 ? normalized : prev));
-      }
-      rafRef.current = window.requestAnimationFrame(loop);
-    };
-    rafRef.current = window.requestAnimationFrame(loop);
-
-    return () => {
-      if (rafRef.current !== null) {
-        window.cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-    };
-  }, [musicPlaying, settings.musicAmbient, systemMusicActive]);
+    const timer = window.setInterval(() => {
+      const wave = 0.34 + 0.2 * Math.sin(Date.now() / 480);
+      setMusicEnergy((prev) => (Math.abs(prev - wave) > 0.02 ? wave : prev));
+    }, 180);
+    return () => window.clearInterval(timer);
+  }, [settings.musicAmbient, systemMusicActive]);
 
   useEffect(() => {
     if (!focusRunning) {
@@ -476,6 +469,10 @@ function App() {
       if (showPanel) {
         return;
       }
+      if (Date.now() < windowDragUntilRef.current) {
+        windowDragUntilRef.current = Date.now() + 500;
+        return;
+      }
       if (moveTimeout !== null) {
         window.clearTimeout(moveTimeout);
       }
@@ -501,32 +498,31 @@ function App() {
         setMood("happy");
         return false;
       }
+      bumpDailyMetric("focusStarts");
       setFocusPhase("focus");
       setRemainingSeconds(durations.focusSec);
       setMood("focus");
       update("mode", "study");
       return true;
     });
-  }, [durations.focusSec]);
+  }, [bumpDailyMetric, durations.focusSec]);
 
   const handleFeed = useCallback(() => {
+    bumpDailyMetric("snacks");
     setMood("celebrate");
     emitPhrase(randomPick(t.phraseFeed));
-  }, [t.phraseFeed]);
+  }, [bumpDailyMetric, t.phraseFeed]);
 
   const startWindowDrag = useCallback((event?: React.PointerEvent<HTMLElement>) => {
     event?.preventDefault();
     event?.stopPropagation();
     registerInteraction();
+    windowDragUntilRef.current = Date.now() + 1800;
     void getCurrentWindow().startDragging().catch(() => undefined);
   }, [registerInteraction]);
 
   const handleMascotPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.shiftKey) {
-      startWindowDrag(event);
-      return;
-    }
-    startDrag(event);
+    startWindowDrag(event);
   };
 
   const bubbleActions: BubbleAction[] = useMemo(() => {
@@ -553,17 +549,40 @@ function App() {
     return all.filter((action) => settings.bubbleModules[action.id]);
   }, [focusRunning, handleFeed, isMusicActive, quickStartFocus, settings.bubbleModules, settings.musicAmbient, smartPhrasePool, startWindowDrag, t, update]);
 
-  const handleMusicFile = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.currentTarget.files?.[0];
-    if (!file) {
+  const applyExperienceProfile = (profile: "focus" | "calm" | "cozy") => {
+    if (profile === "focus") {
+      setSettings((prev) => ({
+        ...prev,
+        themePreset: "ocean",
+        mode: "study",
+        phraseFrequencySec: 85,
+        autoHideEnabled: true,
+        autoHideSeconds: 8,
+      }));
+      emitPhrase(randomPick(t.phraseDeepFocus));
       return;
     }
-    if (musicTrackUrl) {
-      URL.revokeObjectURL(musicTrackUrl);
+    if (profile === "calm") {
+      setSettings((prev) => ({
+        ...prev,
+        themePreset: "mint",
+        mode: "work",
+        phraseFrequencySec: 130,
+        autoHideEnabled: true,
+        autoHideSeconds: 14,
+      }));
+      emitPhrase(randomPick(t.phraseWork));
+      return;
     }
-    const url = URL.createObjectURL(file);
-    setMusicTrackUrl(url);
-    setMusicTrackName(file.name);
+    setSettings((prev) => ({
+      ...prev,
+      themePreset: "rose",
+      mode: "break",
+      phraseFrequencySec: 170,
+      autoHideEnabled: false,
+      musicAmbient: false,
+    }));
+    emitPhrase(randomPick(t.phraseBreak));
   };
 
   const activateClickThroughPulse = () => {
@@ -572,14 +591,8 @@ function App() {
     window.setTimeout(() => setClickThroughActive(false), 8000);
   };
 
-  const avatarAsset = useMemo(
-    () => resolveAsset(assetByAvatarMood[settings.avatarStyle][mood]),
-    [settings.avatarStyle, mood]
-  );
-
-  useEffect(() => {
-    setAvatarBroken(false);
-  }, [settings.avatarStyle, mood]);
+  const avatarAsset = useMemo(() => resolveAsset(assetByAvatarMood[settings.avatarStyle][mood]), [settings.avatarStyle, mood]);
+  const fallbackAvatarAsset = useMemo(() => resolveAsset(assetByAvatarMood.cloud.happy), []);
 
   const openOrCloseSettings = (event: ReactMouseEvent<HTMLImageElement | HTMLDivElement>) => {
     event.preventDefault();
@@ -613,30 +626,34 @@ function App() {
       )}
 
       <section ref={widgetBodyRef} className="widget-body" style={{ transform: `scale(${settings.size})` }}>
+        <div className="impact-pill">
+          🔥 {dailyStats.focusStarts} foco | 🍪 {dailyStats.snacks}
+        </div>
+
         <div className="mascot-draggable" style={{ left: `${position.x}px`, top: `${position.y}px` }} onPointerDown={handleMascotPointerDown}>
-          {!avatarBroken ? (
-            <img
-              className={`avatar ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
-              src={avatarAsset}
-              alt={`${settings.avatarStyle}-${mood}`}
-              loading="eager"
-              decoding="async"
-              onDoubleClick={quickStartFocus}
-              onContextMenu={openOrCloseSettings}
-              onError={() => setAvatarBroken(true)}
-            />
-          ) : (
-            <div className="avatar-fallback" onDoubleClick={quickStartFocus} onContextMenu={openOrCloseSettings}>
-              o(=^.^=)o
-            </div>
-          )}
+          <img
+            className={`avatar ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
+            src={avatarAsset}
+            alt={`${settings.avatarStyle}-${mood}`}
+            loading="eager"
+            decoding="async"
+            onDoubleClick={quickStartFocus}
+            onContextMenu={openOrCloseSettings}
+            onError={(event) => {
+              if (event.currentTarget.dataset.fallbackApplied === "1") {
+                return;
+              }
+              event.currentTarget.dataset.fallbackApplied = "1";
+              event.currentTarget.src = fallbackAvatarAsset;
+            }}
+          />
         </div>
 
         <div key={phraseTick} className="floating-phrase" style={{ left: `${mascotCenterX}px`, top: `${phraseY}px` }}>
           {phrase}
         </div>
 
-        {settings.ultraMinimal && !showPanel && (
+        {!showPanel && bubbleActions.length > 0 && (
           <div className="bubble-actions" style={{ left: `${mascotCenterX}px`, top: `${actionY}px` }}>
             {bubbleActions.map((action) => (
               <button
@@ -653,9 +670,17 @@ function App() {
           </div>
         )}
 
-        {settings.showTimerBubble && focusRunning && (
+        {!showPanel && (
+          <div className="experience-row">
+            <button type="button" className="experience-chip" onClick={() => applyExperienceProfile("focus")}>Focus</button>
+            <button type="button" className="experience-chip" onClick={() => applyExperienceProfile("calm")}>Calm</button>
+            <button type="button" className="experience-chip" onClick={() => applyExperienceProfile("cozy")}>Cozy</button>
+          </div>
+        )}
+
+        {settings.showTimerBubble && (
           <div className="timer-bubble" style={{ left: `${timerX}px`, top: `${timerY}px` }}>
-            {focusPhase === "focus" ? "🍅" : "☕"} {formatMMSS(remainingSeconds)}
+            {focusRunning ? (focusPhase === "focus" ? "🍅" : "☕") : "⏱"} {formatMMSS(remainingSeconds)}
           </div>
         )}
 
@@ -667,7 +692,7 @@ function App() {
 
         {showPanel && (
           <div className="music-pill">
-            {t.nowPlaying}: {isMusicActive ? (systemMusicSource || musicTrackName || "active") : t.noMusic}
+            {t.nowPlaying}: {isMusicActive ? (systemMusicSource || "active") : t.noMusic}
           </div>
         )}
       </section>
@@ -802,13 +827,6 @@ function App() {
               ))}
             </div>
           </div>
-
-          <label>
-            {t.uploadTrack}
-            <input type="file" accept="audio/*" onChange={handleMusicFile} />
-          </label>
-
-          <audio ref={audioRef} controls src={musicTrackUrl} onPlay={() => setMusicPlaying(true)} onPause={() => setMusicPlaying(false)} onEnded={() => setMusicPlaying(false)} />
 
           <div className="panel-footer">
             <button type="button" className="chip" onClick={activateClickThroughPulse}>{t.clickThroughPulse}</button>

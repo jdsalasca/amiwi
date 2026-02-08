@@ -28,13 +28,15 @@ export function loadSettings(): Settings {
 
   try {
     const parsed = JSON.parse(raw) as Partial<Settings>;
+    const mergedBubbleModules = {
+      ...defaultSettings.bubbleModules,
+      ...parsed.bubbleModules,
+    };
+    const hasAnyBubble = Object.values(mergedBubbleModules).some(Boolean);
     return {
       ...defaultSettings,
       ...parsed,
-      bubbleModules: {
-        ...defaultSettings.bubbleModules,
-        ...parsed.bubbleModules,
-      },
+      bubbleModules: hasAnyBubble ? mergedBubbleModules : defaultSettings.bubbleModules,
       phraseFrequencySec: clamp(parsed.phraseFrequencySec ?? 85, 20, 300),
       opacity: clamp(parsed.opacity ?? 1, 0.55, 1),
       size: clamp(parsed.size ?? 1, 0.8, 1.4),

@@ -1370,22 +1370,27 @@ function App() {
     ));
   };
   const shellOpacity = showOnboarding ? 1 : settings.opacity;
+  const isWebPreviewRuntime = !tauriWindowAvailable;
 
   return (
-    <main
-      className={`glass-shell theme-${settings.themePreset} ${!showPanel ? "mascot-only" : ""} ${focusRunning ? "focus-running" : ""} ${dormant ? "dormant" : ""} ${settings.ultraMinimal ? "ultra-minimal" : ""} ${settings.dragAnywhereEnabled ? "drag-anywhere" : ""}`}
-      style={{
-        opacity: shellOpacity,
-        ["--accent-hue" as string]: `${activeHue}`,
-        ["--music-energy" as string]: `${musicEnergy.toFixed(2)}`,
-        ["--glass-x" as string]: `${pointerGlow.x.toFixed(1)}%`,
-        ["--glass-y" as string]: `${pointerGlow.y.toFixed(1)}%`,
-      }}
-      onMouseMove={handleShellMouseMove}
-      onMouseEnter={registerInteraction}
-      onMouseDown={registerInteraction}
-      onPointerDownCapture={handleShellPointerDownCapture}
-    >
+    <div className={`app-stage ${isWebPreviewRuntime ? "web-runtime" : "widget-runtime"}`}>
+      <main
+        className={`glass-shell theme-${settings.themePreset} ${!showPanel ? "mascot-only" : ""} ${focusRunning ? "focus-running" : ""} ${dormant ? "dormant" : ""} ${settings.ultraMinimal ? "ultra-minimal" : ""} ${settings.dragAnywhereEnabled ? "drag-anywhere" : ""} ${showOnboarding ? "onboarding-active" : ""}`}
+        style={{
+          opacity: shellOpacity,
+          ["--accent-hue" as string]: `${activeHue}`,
+          ["--music-energy" as string]: `${musicEnergy.toFixed(2)}`,
+          ["--glass-x" as string]: `${pointerGlow.x.toFixed(1)}%`,
+          ["--glass-y" as string]: `${pointerGlow.y.toFixed(1)}%`,
+        }}
+        onMouseMove={handleShellMouseMove}
+        onMouseEnter={registerInteraction}
+        onMouseDown={registerInteraction}
+        onPointerDownCapture={handleShellPointerDownCapture}
+      >
+        {isWebPreviewRuntime && import.meta.env.DEV && (
+          <div className="runtime-pill">{settings.language === "es" ? "Vista web (dev)" : "Web preview (dev)"}</div>
+        )}
       {(!settings.ultraMinimal || showPanel) && (
         <div className="glass-header">
           <div className="drag-region" data-tauri-drag-region>
@@ -1843,7 +1848,8 @@ function App() {
           </div>
         </section>
       )}
-    </main>
+      </main>
+    </div>
   );
 }
 

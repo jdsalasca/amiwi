@@ -45,6 +45,7 @@ function App() {
   const [phrase, setPhrase] = useState("");
   const [phraseTick, setPhraseTick] = useState(0);
   const [analyticsTick, setAnalyticsTick] = useState(0);
+  const showInternalSignals = import.meta.env.DEV;
   const [musicPulsePhrase, setMusicPulsePhrase] = useState("");
   const [systemMusicActive, setSystemMusicActive] = useState(false);
   const [systemMusicSource, setSystemMusicSource] = useState("");
@@ -1298,14 +1299,14 @@ function App() {
         {!showPanel && (
           <>
             <div className={`bond-bubble ${petBondTone}`} style={{ left: `${clamp(mascotCenterX - 58, 24, stageWidth - 24)}px`, top: `${clamp(position.y + 8, 10, stageHeight - 20)}px` }}>
-              {petBondEmoji} {t.bondLabel}: {Math.round(petBond)} · {bondRankLabel}
+              {petBondEmoji} {t.bondLabel}: {Math.round(petBond)}{showInternalSignals ? ` · ${bondRankLabel}` : ""}
             </div>
             {latestMemoryLabel && (
               <div className="memory-bubble" style={{ left: `${clamp(mascotCenterX - 44, 24, stageWidth - 24)}px`, top: `${clamp(position.y + 24, 20, stageHeight - 12)}px` }}>
                 {latestMemoryLabel}
               </div>
             )}
-            {nextBondMilestone !== null && (
+            {showInternalSignals && nextBondMilestone !== null && (
               <div className="memory-bubble" style={{ left: `${clamp(mascotCenterX - 44, 24, stageWidth - 24)}px`, top: `${clamp(position.y + 40, 20, stageHeight - 8)}px` }}>
                 {settings.language === "es" ? `siguiente hito: ${nextBondMilestone}` : `next milestone: ${nextBondMilestone}`}
               </div>
@@ -1436,11 +1437,13 @@ function App() {
             </select>
           </label>
 
-          <div className="onboarding-summary">
-            <span>{dailyMemoryLabel}</span>
-            <span>{settings.language === "es" ? `foco iniciado hoy: ${todayAnalytics.focus_start}` : `focus starts today: ${todayAnalytics.focus_start}`}</span>
-            <span>{settings.language === "es" ? `shake hoy: ${todayAnalytics.shake}` : `shakes today: ${todayAnalytics.shake}`}</span>
-          </div>
+          {showInternalSignals && (
+            <div className="onboarding-summary">
+              <span>{dailyMemoryLabel}</span>
+              <span>{settings.language === "es" ? `foco iniciado hoy: ${todayAnalytics.focus_start}` : `focus starts today: ${todayAnalytics.focus_start}`}</span>
+              <span>{settings.language === "es" ? `shake hoy: ${todayAnalytics.shake}` : `shakes today: ${todayAnalytics.shake}`}</span>
+            </div>
+          )}
 
           <label className="toggle-row"><input type="checkbox" checked={settings.showTimerBubble} onChange={(event) => update("showTimerBubble", event.currentTarget.checked)} />{t.showTimerBubble}</label>
 
@@ -1558,7 +1561,7 @@ function App() {
                 <span>{t.theme}: {settings.themePreset}</span>
                 <span>{t.mode}: {settings.mode}</span>
                 <span>{settings.language === "es" ? `perfil: ${selectedProfile}` : `profile: ${selectedProfile}`}</span>
-                <span>{dailyMemoryLabel}</span>
+                {showInternalSignals && <span>{dailyMemoryLabel}</span>}
               </div>
             )}
 

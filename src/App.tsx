@@ -105,8 +105,19 @@ function App() {
     lastTime: 0,
     cooldownUntil: 0,
   });
+  const getAppWindow = useCallback(() => {
+    try {
+      return getCurrentWindow();
+    } catch {
+      return null;
+    }
+  }, []);
+  const tauriWindowAvailable = useMemo(() => getAppWindow() !== null, [getAppWindow]);
   const recenterWindow = useCallback(async () => {
-    const appWindow = getCurrentWindow();
+    const appWindow = getAppWindow();
+    if (!appWindow) {
+      return;
+    }
     const [size, originMonitor] = await Promise.all([
       appWindow.outerSize().catch(() => null),
       monitorFromPoint(1, 1).catch(() => null),
@@ -122,7 +133,7 @@ function App() {
     const centerX = area.position.x + Math.max(8, Math.round((area.size.width - size.width) / 2));
     const centerY = area.position.y + Math.max(8, Math.round((area.size.height - size.height) / 2));
     await appWindow.setPosition(new PhysicalPosition(centerX, centerY)).catch(() => undefined);
-  }, []);
+  }, [getAppWindow]);
   const trackAnalytics = useCallback((eventType: Parameters<typeof recordAnalyticsEvent>[0]) => {
     recordAnalyticsEvent(eventType);
     setAnalyticsTick((prev) => prev + 1);
@@ -362,11 +373,18 @@ function App() {
   }, []);
 
   useEffect(() => {
-    void getCurrentWindow().setAlwaysOnTop(settings.alwaysOnTop).catch(() => undefined);
-  }, [settings.alwaysOnTop]);
+    const appWindow = getAppWindow();
+    if (!appWindow) {
+      return;
+    }
+    void appWindow.setAlwaysOnTop(settings.alwaysOnTop).catch(() => undefined);
+  }, [getAppWindow, settings.alwaysOnTop]);
 
   useEffect(() => {
-    const appWindow = getCurrentWindow();
+    const appWindow = getAppWindow();
+    if (!appWindow) {
+      return;
+    }
     const sanitizeWindowPosition = async () => {
       const [pos, size] = await Promise.all([appWindow.outerPosition(), appWindow.outerSize()]).catch(() => [null, null] as const);
       if (!pos || !size) {
@@ -399,10 +417,13 @@ function App() {
     void sanitizeWindowPosition();
     const timer = window.setTimeout(() => void sanitizeWindowPosition(), 900);
     return () => window.clearTimeout(timer);
-  }, [recenterWindow]);
+  }, [getAppWindow, recenterWindow]);
 
   useEffect(() => {
-    const appWindow = getCurrentWindow();
+    const appWindow = getAppWindow();
+    if (!appWindow) {
+      return;
+    }
     const target = showPanel ? new LogicalSize(410, 500) : new LogicalSize(220, 240);
     const keepVisibleAfterResize = async () => {
       await appWindow.setSize(target).catch(() => undefined);
@@ -430,7 +451,7 @@ function App() {
       }
     };
     void keepVisibleAfterResize();
-  }, [showPanel]);
+  }, [getAppWindow, showPanel]);
 
   useEffect(() => {
     if (!focusRunning) {
@@ -693,7 +714,10 @@ function App() {
   }, [focusRunning, isMusicActive]);
 
   useEffect(() => {
-    const appWindow = getCurrentWindow();
+    const appWindow = getAppWindow();
+    if (!appWindow) {
+      return;
+    }
     let disposed = false;
     const unlistenPromise = appWindow.onMoved(() => {
       if (disposed) {
@@ -707,13 +731,16 @@ function App() {
       disposed = true;
       void unlistenPromise.then((unlisten) => unlisten()).catch(() => undefined);
     };
-  }, [refreshDraggingVisual]);
+  }, [getAppWindow, refreshDraggingVisual]);
 
   useEffect(() => {
     if (!settings.cuteBubblesEnabled) {
       return;
     }
-    const appWindow = getCurrentWindow();
+    const appWindow = getAppWindow();
+    if (!appWindow) {
+      return;
+    }
     let disposed = false;
     const unlistenPromise = appWindow.onMoved(() => {
       if (disposed) {
@@ -754,7 +781,7 @@ function App() {
       disposed = true;
       void unlistenPromise.then((unlisten) => unlisten()).catch(() => undefined);
     };
-  }, [recordPetEvent, settings.cuteBubblesEnabled, settings.mode, showPanel, spawnCuteBubbleBurst, t.phraseFeed]);
+  }, [getAppWindow, recordPetEvent, settings.cuteBubblesEnabled, settings.mode, showPanel, spawnCuteBubbleBurst, t.phraseFeed]);
 
   useEffect(() => {
     if (!settings.systemMusicDetect) {
@@ -926,12 +953,18 @@ function App() {
   }, [registerInteraction]);
 
   useEffect(() => {
+    if (!tauriWindowAvailable) {
+      return;
+    }
     let disposed = false;
     const unlistenPromise = listen("amiwi://toggle-settings", async () => {
       if (disposed) {
         return;
       }
-      const appWindow = getCurrentWindow();
+      const appWindow = getAppWindow();
+      if (!appWindow) {
+        return;
+      }
       await appWindow.show().catch(() => undefined);
       await appWindow.unminimize().catch(() => undefined);
       await appWindow.setFocus().catch(() => undefined);
@@ -942,14 +975,17 @@ function App() {
       disposed = true;
       void unlistenPromise.then((unlisten) => unlisten()).catch(() => undefined);
     };
-  }, [registerInteraction]);
+  }, [getAppWindow, registerInteraction, tauriWindowAvailable]);
 
   useEffect(() => {
     if (!settings.snapToEdgeEnabled) {
       return;
     }
 
-    const appWindow = getCurrentWindow();
+    const appWindow = getAppWindow();
+    if (!appWindow) {
+      return;
+    }
     let disposed = false;
     let moveTimeout: number | null = null;
 
@@ -1058,7 +1094,7 @@ function App() {
       }
       void unlistenPromise.then((unlisten) => unlisten()).catch(() => undefined);
     };
-  }, [settings.snapMarginPx, settings.snapToEdgeEnabled, showPanel]);
+  }, [getAppWindow, settings.snapMarginPx, settings.snapToEdgeEnabled, showPanel]);
 
   const quickStartFocus = useCallback(() => {
     if (settings.cuteBubblesEnabled) {
@@ -1101,7 +1137,10 @@ function App() {
     }
     registerInteraction();
     windowDragUntilRef.current = Date.now() + 2400;
-    const appWindow = getCurrentWindow();
+    const appWindow = getAppWindow();
+    if (!appWindow) {
+      return;
+    }
     void appWindow.outerPosition().then((pos) => {
       const drag = manualDragRef.current;
       drag.active = true;
@@ -1117,12 +1156,15 @@ function App() {
         dragPermissionWarnedRef.current = true;
       }
     });
-  }, [registerInteraction, showPanel]);
+  }, [getAppWindow, registerInteraction, showPanel]);
 
   const startWindowDrag = useCallback((screenX: number, screenY: number) => {
     registerInteraction();
     windowDragUntilRef.current = Date.now() + 2400;
-    const appWindow = getCurrentWindow();
+    const appWindow = getAppWindow();
+    if (!appWindow) {
+      return;
+    }
     void appWindow.startDragging().catch((error) => {
       if (!dragPermissionWarnedRef.current) {
         console.warn("[window-drag] native startDragging failed; falling back to manual drag.", error);
@@ -1130,7 +1172,7 @@ function App() {
       }
       beginManualWindowDrag(screenX, screenY);
     });
-  }, [beginManualWindowDrag, registerInteraction]);
+  }, [beginManualWindowDrag, getAppWindow, registerInteraction]);
 
   const handleMascotPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0 || showPanel) {
@@ -1169,7 +1211,10 @@ function App() {
   };
 
   useEffect(() => {
-    const appWindow = getCurrentWindow();
+    const appWindow = getAppWindow();
+    if (!appWindow) {
+      return;
+    }
     const flushDragFrame = () => {
       const drag = manualDragRef.current;
       drag.rafId = 0;
@@ -1217,7 +1262,7 @@ function App() {
       window.removeEventListener("pointercancel", stopDrag);
       stopDrag();
     };
-  }, []);
+  }, [getAppWindow]);
 
   const bubbleActions: BubbleAction[] = useMemo(() => {
     const actions: BubbleAction[] = [
@@ -1324,12 +1369,13 @@ function App() {
       Math.abs(prev.x - x) > 0.6 || Math.abs(prev.y - y) > 0.6 ? { x, y } : prev
     ));
   };
+  const shellOpacity = showOnboarding ? 1 : settings.opacity;
 
   return (
     <main
       className={`glass-shell theme-${settings.themePreset} ${!showPanel ? "mascot-only" : ""} ${focusRunning ? "focus-running" : ""} ${dormant ? "dormant" : ""} ${settings.ultraMinimal ? "ultra-minimal" : ""} ${settings.dragAnywhereEnabled ? "drag-anywhere" : ""}`}
       style={{
-        opacity: settings.opacity,
+        opacity: shellOpacity,
         ["--accent-hue" as string]: `${activeHue}`,
         ["--music-energy" as string]: `${musicEnergy.toFixed(2)}`,
         ["--glass-x" as string]: `${pointerGlow.x.toFixed(1)}%`,
@@ -1348,8 +1394,12 @@ function App() {
           </div>
           <div className="window-controls">
             <button type="button" className="chip" onClick={() => setShowPanel((prev) => !prev)}>⚙</button>
-            <button type="button" className="win" onClick={() => void getCurrentWindow().minimize()}>_</button>
-            <button type="button" className="win close" onClick={() => void getCurrentWindow().close()}>✕</button>
+            {tauriWindowAvailable && (
+              <>
+                <button type="button" className="win" onClick={() => { const appWindow = getAppWindow(); if (appWindow) { void appWindow.minimize(); } }}>_</button>
+                <button type="button" className="win close" onClick={() => { const appWindow = getAppWindow(); if (appWindow) { void appWindow.close(); } }}>✕</button>
+              </>
+            )}
           </div>
         </div>
       )}

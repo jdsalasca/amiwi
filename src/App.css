@@ -150,7 +150,8 @@ body {
 .glass-header small {
   display: block;
   font-size: 0.66rem;
-  opacity: 0.7;
+  opacity: 0.88;
+  color: #355a84;
 }
 
 .window-controls {
@@ -1074,7 +1075,7 @@ input[type="checkbox"] {
   z-index: 12;
   border-radius: 16px;
   backdrop-filter: blur(12px);
-  background: rgba(237, 246, 255, 0.44);
+  background: linear-gradient(160deg, rgba(224, 238, 255, 0.58), rgba(235, 248, 255, 0.42));
   display: grid;
   place-items: center;
 }
@@ -1082,16 +1083,16 @@ input[type="checkbox"] {
 .onboarding-card {
   width: min(340px, 92%);
   border-radius: 18px;
-  padding: 14px;
-  border: 1px solid rgba(165, 203, 242, 0.88);
-  background: rgba(255, 255, 255, 0.84);
-  box-shadow: 0 16px 34px rgba(26, 61, 97, 0.22);
+  padding: 16px;
+  border: 1px solid rgba(145, 190, 236, 0.95);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 20px 40px rgba(24, 57, 95, 0.25);
 }
 
 .onboarding-card h3 {
   margin: 0;
-  font-size: 0.94rem;
-  color: #173e68;
+  font-size: 1rem;
+  color: #163e68;
 }
 
 .onboarding-card small {
@@ -1103,8 +1104,8 @@ input[type="checkbox"] {
 
 .onboarding-card p {
   margin: 8px 0 10px;
-  font-size: 0.74rem;
-  color: #2e527a;
+  font-size: 0.76rem;
+  color: #244b77;
 }
 
 .onboarding-steps {
@@ -1134,6 +1135,7 @@ input[type="checkbox"] {
 
 .onboarding-row > * {
   min-height: 32px;
+  min-width: 66px;
 }
 
 .onboarding-summary {
@@ -1148,6 +1150,10 @@ input[type="checkbox"] {
   display: flex;
   justify-content: flex-end;
   gap: 7px;
+}
+
+.onboarding-card .chip {
+  min-width: 84px;
 }
 
 .avatar-fallback {

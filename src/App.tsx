@@ -8,7 +8,10 @@ import { check, Update as AppUpdate } from "@tauri-apps/plugin-updater";
 import { assetByAvatarMood } from "./domain/assets";
 import { copy, STORAGE_KEY } from "./domain/config";
 import { resolvePetProfile, type PetMemoryEvent, type PetMemoryEventType } from "./domain/pets/profile";
+import { getDurations } from "./domain/session";
+import { loadPetBond, loadPetMemory, loadStoredWindowPositions, monitorStorageKey, ONBOARDING_KEY, PET_BOND_KEY, PET_MEMORY_KEY, WINDOW_POSITION_KEY } from "./domain/storage";
 import type { BubbleModuleId, FocusPhase, MusicDetection, Mood, PomodoroPreset, Settings } from "./domain/types";
+import { playSoftBeep } from "./utils/audio";
 import { clamp, formatMMSS, loadSettings, randomPick, resolveAsset } from "./utils/helpers";
 import "./App.css";
 
@@ -32,57 +35,6 @@ type CuteBubble = {
   lifeMs: number;
   emoji: string;
 };
-
-const WINDOW_POSITION_KEY = `${STORAGE_KEY}.window.positionByMonitor`;
-const ONBOARDING_KEY = `${STORAGE_KEY}.onboarding.v1`;
-const PET_BOND_KEY = `${STORAGE_KEY}.pet.bond.v1`;
-const PET_MEMORY_KEY = `${STORAGE_KEY}.pet.memory.v1`;
-
-function getDurations(settings: Settings): { focusSec: number; breakSec: number } {
-  if (settings.pomodoroPreset === "50-10") {
-    return { focusSec: 50 * 60, breakSec: 10 * 60 };
-  }
-  if (settings.pomodoroPreset === "custom") {
-    return { focusSec: settings.customFocusMin * 60, breakSec: settings.customBreakMin * 60 };
-  }
-  return { focusSec: 25 * 60, breakSec: 5 * 60 };
-}
-
-function playSoftBeep(): void {
-  try {
-    const audioContextRef = window as Window & { __amiwiAudioCtx?: AudioContext };
-    const ctx = audioContextRef.__amiwiAudioCtx ?? new window.AudioContext();
-    audioContextRef.__amiwiAudioCtx = ctx;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.value = 720;
-    gain.gain.value = 0.04;
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.18);
-  } catch {
-    // noop
-  }
-}
-
-function monitorStorageKey(monitor: { name: string | null; position: { x: number; y: number }; size: { width: number; height: number } }): string {
-  return `${monitor.name ?? "monitor"}:${monitor.position.x},${monitor.position.y}:${monitor.size.width}x${monitor.size.height}`;
-}
-
-function loadStoredWindowPositions(): Record<string, { x: number; y: number }> {
-  const raw = localStorage.getItem(WINDOW_POSITION_KEY);
-  if (!raw) {
-    return {};
-  }
-  try {
-    const parsed = JSON.parse(raw) as Record<string, { x: number; y: number }>;
-    return parsed ?? {};
-  } catch {
-    return {};
-  }
-}
 
 function App() {
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
@@ -113,22 +65,9 @@ function App() {
   const [cuteBubbles, setCuteBubbles] = useState<CuteBubble[]>([]);
   const [mascotDraggingVisual, setMascotDraggingVisual] = useState(false);
   const [petBond, setPetBond] = useState<number>(() => {
-    const raw = localStorage.getItem(PET_BOND_KEY);
-    const parsed = raw ? Number(raw) : 58;
-    return Number.isFinite(parsed) ? clamp(parsed, 0, 100) : 58;
+    return clamp(loadPetBond(58), 0, 100);
   });
-  const [petMemory, setPetMemory] = useState<PetMemoryEvent[]>(() => {
-    const raw = localStorage.getItem(PET_MEMORY_KEY);
-    if (!raw) {
-      return [];
-    }
-    try {
-      const parsed = JSON.parse(raw) as PetMemoryEvent[];
-      return Array.isArray(parsed) ? parsed.slice(-8) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [petMemory, setPetMemory] = useState<PetMemoryEvent[]>(() => loadPetMemory(8));
 
   const durations = useMemo(() => getDurations(settings), [settings]);
   const [remainingSeconds, setRemainingSeconds] = useState(durations.focusSec);

@@ -165,7 +165,6 @@ pub fn run() {
             Ok(())
         })
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
-        .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![detect_system_music])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

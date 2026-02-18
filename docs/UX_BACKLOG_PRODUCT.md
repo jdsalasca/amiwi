@@ -28,6 +28,14 @@
 - [ ] Improve bilingual microcopy consistency (ES/EN tone + accents).
 
 ## Next P2 UX Improvements
-- [ ] Add progressive disclosure for power toggles (reduce option fatigue).
-- [ ] Add user-safe guardrails for risky toggles (click-through, always-on-top).
+- [x] Add progressive disclosure for power toggles (reduce option fatigue).
+- [x] Add user-safe guardrails for risky toggles (click-through, always-on-top).
 - [ ] Add quick preset comparison modal with expected behavior preview.
+
+## Implemented In This Iteration
+- [x] Added progressive disclosure button to reveal/hide advanced toggles.
+- [x] Added confirmation guardrails for sensitive toggles:
+  - always on top
+  - system music detection
+  - snap to edge
+- [x] Added contextual helper microcopy for selected vibe profile.

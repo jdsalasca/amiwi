@@ -60,6 +60,7 @@ function App() {
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [onboardingIntent, setOnboardingIntent] = useState<"deep_focus" | "balanced" | "recharge">("deep_focus");
   const [selectedProfile, setSelectedProfile] = useState<"focus" | "calm" | "cozy">("focus");
+  const [showPowerControls, setShowPowerControls] = useState(false);
   const [pendingUpdate, setPendingUpdate] = useState<AppUpdate | null>(null);
   const [updatingNow, setUpdatingNow] = useState(false);
   const [showUpdateTip, setShowUpdateTip] = useState(false);
@@ -429,6 +430,24 @@ function App() {
   const update = <K extends keyof Settings>(key: K, value: Settings[K]): void => {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
+
+  const updateSensitiveToggle = useCallback((key: keyof Settings, checked: boolean) => {
+    if (!checked) {
+      update(key, checked as Settings[keyof Settings]);
+      return;
+    }
+    const message = key === "alwaysOnTop"
+      ? (settings.language === "es" ? "Esto mantendra Amiwi por encima de otras apps. Quieres activarlo?" : "This keeps Amiwi above other apps. Enable it?")
+      : key === "systemMusicDetect"
+        ? (settings.language === "es" ? "Amiwi intentara detectar musica del sistema periodicamente. Quieres activarlo?" : "Amiwi will periodically detect system music. Enable it?")
+        : key === "snapToEdgeEnabled"
+          ? (settings.language === "es" ? "Amiwi se ajustara automaticamente a bordes de pantalla. Quieres activarlo?" : "Amiwi will auto-snap to screen edges. Enable it?")
+          : "";
+    if (message && !window.confirm(message)) {
+      return;
+    }
+    update(key, checked as Settings[keyof Settings]);
+  }, [settings.language]);
 
   const recordPetEvent = useCallback((type: PetMemoryEventType): void => {
     const now = Date.now();
@@ -1447,6 +1466,13 @@ function App() {
               <button type="button" className={`experience-chip ${selectedProfile === "calm" ? "active" : ""}`} onClick={() => applyExperienceProfile("calm")}>Calm</button>
               <button type="button" className={`experience-chip ${selectedProfile === "cozy" ? "active" : ""}`} onClick={() => applyExperienceProfile("cozy")}>Cozy</button>
             </div>
+            <small className="setting-hint">
+              {selectedProfile === "focus"
+                ? (settings.language === "es" ? "menos ruido, frases mas frecuentes, foco profundo" : "less noise, higher phrase cadence, deep focus")
+                : selectedProfile === "calm"
+                  ? (settings.language === "es" ? "balance entre compania y productividad" : "balanced companionship and productivity")
+                  : (settings.language === "es" ? "modo relajado y playful" : "relaxed and playful mode")}
+            </small>
           </label>
           </div>
 
@@ -1517,15 +1543,26 @@ function App() {
               <input type="range" min={0.7} max={1.45} step={0.05} value={settings.mascotScale} onChange={(event) => update("mascotScale", Number(event.currentTarget.value))} />
             </label>
 
-            <label className="toggle-row"><input type="checkbox" checked={settings.alwaysOnTop} onChange={(event) => update("alwaysOnTop", event.currentTarget.checked)} />{t.alwaysOnTop}</label>
-            <label className="toggle-row"><input type="checkbox" checked={settings.systemMusicDetect} onChange={(event) => update("systemMusicDetect", event.currentTarget.checked)} />{t.detectSystemMusic}</label>
-            <label className="toggle-row"><input type="checkbox" checked={settings.musicReactive} onChange={(event) => update("musicReactive", event.currentTarget.checked)} />{t.reactMusic}</label>
-            <label className="toggle-row"><input type="checkbox" checked={settings.autoHideEnabled} onChange={(event) => update("autoHideEnabled", event.currentTarget.checked)} />{t.autoHide}</label>
-            <label className="toggle-row"><input type="checkbox" checked={settings.dragAnywhereEnabled} onChange={(event) => update("dragAnywhereEnabled", event.currentTarget.checked)} />{t.dragAnywhere}</label>
-            <label className="toggle-row"><input type="checkbox" checked={settings.snapToEdgeEnabled} onChange={(event) => update("snapToEdgeEnabled", event.currentTarget.checked)} />{t.snapToEdge}</label>
-            <label className="toggle-row"><input type="checkbox" checked={settings.ultraMinimal} onChange={(event) => update("ultraMinimal", event.currentTarget.checked)} />{t.ultraMinimal}</label>
-            <label className="toggle-row"><input type="checkbox" checked={settings.musicAmbient} onChange={(event) => update("musicAmbient", event.currentTarget.checked)} />{t.musicAmbient}</label>
-            <label className="toggle-row"><input type="checkbox" checked={settings.cuteBubblesEnabled} onChange={(event) => update("cuteBubblesEnabled", event.currentTarget.checked)} />{t.cuteBubbles}</label>
+            <div className="advanced-head">
+              <button type="button" className="chip ghost" onClick={() => setShowPowerControls((prev) => !prev)}>
+                {showPowerControls
+                  ? (settings.language === "es" ? "Ocultar toggles avanzados" : "Hide advanced toggles")
+                  : (settings.language === "es" ? "Mostrar toggles avanzados" : "Show advanced toggles")}
+              </button>
+            </div>
+            {showPowerControls && (
+              <>
+                <label className="toggle-row"><input type="checkbox" checked={settings.alwaysOnTop} onChange={(event) => updateSensitiveToggle("alwaysOnTop", event.currentTarget.checked)} />{t.alwaysOnTop}</label>
+                <label className="toggle-row"><input type="checkbox" checked={settings.systemMusicDetect} onChange={(event) => updateSensitiveToggle("systemMusicDetect", event.currentTarget.checked)} />{t.detectSystemMusic}</label>
+                <label className="toggle-row"><input type="checkbox" checked={settings.musicReactive} onChange={(event) => update("musicReactive", event.currentTarget.checked)} />{t.reactMusic}</label>
+                <label className="toggle-row"><input type="checkbox" checked={settings.autoHideEnabled} onChange={(event) => update("autoHideEnabled", event.currentTarget.checked)} />{t.autoHide}</label>
+                <label className="toggle-row"><input type="checkbox" checked={settings.dragAnywhereEnabled} onChange={(event) => update("dragAnywhereEnabled", event.currentTarget.checked)} />{t.dragAnywhere}</label>
+                <label className="toggle-row"><input type="checkbox" checked={settings.snapToEdgeEnabled} onChange={(event) => updateSensitiveToggle("snapToEdgeEnabled", event.currentTarget.checked)} />{t.snapToEdge}</label>
+                <label className="toggle-row"><input type="checkbox" checked={settings.ultraMinimal} onChange={(event) => update("ultraMinimal", event.currentTarget.checked)} />{t.ultraMinimal}</label>
+                <label className="toggle-row"><input type="checkbox" checked={settings.musicAmbient} onChange={(event) => update("musicAmbient", event.currentTarget.checked)} />{t.musicAmbient}</label>
+                <label className="toggle-row"><input type="checkbox" checked={settings.cuteBubblesEnabled} onChange={(event) => update("cuteBubblesEnabled", event.currentTarget.checked)} />{t.cuteBubbles}</label>
+              </>
+            )}
             <label>
               {t.bubblePack}
               <select value={settings.bubblePack} onChange={(event) => update("bubblePack", event.currentTarget.value as Settings["bubblePack"])}>

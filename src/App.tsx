@@ -38,6 +38,8 @@ type CuteBubble = {
   emoji: string;
 };
 
+const WINDOW_OFFSCREEN_LIMIT = 12000;
+
 function App() {
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
   const [showPanel, setShowPanel] = useState(false);
@@ -68,6 +70,7 @@ function App() {
   const [animeBlinking, setAnimeBlinking] = useState(false);
   const [animeMouthOpen, setAnimeMouthOpen] = useState(false);
   const [animeStepFrame, setAnimeStepFrame] = useState(0);
+  const [avatarRenderState, setAvatarRenderState] = useState<"loading" | "ready" | "failed">("loading");
   const [cuteBubbles, setCuteBubbles] = useState<CuteBubble[]>([]);
   const [mascotDraggingVisual, setMascotDraggingVisual] = useState(false);
   const [petBond, setPetBond] = useState<number>(() => {
@@ -102,6 +105,24 @@ function App() {
     lastTime: 0,
     cooldownUntil: 0,
   });
+  const recenterWindow = useCallback(async () => {
+    const appWindow = getCurrentWindow();
+    const [size, originMonitor] = await Promise.all([
+      appWindow.outerSize().catch(() => null),
+      monitorFromPoint(1, 1).catch(() => null),
+    ]);
+    if (!size) {
+      return;
+    }
+    if (!originMonitor) {
+      await appWindow.setPosition(new PhysicalPosition(80, 80)).catch(() => undefined);
+      return;
+    }
+    const area = originMonitor.workArea;
+    const centerX = area.position.x + Math.max(8, Math.round((area.size.width - size.width) / 2));
+    const centerY = area.position.y + Math.max(8, Math.round((area.size.height - size.height) / 2));
+    await appWindow.setPosition(new PhysicalPosition(centerX, centerY)).catch(() => undefined);
+  }, []);
   const trackAnalytics = useCallback((eventType: Parameters<typeof recordAnalyticsEvent>[0]) => {
     recordAnalyticsEvent(eventType);
     setAnalyticsTick((prev) => prev + 1);
@@ -325,6 +346,12 @@ function App() {
   useEffect(() => {
     const seen = localStorage.getItem(ONBOARDING_KEY);
     if (!seen) {
+      setSettings((prev) => ({
+        ...prev,
+        ultraMinimal: false,
+        opacity: Math.max(prev.opacity, 0.92),
+        size: Math.max(prev.size, 1),
+      }));
       const hour = new Date().getHours();
       const autoIntent = hour >= 22 || hour < 6 ? "recharge" : hour >= 6 && hour < 15 ? "deep_focus" : "balanced";
       setOnboardingIntent(autoIntent);
@@ -337,6 +364,42 @@ function App() {
   useEffect(() => {
     void getCurrentWindow().setAlwaysOnTop(settings.alwaysOnTop).catch(() => undefined);
   }, [settings.alwaysOnTop]);
+
+  useEffect(() => {
+    const appWindow = getCurrentWindow();
+    const sanitizeWindowPosition = async () => {
+      const [pos, size] = await Promise.all([appWindow.outerPosition(), appWindow.outerSize()]).catch(() => [null, null] as const);
+      if (!pos || !size) {
+        return;
+      }
+      const invalidExtreme = Math.abs(pos.x) > WINDOW_OFFSCREEN_LIMIT || Math.abs(pos.y) > WINDOW_OFFSCREEN_LIMIT;
+      if (invalidExtreme) {
+        await recenterWindow();
+        return;
+      }
+      const centerX = pos.x + Math.floor(size.width / 2);
+      const centerY = pos.y + Math.floor(size.height / 2);
+      const monitor = await monitorFromPoint(centerX, centerY);
+      if (!monitor) {
+        await recenterWindow();
+        return;
+      }
+      const pad = 8;
+      const area = monitor.workArea;
+      const minX = area.position.x + pad;
+      const maxX = area.position.x + area.size.width - size.width - pad;
+      const minY = area.position.y + pad;
+      const maxY = area.position.y + area.size.height - size.height - pad;
+      const safeX = clamp(pos.x, minX, maxX);
+      const safeY = clamp(pos.y, minY, maxY);
+      if (safeX !== pos.x || safeY !== pos.y) {
+        await appWindow.setPosition(new PhysicalPosition(safeX, safeY)).catch(() => undefined);
+      }
+    };
+    void sanitizeWindowPosition();
+    const timer = window.setTimeout(() => void sanitizeWindowPosition(), 900);
+    return () => window.clearTimeout(timer);
+  }, [recenterWindow]);
 
   useEffect(() => {
     const appWindow = getCurrentWindow();
@@ -1235,6 +1298,10 @@ function App() {
   const avatarAsset = useMemo(() => resolveAsset(assetByAvatarMood[settings.avatarStyle][mood]), [settings.avatarStyle, mood]);
   const fallbackAvatarAsset = useMemo(() => resolveAsset(assetByAvatarMood.cloud.happy), []);
 
+  useEffect(() => {
+    setAvatarRenderState("loading");
+  }, [avatarAsset, fallbackAvatarAsset, mood, settings.avatarStyle]);
+
   const openOrCloseSettings = (event: ReactMouseEvent<HTMLImageElement | HTMLDivElement>) => {
     event.preventDefault();
     setShowPanel((prev) => !prev);
@@ -1320,23 +1387,33 @@ function App() {
                 </div>
               </div>
             ) : (
-              <img
-                className={`avatar ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
-                src={avatarAsset}
-                alt={`${settings.avatarStyle}-${mood}`}
-                loading="eager"
-                decoding="async"
-                draggable={false}
-                onDoubleClick={quickStartFocus}
-                onContextMenu={openOrCloseSettings}
-                onError={(event) => {
-                  if (event.currentTarget.dataset.fallbackApplied === "1") {
-                    return;
-                  }
-                  event.currentTarget.dataset.fallbackApplied = "1";
-                  event.currentTarget.src = fallbackAvatarAsset;
-                }}
-              />
+              <>
+                <img
+                  className={`avatar ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
+                  src={avatarAsset}
+                  alt={`${settings.avatarStyle}-${mood}`}
+                  loading="eager"
+                  decoding="async"
+                  draggable={false}
+                  onDoubleClick={quickStartFocus}
+                  onContextMenu={openOrCloseSettings}
+                  onLoad={() => setAvatarRenderState("ready")}
+                  onError={(event) => {
+                    if (event.currentTarget.dataset.fallbackApplied === "1") {
+                      setAvatarRenderState("failed");
+                      return;
+                    }
+                    event.currentTarget.dataset.fallbackApplied = "1";
+                    event.currentTarget.src = fallbackAvatarAsset;
+                  }}
+                />
+                {avatarRenderState === "failed" && (
+                  <div className="avatar-fallback" onDoubleClick={quickStartFocus}>
+                    <span>🐾</span>
+                    <small>{settings.language === "es" ? "Amiwi listo" : "Amiwi ready"}</small>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -1662,6 +1739,9 @@ function App() {
           </details>
 
           <div className="panel-footer">
+            <button type="button" className="chip ghost" onClick={() => void recenterWindow()}>
+              {settings.language === "es" ? "Recentrar" : "Recenter"}
+            </button>
             <button type="button" className="chip ghost" onClick={() => { setShowOnboarding(true); setOnboardingStep(0); }}>{t.onboardingQuick}</button>
             <button type="button" className="chip" onClick={() => setShowPanel(false)}>{t.close}</button>
           </div>

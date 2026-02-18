@@ -1058,6 +1058,7 @@ input[type="checkbox"] {
   margin-top: 10px;
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -1147,6 +1148,27 @@ input[type="checkbox"] {
   display: flex;
   justify-content: flex-end;
   gap: 7px;
+}
+
+.avatar-fallback {
+  position: absolute;
+  inset: 18% 18% 16%;
+  border-radius: 14px;
+  border: 1px dashed rgba(154, 196, 238, 0.88);
+  background: rgba(246, 252, 255, 0.84);
+  display: grid;
+  place-items: center;
+  color: #2d5b89;
+  box-shadow: 0 6px 14px rgba(47, 84, 122, 0.14);
+}
+
+.avatar-fallback span {
+  font-size: 1.2rem;
+}
+
+.avatar-fallback small {
+  font-size: 0.66rem;
+  font-weight: 700;
 }
 
 @media (prefers-reduced-motion: reduce) {

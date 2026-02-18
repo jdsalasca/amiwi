@@ -801,9 +801,19 @@ body {
   padding: 30px 10px 10px;
   border-radius: 16px;
   backdrop-filter: blur(8px);
-  background: rgba(248, 252, 255, 0.8);
+  background:
+    radial-gradient(150% 120% at 0% 0%, rgba(255, 255, 255, 0.84), rgba(248, 252, 255, 0.7) 60%, rgba(236, 246, 255, 0.64) 100%);
   border: 1px solid rgba(173, 212, 251, 0.7);
   box-shadow: 0 10px 20px rgba(27, 63, 97, 0.16);
+}
+
+.settings-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.settings-panel::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(112, 162, 214, 0.45);
 }
 
 .panel-drag-hitbox {
@@ -840,6 +850,83 @@ body {
   font-size: 0.74rem;
   font-weight: 700;
   margin-bottom: 6px;
+}
+
+.settings-section {
+  border: 1px solid rgba(174, 209, 245, 0.78);
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+
+.settings-section.inner {
+  border: 0;
+  background: transparent;
+  padding: 4px 0 0;
+  margin: 0;
+}
+
+.settings-section h4 {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  letter-spacing: 0.2px;
+  color: #264f7a;
+}
+
+.settings-hero {
+  background:
+    radial-gradient(120% 120% at 0% 0%, rgba(255, 255, 255, 0.9), rgba(227, 244, 255, 0.72) 68%, rgba(211, 235, 255, 0.68) 100%);
+}
+
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.section-title-row h4 {
+  margin: 0;
+}
+
+.section-pill {
+  border-radius: 999px;
+  font-size: 0.62rem;
+  padding: 2px 8px;
+  font-weight: 700;
+  color: #234f7a;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(166, 205, 244, 0.82);
+}
+
+.session-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(188, 220, 249, 0.44);
+  border: 1px solid rgba(165, 206, 246, 0.72);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.session-track > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #6cc9ff, #4f9fff);
+  transition: width 220ms ease;
+}
+
+.panel-primary-action {
+  font-size: 0.76rem;
+  box-shadow: 0 8px 16px rgba(46, 101, 157, 0.25);
+  flex: 1;
+}
+
+.settings-hero .onboarding-row {
+  align-items: center;
 }
 
 .ultra-minimal .settings-panel {
@@ -970,6 +1057,25 @@ button:active {
   margin: 8px 0 10px;
   font-size: 0.74rem;
   color: #2e527a;
+}
+
+.onboarding-steps {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 10px;
+}
+
+.onboarding-steps span {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(172, 207, 242, 0.52);
+  border: 1px solid rgba(160, 199, 239, 0.65);
+}
+
+.onboarding-steps span.active {
+  background: linear-gradient(90deg, #7cc5ff, #5fafff);
+  border-color: rgba(91, 163, 239, 0.82);
 }
 
 .onboarding-row {

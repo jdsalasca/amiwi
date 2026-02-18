@@ -1387,6 +1387,27 @@ function App() {
             onPointerDown={handlePanelDragPointerDown}
             title={t.bubbleMove}
           />
+          <div className="settings-section settings-hero">
+            <div className="section-title-row">
+              <h4>{settings.language === "es" ? "Sesion actual" : "Current session"}</h4>
+              <span className="section-pill">{focusPhase === "focus" ? t.focus : t.rest}</span>
+            </div>
+            <div className="onboarding-summary">
+              <span>{settings.language === "es" ? `tiempo restante: ${formatMMSS(remainingSeconds)}` : `time left: ${formatMMSS(remainingSeconds)}`}</span>
+              <span>{settings.language === "es" ? `progreso: ${Math.round(phaseProgress * 100)}%` : `progress: ${Math.round(phaseProgress * 100)}%`}</span>
+            </div>
+            <div className="session-track" aria-hidden="true">
+              <span style={{ width: `${Math.round(phaseProgress * 100)}%` }} />
+            </div>
+            <div className="onboarding-row">
+              <button type="button" className="panel-primary-action" onClick={quickStartFocus}>
+                {focusRunning ? `${t.stop} ${t.focus}` : `${t.start} ${t.focus}`}
+              </button>
+              <button type="button" className="chip ghost" onClick={petPetting}>{t.bubblePet}</button>
+            </div>
+          </div>
+          <div className="settings-section">
+            <h4>{settings.language === "es" ? "Identidad y estilo" : "Identity and style"}</h4>
           <label>
             {t.language}
             <select value={settings.language} onChange={(event) => update("language", event.currentTarget.value as Settings["language"])}>
@@ -1427,7 +1448,10 @@ function App() {
               <button type="button" className={`experience-chip ${selectedProfile === "cozy" ? "active" : ""}`} onClick={() => applyExperienceProfile("cozy")}>Cozy</button>
             </div>
           </label>
+          </div>
 
+          <div className="settings-section">
+            <h4>{settings.language === "es" ? "Preferencias rapidas" : "Quick preferences"}</h4>
           <label>
             {t.mode}
             <select value={settings.mode} onChange={(event) => update("mode", event.currentTarget.value as Settings["mode"])}>
@@ -1446,9 +1470,11 @@ function App() {
           )}
 
           <label className="toggle-row"><input type="checkbox" checked={settings.showTimerBubble} onChange={(event) => update("showTimerBubble", event.currentTarget.checked)} />{t.showTimerBubble}</label>
+          </div>
 
           <details className="advanced-settings">
             <summary>{t.advancedSettings}</summary>
+            <div className="settings-section inner">
             <label>
               {t.preset}
               <select value={settings.pomodoroPreset} onChange={(event) => update("pomodoroPreset", event.currentTarget.value as PomodoroPreset)}>
@@ -1523,7 +1549,7 @@ function App() {
                 <input type="range" min={4} max={40} value={settings.snapMarginPx} onChange={(event) => update("snapMarginPx", Number(event.currentTarget.value))} />
               </label>
             )}
-
+            </div>
           </details>
 
           <div className="panel-footer">
@@ -1539,6 +1565,11 @@ function App() {
             <h3>{t.onboardingTitle}</h3>
             <small>{onboardingStep === 0 ? t.onboardingStep1 : onboardingStep === 1 ? "Goal" : t.onboardingStep3}</small>
             <p>{onboardingStep === 0 ? t.onboardingHint1 : onboardingStep === 1 ? (settings.language === "es" ? "Elige tu intención y ajustamos el perfil recomendado." : "Choose your intent and we will tune the recommended profile.") : t.onboardingHint3}</p>
+            <div className="onboarding-steps" aria-hidden="true">
+              <span className={onboardingStep >= 0 ? "active" : ""} />
+              <span className={onboardingStep >= 1 ? "active" : ""} />
+              <span className={onboardingStep >= 2 ? "active" : ""} />
+            </div>
 
             {onboardingStep === 0 && (
               <div className="onboarding-row">

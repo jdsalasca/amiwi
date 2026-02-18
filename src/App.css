@@ -993,6 +993,20 @@ button:active {
   transform: translateY(1px);
 }
 
+button:focus-visible,
+select:focus-visible,
+input[type="range"]:focus-visible,
+input[type="checkbox"]:focus-visible,
+summary:focus-visible {
+  outline: 2px solid rgba(64, 142, 230, 0.95);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(123, 189, 255, 0.35);
+}
+
+input[type="checkbox"] {
+  accent-color: #4f9fff;
+}
+
 .chip {
   width: auto;
   padding: 6px 9px;
@@ -1095,6 +1109,10 @@ button:active {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+.onboarding-row > * {
+  min-height: 32px;
 }
 
 .onboarding-summary {

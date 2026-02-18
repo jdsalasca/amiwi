@@ -22,8 +22,8 @@
 - [x] Added onboarding step progress indicator (3-step tracker).
 
 ## Next P1 UX Improvements
-- [ ] Add contextual empty states when no music/focus activity is detected.
-- [ ] Add keyboard-first navigation order and focus rings audit.
+- [x] Add contextual empty states when no music/focus activity is detected.
+- [x] Add keyboard-first navigation order and focus rings audit.
 - [ ] Add lightweight "reset this section" actions for each settings block.
 - [ ] Improve bilingual microcopy consistency (ES/EN tone + accents).
 
@@ -39,3 +39,5 @@
   - system music detection
   - snap to edge
 - [x] Added contextual helper microcopy for selected vibe profile.
+- [x] Added contextual empty states for inactive focus/music.
+- [x] Added keyboard-visible focus styles for interactive controls.

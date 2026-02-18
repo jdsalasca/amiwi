@@ -1393,6 +1393,9 @@ function App() {
               <span>{t.musicMethod}: {systemMusicMethod}</span>
               <span>{t.musicTrust}: {systemMusicTrusted ? t.musicTrusted : t.musicUntrusted}</span>
             </div>
+            {!settings.systemMusicDetect && (
+              <small>{settings.language === "es" ? "activa deteccion para reaccion musical automatica" : "enable detection for automatic music reactions"}</small>
+            )}
             {!systemMusicTrusted && settings.systemMusicDetect && <small>{t.musicNativeOnly}</small>}
           </div>
         )}
@@ -1415,6 +1418,11 @@ function App() {
               <span>{settings.language === "es" ? `tiempo restante: ${formatMMSS(remainingSeconds)}` : `time left: ${formatMMSS(remainingSeconds)}`}</span>
               <span>{settings.language === "es" ? `progreso: ${Math.round(phaseProgress * 100)}%` : `progress: ${Math.round(phaseProgress * 100)}%`}</span>
             </div>
+            {!focusRunning && (
+              <small className="setting-hint">
+                {settings.language === "es" ? "inicia una sesion para activar progreso y frases de enfoque" : "start a session to activate progress and focus phrases"}
+              </small>
+            )}
             <div className="session-track" aria-hidden="true">
               <span style={{ width: `${Math.round(phaseProgress * 100)}%` }} />
             </div>

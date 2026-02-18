@@ -898,6 +898,26 @@ body {
   margin: 0;
 }
 
+.section-title-row.compact {
+  margin-bottom: 8px;
+}
+
+.section-reset {
+  width: auto;
+  min-width: 0;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(170, 206, 242, 0.84);
+  color: #31597f;
+  box-shadow: 0 2px 8px rgba(41, 77, 112, 0.08);
+}
+
+.section-reset:hover {
+  filter: brightness(1.01);
+}
+
 .section-pill {
   border-radius: 999px;
   font-size: 0.62rem;

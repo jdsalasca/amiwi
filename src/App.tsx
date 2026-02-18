@@ -7,7 +7,7 @@ import { relaunch } from "@tauri-apps/plugin-process";
 import { check, Update as AppUpdate } from "@tauri-apps/plugin-updater";
 import { getTodayAnalyticsSummary, recordAnalyticsEvent } from "./domain/analytics";
 import { assetByAvatarMood } from "./domain/assets";
-import { copy } from "./domain/config";
+import { copy, defaultSettings } from "./domain/config";
 import { summarizeTodayPetMemory } from "./domain/memory";
 import { resolvePetProfile, type PetMemoryEvent, type PetMemoryEventType } from "./domain/pets/profile";
 import { getDurations } from "./domain/session";
@@ -430,6 +430,54 @@ function App() {
   const update = <K extends keyof Settings>(key: K, value: Settings[K]): void => {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
+
+  const resetSettingsSection = useCallback((section: "identity" | "quick" | "advanced") => {
+    setSettings((prev) => {
+      if (section === "identity") {
+        return {
+          ...prev,
+          language: defaultSettings.language,
+          avatarStyle: defaultSettings.avatarStyle,
+          themePreset: defaultSettings.themePreset,
+        };
+      }
+      if (section === "quick") {
+        return {
+          ...prev,
+          mode: defaultSettings.mode,
+          showTimerBubble: defaultSettings.showTimerBubble,
+        };
+      }
+      return {
+        ...prev,
+        pomodoroPreset: defaultSettings.pomodoroPreset,
+        customFocusMin: defaultSettings.customFocusMin,
+        customBreakMin: defaultSettings.customBreakMin,
+        phraseFrequencySec: defaultSettings.phraseFrequencySec,
+        opacity: defaultSettings.opacity,
+        size: defaultSettings.size,
+        mascotScale: defaultSettings.mascotScale,
+        alwaysOnTop: defaultSettings.alwaysOnTop,
+        systemMusicDetect: defaultSettings.systemMusicDetect,
+        musicReactive: defaultSettings.musicReactive,
+        autoHideEnabled: defaultSettings.autoHideEnabled,
+        autoHideSeconds: defaultSettings.autoHideSeconds,
+        dragAnywhereEnabled: defaultSettings.dragAnywhereEnabled,
+        snapToEdgeEnabled: defaultSettings.snapToEdgeEnabled,
+        snapMarginPx: defaultSettings.snapMarginPx,
+        ultraMinimal: defaultSettings.ultraMinimal,
+        musicAmbient: defaultSettings.musicAmbient,
+        cuteBubblesEnabled: defaultSettings.cuteBubblesEnabled,
+        bubblePack: defaultSettings.bubblePack,
+      };
+    });
+    if (section === "identity") {
+      setSelectedProfile("focus");
+    }
+    if (section === "advanced") {
+      setShowPowerControls(false);
+    }
+  }, []);
 
   const updateSensitiveToggle = useCallback((key: keyof Settings, checked: boolean) => {
     if (!checked) {
@@ -1394,7 +1442,7 @@ function App() {
               <span>{t.musicTrust}: {systemMusicTrusted ? t.musicTrusted : t.musicUntrusted}</span>
             </div>
             {!settings.systemMusicDetect && (
-              <small>{settings.language === "es" ? "activa deteccion para reaccion musical automatica" : "enable detection for automatic music reactions"}</small>
+              <small>{settings.language === "es" ? "activa detección para reacción musical automática" : "enable detection for automatic music reactions"}</small>
             )}
             {!systemMusicTrusted && settings.systemMusicDetect && <small>{t.musicNativeOnly}</small>}
           </div>
@@ -1411,7 +1459,7 @@ function App() {
           />
           <div className="settings-section settings-hero">
             <div className="section-title-row">
-              <h4>{settings.language === "es" ? "Sesion actual" : "Current session"}</h4>
+              <h4>{settings.language === "es" ? "Sesión actual" : "Current session"}</h4>
               <span className="section-pill">{focusPhase === "focus" ? t.focus : t.rest}</span>
             </div>
             <div className="onboarding-summary">
@@ -1420,7 +1468,7 @@ function App() {
             </div>
             {!focusRunning && (
               <small className="setting-hint">
-                {settings.language === "es" ? "inicia una sesion para activar progreso y frases de enfoque" : "start a session to activate progress and focus phrases"}
+                {settings.language === "es" ? "inicia una sesión para activar progreso y frases de enfoque" : "start a session to activate progress and focus phrases"}
               </small>
             )}
             <div className="session-track" aria-hidden="true">
@@ -1434,11 +1482,16 @@ function App() {
             </div>
           </div>
           <div className="settings-section">
-            <h4>{settings.language === "es" ? "Identidad y estilo" : "Identity and style"}</h4>
+            <div className="section-title-row">
+              <h4>{settings.language === "es" ? "Identidad y estilo" : "Identity and style"}</h4>
+              <button type="button" className="section-reset" onClick={() => resetSettingsSection("identity")}>
+                {settings.language === "es" ? "Reiniciar" : "Reset"}
+              </button>
+            </div>
           <label>
             {t.language}
             <select value={settings.language} onChange={(event) => update("language", event.currentTarget.value as Settings["language"])}>
-              <option value="es">Espanol</option>
+              <option value="es">Español</option>
               <option value="en">English</option>
             </select>
           </label>
@@ -1476,16 +1529,21 @@ function App() {
             </div>
             <small className="setting-hint">
               {selectedProfile === "focus"
-                ? (settings.language === "es" ? "menos ruido, frases mas frecuentes, foco profundo" : "less noise, higher phrase cadence, deep focus")
+                ? (settings.language === "es" ? "menos ruido, frases más frecuentes, foco profundo" : "less noise, higher phrase cadence, deep focus")
                 : selectedProfile === "calm"
-                  ? (settings.language === "es" ? "balance entre compania y productividad" : "balanced companionship and productivity")
-                  : (settings.language === "es" ? "modo relajado y playful" : "relaxed and playful mode")}
+                  ? (settings.language === "es" ? "balance entre compañía y productividad" : "balanced companionship and productivity")
+                  : (settings.language === "es" ? "modo relajado y juguetón" : "relaxed and playful mode")}
             </small>
           </label>
           </div>
 
           <div className="settings-section">
-            <h4>{settings.language === "es" ? "Preferencias rapidas" : "Quick preferences"}</h4>
+            <div className="section-title-row">
+              <h4>{settings.language === "es" ? "Preferencias rápidas" : "Quick preferences"}</h4>
+              <button type="button" className="section-reset" onClick={() => resetSettingsSection("quick")}>
+                {settings.language === "es" ? "Reiniciar" : "Reset"}
+              </button>
+            </div>
           <label>
             {t.mode}
             <select value={settings.mode} onChange={(event) => update("mode", event.currentTarget.value as Settings["mode"])}>
@@ -1509,6 +1567,12 @@ function App() {
           <details className="advanced-settings">
             <summary>{t.advancedSettings}</summary>
             <div className="settings-section inner">
+            <div className="section-title-row compact">
+              <h4>{settings.language === "es" ? "Control fino" : "Fine tuning"}</h4>
+              <button type="button" className="section-reset" onClick={() => resetSettingsSection("advanced")}>
+                {settings.language === "es" ? "Reiniciar" : "Reset"}
+              </button>
+            </div>
             <label>
               {t.preset}
               <select value={settings.pomodoroPreset} onChange={(event) => update("pomodoroPreset", event.currentTarget.value as PomodoroPreset)}>

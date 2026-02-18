@@ -24,8 +24,8 @@
 ## Next P1 UX Improvements
 - [x] Add contextual empty states when no music/focus activity is detected.
 - [x] Add keyboard-first navigation order and focus rings audit.
-- [ ] Add lightweight "reset this section" actions for each settings block.
-- [ ] Improve bilingual microcopy consistency (ES/EN tone + accents).
+- [x] Add lightweight "reset this section" actions for each settings block.
+- [x] Improve bilingual microcopy consistency (ES/EN tone + accents).
 
 ## Next P2 UX Improvements
 - [x] Add progressive disclosure for power toggles (reduce option fatigue).
@@ -41,3 +41,5 @@
 - [x] Added contextual helper microcopy for selected vibe profile.
 - [x] Added contextual empty states for inactive focus/music.
 - [x] Added keyboard-visible focus styles for interactive controls.
+- [x] Added reset actions for identity, quick preferences, and advanced settings.
+- [x] Improved ES microcopy consistency in panel and helper hints.

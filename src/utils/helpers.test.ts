@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { STORAGE_KEY, defaultSettings } from "../domain/config";
-import { clamp, formatMMSS, loadSettings } from "./helpers";
+import { clamp, formatMMSS, loadSettings, saveSettings } from "./helpers";
 
 describe("helpers", () => {
   beforeEach(() => {
@@ -19,6 +19,14 @@ describe("helpers", () => {
   });
 
   it("loads default settings if storage is empty", () => {
+    expect(loadSettings()).toEqual(defaultSettings);
+  });
+
+  it("persists settings in versioned envelope", () => {
+    saveSettings(defaultSettings);
+    const raw = localStorage.getItem(STORAGE_KEY);
+    expect(raw).toBeTruthy();
+    expect(raw).toContain("\"version\":2");
     expect(loadSettings()).toEqual(defaultSettings);
   });
 

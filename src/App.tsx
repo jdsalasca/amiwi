@@ -5,14 +5,16 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow, monitorFromPoint } from "@tauri-apps/api/window";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check, Update as AppUpdate } from "@tauri-apps/plugin-updater";
+import { getTodayAnalyticsSummary, recordAnalyticsEvent } from "./domain/analytics";
 import { assetByAvatarMood } from "./domain/assets";
-import { copy, STORAGE_KEY } from "./domain/config";
+import { copy } from "./domain/config";
+import { summarizeTodayPetMemory } from "./domain/memory";
 import { resolvePetProfile, type PetMemoryEvent, type PetMemoryEventType } from "./domain/pets/profile";
 import { getDurations } from "./domain/session";
 import { loadPetBond, loadPetMemory, loadStoredWindowPositions, monitorStorageKey, ONBOARDING_KEY, PET_BOND_KEY, PET_MEMORY_KEY, WINDOW_POSITION_KEY } from "./domain/storage";
 import type { BubbleModuleId, FocusPhase, MusicDetection, Mood, PomodoroPreset, Settings } from "./domain/types";
 import { playSoftBeep } from "./utils/audio";
-import { clamp, formatMMSS, loadSettings, randomPick, resolveAsset } from "./utils/helpers";
+import { clamp, formatMMSS, loadSettings, randomPick, resolveAsset, saveSettings } from "./utils/helpers";
 import "./App.css";
 
 type BubbleAction = {
@@ -42,6 +44,7 @@ function App() {
   const [mood, setMood] = useState<Mood>("happy");
   const [phrase, setPhrase] = useState("");
   const [phraseTick, setPhraseTick] = useState(0);
+  const [analyticsTick, setAnalyticsTick] = useState(0);
   const [musicPulsePhrase, setMusicPulsePhrase] = useState("");
   const [systemMusicActive, setSystemMusicActive] = useState(false);
   const [systemMusicSource, setSystemMusicSource] = useState("");
@@ -54,6 +57,7 @@ function App() {
   const [pointerGlow, setPointerGlow] = useState({ x: 50, y: 22 });
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
+  const [onboardingIntent, setOnboardingIntent] = useState<"deep_focus" | "balanced" | "recharge">("deep_focus");
   const [selectedProfile, setSelectedProfile] = useState<"focus" | "calm" | "cozy">("focus");
   const [pendingUpdate, setPendingUpdate] = useState<AppUpdate | null>(null);
   const [updatingNow, setUpdatingNow] = useState(false);
@@ -96,6 +100,10 @@ function App() {
     lastTime: 0,
     cooldownUntil: 0,
   });
+  const trackAnalytics = useCallback((eventType: Parameters<typeof recordAnalyticsEvent>[0]) => {
+    recordAnalyticsEvent(eventType);
+    setAnalyticsTick((prev) => prev + 1);
+  }, []);
 
   const t = copy[settings.language];
   const isMusicActive = settings.musicReactive && systemMusicActive;
@@ -177,6 +185,26 @@ function App() {
   }, [animeDanceProfile, t.danceCalm, t.danceGroove, t.danceHype, t.danceIdle]);
   const petBondTone = petBond >= 82 ? "spark" : petBond >= 55 ? "warm" : "soft";
   const petBondEmoji = petBond >= 82 ? "💖" : petBond >= 55 ? "💛" : "🤍";
+  const bondMilestones = useMemo(() => [20, 40, 60, 80, 95] as const, []);
+  const nextBondMilestone = useMemo(
+    () => bondMilestones.find((value) => petBond < value) ?? null,
+    [bondMilestones, petBond]
+  );
+  const bondRankLabel = useMemo(() => {
+    if (petBond >= 95) {
+      return settings.language === "es" ? "legendario" : "legendary";
+    }
+    if (petBond >= 80) {
+      return settings.language === "es" ? "bestie" : "bestie";
+    }
+    if (petBond >= 60) {
+      return settings.language === "es" ? "cercano" : "close";
+    }
+    if (petBond >= 40) {
+      return settings.language === "es" ? "amigo" : "friend";
+    }
+    return settings.language === "es" ? "nuevo" : "new";
+  }, [petBond, settings.language]);
   const latestMemoryLabel = useMemo(() => {
     const latest = petMemory[petMemory.length - 1];
     if (!latest) {
@@ -199,6 +227,22 @@ function App() {
     }
     return settings.language === "es" ? "recuerdo: musica off" : "memory: music off";
   }, [petMemory, settings.language]);
+  const todayMemorySummary = useMemo(
+    () => summarizeTodayPetMemory(petMemory),
+    [petMemory]
+  );
+  const todayAnalytics = useMemo(
+    () => getTodayAnalyticsSummary(),
+    [analyticsTick]
+  );
+  const dailyMemoryLabel = useMemo(() => {
+    const focusBlocks = todayMemorySummary.focus_stop;
+    const pets = todayMemorySummary.petting;
+    if (settings.language === "es") {
+      return `hoy: ${focusBlocks} bloques, ${pets} mimos`;
+    }
+    return `today: ${focusBlocks} blocks, ${pets} pets`;
+  }, [settings.language, todayMemorySummary.focus_stop, todayMemorySummary.petting]);
   const cuteIconPool = useMemo<readonly string[]>(() => {
     const packBase = settings.bubblePack === "study"
       ? ["📘", "📚", "✏️", "📝", "☕", "✅", "✨", "🫧"]
@@ -257,7 +301,7 @@ function App() {
   }, [cuteIconPool, mascotCenterX, mascotHeight, position.y, settings.cuteBubblesEnabled, showPanel, stageHeight, stageWidth]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    saveSettings(settings);
   }, [settings]);
 
   useEffect(() => {
@@ -279,6 +323,10 @@ function App() {
   useEffect(() => {
     const seen = localStorage.getItem(ONBOARDING_KEY);
     if (!seen) {
+      const hour = new Date().getHours();
+      const autoIntent = hour >= 22 || hour < 6 ? "recharge" : hour >= 6 && hour < 15 ? "deep_focus" : "balanced";
+      setOnboardingIntent(autoIntent);
+      setSelectedProfile(autoIntent === "deep_focus" ? "focus" : autoIntent === "balanced" ? "calm" : "cozy");
       setShowOnboarding(true);
       setOnboardingStep(0);
     }
@@ -339,6 +387,7 @@ function App() {
           return;
         }
         setPendingUpdate(update);
+        trackAnalytics("update_ready");
         emitPhrase(`${t.updateReady}: v${update.version}`);
       } catch {
         // ignore updater errors to avoid blocking the app
@@ -348,7 +397,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [t.updateReady]);
+  }, [t.updateReady, trackAnalytics]);
 
   useEffect(() => {
     if (!pendingUpdate || updatingNow) {
@@ -365,6 +414,7 @@ function App() {
       return;
     }
     setUpdatingNow(true);
+    trackAnalytics("update_install");
     emitPhrase(t.updatingNow);
     try {
       await pendingUpdate.downloadAndInstall();
@@ -373,7 +423,7 @@ function App() {
       emitPhrase(t.updateFailed);
       setUpdatingNow(false);
     }
-  }, [pendingUpdate, t.updateFailed, t.updatingNow, updatingNow]);
+  }, [pendingUpdate, t.updateFailed, t.updatingNow, trackAnalytics, updatingNow]);
 
   const update = <K extends keyof Settings>(key: K, value: Settings[K]): void => {
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -382,7 +432,10 @@ function App() {
   const recordPetEvent = useCallback((type: PetMemoryEventType): void => {
     const now = Date.now();
     setPetMemory((prev) => [...prev, { type, ts: now }].slice(-8));
-  }, []);
+    if (type === "petting" || type === "shake" || type === "focus_start" || type === "focus_stop" || type === "music_on" || type === "music_off") {
+      trackAnalytics(type);
+    }
+  }, [trackAnalytics]);
 
   const emitPhrase = (text: string): void => {
     setPhrase(text);
@@ -1056,6 +1109,7 @@ function App() {
 
   const applyExperienceProfile = useCallback((profile: "focus" | "calm" | "cozy") => {
     setSelectedProfile(profile);
+    trackAnalytics("profile_selected");
     if (profile === "focus") {
       setSettings((prev) => ({
         ...prev,
@@ -1092,7 +1146,23 @@ function App() {
       musicAmbient: false,
     }));
     emitPhrase(randomPick(t.phraseBreak));
-  }, [t.phraseBreak, t.phraseDeepFocus, t.phraseWork]);
+  }, [t.phraseBreak, t.phraseDeepFocus, t.phraseWork, trackAnalytics]);
+
+  const recommendedProfileByIntent = useCallback((intent: "deep_focus" | "balanced" | "recharge"): "focus" | "calm" | "cozy" => {
+    if (intent === "deep_focus") {
+      return "focus";
+    }
+    if (intent === "balanced") {
+      return "calm";
+    }
+    return "cozy";
+  }, []);
+
+  const selectOnboardingIntent = useCallback((intent: "deep_focus" | "balanced" | "recharge") => {
+    setOnboardingIntent(intent);
+    trackAnalytics("onboarding_intent_selected");
+    applyExperienceProfile(recommendedProfileByIntent(intent));
+  }, [applyExperienceProfile, recommendedProfileByIntent]);
 
   const avatarAsset = useMemo(() => resolveAsset(assetByAvatarMood[settings.avatarStyle][mood]), [settings.avatarStyle, mood]);
   const fallbackAvatarAsset = useMemo(() => resolveAsset(assetByAvatarMood.cloud.happy), []);
@@ -1104,6 +1174,7 @@ function App() {
 
   const completeOnboarding = () => {
     localStorage.setItem(ONBOARDING_KEY, "done");
+    trackAnalytics("onboarding_complete");
     setShowOnboarding(false);
     setOnboardingStep(0);
     emitPhrase(randomPick(smartPhrasePool()));
@@ -1227,11 +1298,16 @@ function App() {
         {!showPanel && (
           <>
             <div className={`bond-bubble ${petBondTone}`} style={{ left: `${clamp(mascotCenterX - 58, 24, stageWidth - 24)}px`, top: `${clamp(position.y + 8, 10, stageHeight - 20)}px` }}>
-              {petBondEmoji} {t.bondLabel}: {Math.round(petBond)}
+              {petBondEmoji} {t.bondLabel}: {Math.round(petBond)} · {bondRankLabel}
             </div>
             {latestMemoryLabel && (
               <div className="memory-bubble" style={{ left: `${clamp(mascotCenterX - 44, 24, stageWidth - 24)}px`, top: `${clamp(position.y + 24, 20, stageHeight - 12)}px` }}>
                 {latestMemoryLabel}
+              </div>
+            )}
+            {nextBondMilestone !== null && (
+              <div className="memory-bubble" style={{ left: `${clamp(mascotCenterX - 44, 24, stageWidth - 24)}px`, top: `${clamp(position.y + 40, 20, stageHeight - 8)}px` }}>
+                {settings.language === "es" ? `siguiente hito: ${nextBondMilestone}` : `next milestone: ${nextBondMilestone}`}
               </div>
             )}
           </>
@@ -1360,6 +1436,12 @@ function App() {
             </select>
           </label>
 
+          <div className="onboarding-summary">
+            <span>{dailyMemoryLabel}</span>
+            <span>{settings.language === "es" ? `foco iniciado hoy: ${todayAnalytics.focus_start}` : `focus starts today: ${todayAnalytics.focus_start}`}</span>
+            <span>{settings.language === "es" ? `shake hoy: ${todayAnalytics.shake}` : `shakes today: ${todayAnalytics.shake}`}</span>
+          </div>
+
           <label className="toggle-row"><input type="checkbox" checked={settings.showTimerBubble} onChange={(event) => update("showTimerBubble", event.currentTarget.checked)} />{t.showTimerBubble}</label>
 
           <details className="advanced-settings">
@@ -1452,8 +1534,8 @@ function App() {
         <section className="onboarding-overlay" onMouseDown={(event) => event.stopPropagation()}>
           <div className="onboarding-card">
             <h3>{t.onboardingTitle}</h3>
-            <small>{onboardingStep === 0 ? t.onboardingStep1 : onboardingStep === 1 ? t.onboardingStep2 : t.onboardingStep3}</small>
-            <p>{onboardingStep === 0 ? t.onboardingHint1 : onboardingStep === 1 ? t.onboardingHint2 : t.onboardingHint3}</p>
+            <small>{onboardingStep === 0 ? t.onboardingStep1 : onboardingStep === 1 ? "Goal" : t.onboardingStep3}</small>
+            <p>{onboardingStep === 0 ? t.onboardingHint1 : onboardingStep === 1 ? (settings.language === "es" ? "Elige tu intención y ajustamos el perfil recomendado." : "Choose your intent and we will tune the recommended profile.") : t.onboardingHint3}</p>
 
             {onboardingStep === 0 && (
               <div className="onboarding-row">
@@ -1464,9 +1546,9 @@ function App() {
 
             {onboardingStep === 1 && (
               <div className="onboarding-row">
-                <button type="button" className={`experience-chip ${selectedProfile === "focus" ? "active" : ""}`} onClick={() => applyExperienceProfile("focus")}>Focus</button>
-                <button type="button" className={`experience-chip ${selectedProfile === "calm" ? "active" : ""}`} onClick={() => applyExperienceProfile("calm")}>Calm</button>
-                <button type="button" className={`experience-chip ${selectedProfile === "cozy" ? "active" : ""}`} onClick={() => applyExperienceProfile("cozy")}>Cozy</button>
+                <button type="button" className={`experience-chip ${onboardingIntent === "deep_focus" ? "active" : ""}`} onClick={() => selectOnboardingIntent("deep_focus")}>{settings.language === "es" ? "Deep foco" : "Deep focus"}</button>
+                <button type="button" className={`experience-chip ${onboardingIntent === "balanced" ? "active" : ""}`} onClick={() => selectOnboardingIntent("balanced")}>{settings.language === "es" ? "Balance" : "Balanced"}</button>
+                <button type="button" className={`experience-chip ${onboardingIntent === "recharge" ? "active" : ""}`} onClick={() => selectOnboardingIntent("recharge")}>{settings.language === "es" ? "Recargar" : "Recharge"}</button>
               </div>
             )}
 
@@ -1475,6 +1557,8 @@ function App() {
                 <span>{t.language}: {settings.language.toUpperCase()}</span>
                 <span>{t.theme}: {settings.themePreset}</span>
                 <span>{t.mode}: {settings.mode}</span>
+                <span>{settings.language === "es" ? `perfil: ${selectedProfile}` : `profile: ${selectedProfile}`}</span>
+                <span>{dailyMemoryLabel}</span>
               </div>
             )}
 

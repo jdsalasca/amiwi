@@ -1,6 +1,13 @@
 import { defaultSettings, STORAGE_KEY } from "../domain/config";
 import type { Settings } from "../domain/types";
 
+const SETTINGS_SCHEMA_VERSION = 2;
+
+type StoredSettingsEnvelope = {
+  version: number;
+  data: Partial<Settings>;
+};
+
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
@@ -20,6 +27,30 @@ export function resolveAsset(path: string): string {
   return `${import.meta.env.BASE_URL}${clean}`;
 }
 
+function coerceStoredSettings(rawValue: string): Partial<Settings> {
+  const parsed = JSON.parse(rawValue) as Partial<Settings> | StoredSettingsEnvelope;
+  if (
+    typeof parsed === "object" &&
+    parsed !== null &&
+    "version" in parsed &&
+    "data" in parsed &&
+    typeof parsed.version === "number" &&
+    typeof parsed.data === "object" &&
+    parsed.data !== null
+  ) {
+    return parsed.data as Partial<Settings>;
+  }
+  return parsed as Partial<Settings>;
+}
+
+export function saveSettings(settings: Settings): void {
+  const envelope: StoredSettingsEnvelope = {
+    version: SETTINGS_SCHEMA_VERSION,
+    data: settings,
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(envelope));
+}
+
 export function loadSettings(): Settings {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) {
@@ -27,7 +58,7 @@ export function loadSettings(): Settings {
   }
 
   try {
-    const parsed = JSON.parse(raw) as Partial<Settings>;
+    const parsed = coerceStoredSettings(raw);
     const mergedBubbleModules = {
       ...defaultSettings.bubbleModules,
       ...parsed.bubbleModules,

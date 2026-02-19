@@ -326,6 +326,19 @@ body {
     linear-gradient(180deg, #7d6864 0%, #5f4c49 60%, #4c3d3b 100%);
 }
 
+.anime-avatar.avatar-cat_beta .pet-ear {
+  animation: earTwitch 8.4s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+
+.anime-avatar.avatar-cat_beta .pet-ear.left {
+  animation-delay: 0.8s;
+}
+
+.anime-avatar.avatar-cat_beta .pet-ear.right {
+  animation-delay: 3.1s;
+}
+
 .anime-avatar.rich-beta.bunny-beta .anime-hair {
   background: linear-gradient(180deg, #8b7f95 0%, #61586d 100%);
 }
@@ -373,6 +386,11 @@ body {
   width: 22%;
   height: 16%;
   z-index: 2;
+}
+
+.anime-avatar.avatar-anime90s .anime-ribbon {
+  animation: ribbonSway 5.8s ease-in-out infinite;
+  transform-origin: 50% 50%;
 }
 
 .anime-ribbon::before,
@@ -696,6 +714,22 @@ body {
   0% { transform: translateY(0); }
   50% { transform: translateY(-0.8px); }
   100% { transform: translateY(0); }
+}
+
+@keyframes earTwitch {
+  0% { transform: rotate(0deg); }
+  5% { transform: rotate(-4deg); }
+  9% { transform: rotate(2deg); }
+  13% { transform: rotate(0deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes ribbonSway {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(4deg); }
+  50% { transform: rotate(0deg); }
+  75% { transform: rotate(-4deg); }
+  100% { transform: rotate(0deg); }
 }
 
 .mascot-draggable {

@@ -77,6 +77,7 @@ function App() {
   const [mascotDraggingVisual, setMascotDraggingVisual] = useState(false);
   const [mascotHovered, setMascotHovered] = useState(false);
   const [affectionPulse, setAffectionPulse] = useState(false);
+  const [idleLook, setIdleLook] = useState({ x: 0, y: 0 });
   const [petBond, setPetBond] = useState<number>(() => {
     return clamp(loadPetBond(58), 0, 100);
   });
@@ -189,8 +190,8 @@ function App() {
   const musicY = clamp(position.y + 10, 4, stageHeight - 28);
   const phaseTotalSeconds = focusPhase === "focus" ? durations.focusSec : durations.breakSec;
   const phaseProgress = clamp(1 - remainingSeconds / Math.max(phaseTotalSeconds, 1), 0, 1);
-  const animeEyeX = ((pointerGlow.x - 50) / 50) * 2.2;
-  const animeEyeY = ((pointerGlow.y - 50) / 50) * 1.6;
+  const animeEyeX = clamp(((pointerGlow.x - 50) / 50) * 2.2 + idleLook.x, -2.8, 2.8);
+  const animeEyeY = clamp(((pointerGlow.y - 50) / 50) * 1.6 + idleLook.y, -2.2, 2.2);
   const animeDanceProfile = useMemo<"idle" | "calm" | "groove" | "hype">(() => {
     if (!isRichPetAvatar || !isMusicActive) {
       return "idle";
@@ -908,6 +909,43 @@ function App() {
       window.clearTimeout(resetTimer);
     };
   }, [isRichPetAvatar]);
+
+  useEffect(() => {
+    if (!isRichPetAvatar) {
+      setIdleLook({ x: 0, y: 0 });
+      return;
+    }
+    let disposed = false;
+    let glanceTimer = 0;
+    let resetTimer = 0;
+    const scheduleGlance = () => {
+      const delay = 2200 + Math.round(Math.random() * 2600);
+      glanceTimer = window.setTimeout(() => {
+        if (disposed) {
+          return;
+        }
+        const hoverScale = mascotHovered ? 0.45 : 1;
+        setIdleLook({
+          x: (Math.random() * 2 - 1) * 0.9 * hoverScale,
+          y: (Math.random() * 2 - 1) * 0.58 * hoverScale,
+        });
+        const hold = 620 + Math.round(Math.random() * 520);
+        resetTimer = window.setTimeout(() => {
+          if (disposed) {
+            return;
+          }
+          setIdleLook({ x: 0, y: 0 });
+          scheduleGlance();
+        }, hold);
+      }, delay);
+    };
+    scheduleGlance();
+    return () => {
+      disposed = true;
+      window.clearTimeout(glanceTimer);
+      window.clearTimeout(resetTimer);
+    };
+  }, [isRichPetAvatar, mascotHovered]);
 
   useEffect(() => {
     if (!isRichPetAvatar) {

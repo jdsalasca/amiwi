@@ -1494,7 +1494,7 @@ function App() {
           <div className={`mascot-shell mood-${mood} ${mascotHovered ? "hover-love" : ""} ${affectionPulse ? "affection-pulse" : ""} ${mascotDraggingVisual ? "dragging" : ""}`} style={{ width: `${mascotWidth}px`, height: `${mascotHeight}px` }}>
             {isRichPetAvatar ? (
               <div
-                className={`anime-avatar rich-beta ${richTheme?.speciesClass ?? "cat-beta"} step-${animeStepFrame} dance-${animeDanceProfile} ${mascotDraggingVisual ? "dragging" : ""} ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
+                className={`anime-avatar rich-beta ${richTheme?.speciesClass ?? "cat-beta"} avatar-${settings.avatarStyle} step-${animeStepFrame} dance-${animeDanceProfile} ${mascotDraggingVisual ? "dragging" : ""} ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
                 onDoubleClick={quickStartFocus}
                 onContextMenu={openOrCloseSettings}
               >
@@ -1504,6 +1504,8 @@ function App() {
                 {richTheme?.speciesClass === "anime-90s" && <div className="anime-bangs" />}
                 {richTheme?.speciesClass === "anime-90s" && <div className="anime-ribbon" />}
                 <div className="anime-face">
+                  <span className="anime-nose" />
+                  <span className="anime-highlight" />
                   <div className="anime-eye left" style={{ ["--eye-x" as string]: `${animeEyeX.toFixed(2)}px`, ["--eye-y" as string]: `${animeEyeY.toFixed(2)}px` }}>
                     <span className={`anime-pupil ${animeBlinking ? "blink" : ""}`} />
                   </div>
@@ -1515,6 +1517,10 @@ function App() {
                   </div>
                   <div className="anime-cheek left" />
                   <div className="anime-cheek right" />
+                  <span className="anime-whisker left top" />
+                  <span className="anime-whisker left bottom" />
+                  <span className="anime-whisker right top" />
+                  <span className="anime-whisker right bottom" />
                 </div>
               </div>
             ) : (

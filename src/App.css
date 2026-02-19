@@ -281,22 +281,22 @@ body {
 
 .anime-avatar {
   position: relative;
-  width: min(170px, 86%);
+  width: min(182px, 90%);
   aspect-ratio: 1 / 1;
   margin: 0 auto;
   filter:
-    drop-shadow(0 6px 12px rgba(39, 72, 114, 0.14))
-    drop-shadow(0 0 calc(4px + var(--music-energy, 0) * 12px) hsla(var(--accent-hue, 210), 70%, 66%, 0.22));
+    drop-shadow(0 8px 16px rgba(39, 72, 114, 0.16))
+    drop-shadow(0 0 calc(5px + var(--music-energy, 0) * 13px) hsla(var(--accent-hue, 210), 70%, 66%, 0.24));
   animation: avatarBob 4.2s ease-in-out infinite;
 }
 
 .anime-avatar.rich-beta .pet-ear {
   position: absolute;
-  top: 2%;
+  top: 1%;
   width: 23%;
   height: 28%;
-  background: linear-gradient(180deg, #4b3d51 0%, #31283a 100%);
-  border: 1px solid rgba(32, 24, 37, 0.34);
+  background: linear-gradient(180deg, #876a63 0%, #674f4a 100%);
+  border: 1px solid rgba(70, 48, 45, 0.34);
   z-index: 0;
 }
 
@@ -321,7 +321,9 @@ body {
 }
 
 .anime-avatar.rich-beta.cat-beta .anime-hair {
-  background: linear-gradient(180deg, #564858 0%, #372e3f 100%);
+  background:
+    radial-gradient(circle at 30% 16%, rgba(255, 255, 255, 0.26), transparent 34%),
+    linear-gradient(180deg, #7d6864 0%, #5f4c49 60%, #4c3d3b 100%);
 }
 
 .anime-avatar.rich-beta.bunny-beta .anime-hair {
@@ -348,7 +350,7 @@ body {
   border-radius: 52% 52% 44% 44%;
   background:
     radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.26), transparent 36%),
-    linear-gradient(180deg, #4f4a7a 0%, #3a385e 54%, #2f2f4b 100%);
+    linear-gradient(180deg, #665ea4 0%, #4d4a81 54%, #3b3c64 100%);
   border: 1px solid rgba(52, 50, 84, 0.46);
   box-shadow: inset 0 -8px 0 rgba(255, 255, 255, 0.07);
 }
@@ -468,27 +470,30 @@ body {
   position: absolute;
   inset: 22% 18% 12%;
   border-radius: 48% 48% 46% 46%;
-  background: radial-gradient(circle at 50% 22%, #ffe8dd 0%, #ffd7c6 62%, #f8c3af 100%);
+  background: radial-gradient(circle at 50% 22%, #fff0e6 0%, #ffdfcd 62%, #f7c8b7 100%);
   border: 1px solid rgba(162, 108, 95, 0.35);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.36),
+    inset 0 -8px 14px rgba(179, 117, 101, 0.16);
 }
 
 .anime-eye {
   position: absolute;
-  top: 34%;
-  width: 20%;
-  height: 18%;
+  top: 35%;
+  width: 22%;
+  height: 20%;
   border-radius: 999px;
   background: #ffffff;
-  border: 1px solid rgba(75, 65, 78, 0.26);
+  border: 1px solid rgba(79, 68, 80, 0.24);
   overflow: hidden;
 }
 
 .anime-eye.left {
-  left: 20%;
+  left: 18%;
 }
 
 .anime-eye.right {
-  right: 20%;
+  right: 18%;
 }
 
 .anime-pupil {
@@ -511,9 +516,9 @@ body {
 .anime-mouth-wrap {
   position: absolute;
   left: 50%;
-  top: 60%;
-  width: 20%;
-  height: 14%;
+  top: 62%;
+  width: 18%;
+  height: 12%;
   transform: translateX(-50%);
 }
 
@@ -535,11 +540,71 @@ body {
 
 .anime-cheek {
   position: absolute;
-  top: 54%;
+  top: 56%;
   width: 14%;
   height: 9%;
   border-radius: 999px;
   background: rgba(255, 153, 170, 0.42);
+}
+
+.anime-nose {
+  position: absolute;
+  left: 50%;
+  top: 54%;
+  width: 7%;
+  height: 5%;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(193, 112, 123, 0.86);
+}
+
+.anime-highlight {
+  position: absolute;
+  top: 21%;
+  left: 50%;
+  width: 44%;
+  height: 12%;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.anime-whisker {
+  position: absolute;
+  width: 20%;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(151, 112, 102, 0.45);
+}
+
+.anime-whisker.left {
+  left: 4%;
+}
+
+.anime-whisker.right {
+  right: 4%;
+}
+
+.anime-whisker.top {
+  top: 61%;
+}
+
+.anime-whisker.bottom {
+  top: 66%;
+}
+
+.anime-whisker.left.top,
+.anime-whisker.right.bottom {
+  transform: rotate(8deg);
+}
+
+.anime-whisker.left.bottom,
+.anime-whisker.right.top {
+  transform: rotate(-8deg);
+}
+
+.anime-avatar.rich-beta.anime-90s .anime-whisker {
+  display: none;
 }
 
 .anime-cheek.left {

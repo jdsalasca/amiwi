@@ -39,6 +39,7 @@ type CuteBubble = {
 };
 
 const WINDOW_OFFSCREEN_LIMIT = 12000;
+const COACH_TIP_DISMISSED_KEY = "amiwi.widget.coach_tip.dismissed.v1";
 
 function App() {
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
@@ -63,6 +64,7 @@ function App() {
   const [onboardingIntent, setOnboardingIntent] = useState<"deep_focus" | "balanced" | "recharge">("deep_focus");
   const [selectedProfile, setSelectedProfile] = useState<"focus" | "calm" | "cozy">("focus");
   const [showPowerControls, setShowPowerControls] = useState(false);
+  const [showCoachTip, setShowCoachTip] = useState<boolean>(() => localStorage.getItem(COACH_TIP_DISMISSED_KEY) !== "1");
   const [pendingUpdate, setPendingUpdate] = useState<AppUpdate | null>(null);
   const [updatingNow, setUpdatingNow] = useState(false);
   const [showUpdateTip, setShowUpdateTip] = useState(false);
@@ -965,6 +967,17 @@ function App() {
   }, [registerInteraction]);
 
   useEffect(() => {
+    if (!showCoachTip || showPanel || showOnboarding || focusRunning) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setShowCoachTip(false);
+      localStorage.setItem(COACH_TIP_DISMISSED_KEY, "1");
+    }, 11000);
+    return () => window.clearTimeout(timer);
+  }, [focusRunning, showCoachTip, showOnboarding, showPanel]);
+
+  useEffect(() => {
     if (!tauriWindowAvailable) {
       return;
     }
@@ -1192,6 +1205,10 @@ function App() {
     }
     event.preventDefault();
     event.stopPropagation();
+    if (showCoachTip) {
+      setShowCoachTip(false);
+      localStorage.setItem(COACH_TIP_DISMISSED_KEY, "1");
+    }
     refreshDraggingVisual(280);
     if (settings.dragAnywhereEnabled) {
       return;
@@ -1208,6 +1225,10 @@ function App() {
       return;
     }
     event.preventDefault();
+    if (showCoachTip) {
+      setShowCoachTip(false);
+      localStorage.setItem(COACH_TIP_DISMISSED_KEY, "1");
+    }
     startWindowDrag(event.screenX, event.screenY);
     refreshDraggingVisual(220);
   };
@@ -1366,6 +1387,10 @@ function App() {
 
   const openOrCloseSettings = (event: ReactMouseEvent<HTMLImageElement | HTMLDivElement>) => {
     event.preventDefault();
+    if (showCoachTip) {
+      setShowCoachTip(false);
+      localStorage.setItem(COACH_TIP_DISMISSED_KEY, "1");
+    }
     setShowPanel((prev) => !prev);
   };
 
@@ -1432,6 +1457,22 @@ function App() {
       )}
 
       <section ref={widgetBodyRef} className="widget-body" style={{ transform: `scale(${settings.size})` }}>
+        {showCoachTip && !showPanel && !showOnboarding && !focusRunning && (
+          <div className="coach-tip">
+            <span>{settings.language === "es" ? "Doble clic: foco  •  Clic derecho: ajustes" : "Double click: focus  •  Right click: settings"}</span>
+            <button
+              type="button"
+              className="coach-dismiss"
+              onClick={() => {
+                setShowCoachTip(false);
+                localStorage.setItem(COACH_TIP_DISMISSED_KEY, "1");
+              }}
+              aria-label={settings.language === "es" ? "Cerrar ayuda" : "Dismiss hint"}
+            >
+              ×
+            </button>
+          </div>
+        )}
         <div
           className="mascot-draggable"
           style={{ left: `${position.x}px`, top: `${position.y}px`, width: `${mascotWidth}px`, height: `${mascotHeight}px` }}

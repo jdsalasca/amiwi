@@ -228,6 +228,39 @@ body {
   overflow: visible;
 }
 
+.coach-tip {
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  transform: translateX(-50%);
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(92%, 280px);
+  padding: 5px 8px 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(166, 205, 244, 0.85);
+  background: rgba(255, 255, 255, 0.92);
+  color: #2c527e;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 6px 14px rgba(39, 75, 113, 0.15);
+}
+
+.coach-dismiss {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(157, 196, 236, 0.86);
+  background: rgba(244, 251, 255, 0.96);
+  color: #3c638f;
+  font-size: 0.72rem;
+  padding: 0;
+  line-height: 1;
+}
+
 .ultra-minimal .widget-body {
   min-height: 176px;
 }

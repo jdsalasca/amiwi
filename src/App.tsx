@@ -362,6 +362,9 @@ function App() {
         ultraMinimal: false,
         opacity: Math.max(prev.opacity, 0.92),
         size: Math.max(prev.size, 1),
+        cuteBubblesEnabled: false,
+        musicAmbient: false,
+        showTimerBubble: true,
       }));
       const hour = new Date().getHours();
       const autoIntent = hour >= 22 || hour < 6 ? "recharge" : hour >= 6 && hour < 15 ? "deep_focus" : "balanced";
@@ -1295,6 +1298,8 @@ function App() {
         phraseFrequencySec: 85,
         autoHideEnabled: true,
         autoHideSeconds: 8,
+        cuteBubblesEnabled: false,
+        musicAmbient: false,
       }));
       emitPhrase(randomPick(t.phraseDeepFocus));
       return;
@@ -1308,6 +1313,8 @@ function App() {
         phraseFrequencySec: 130,
         autoHideEnabled: true,
         autoHideSeconds: 14,
+        cuteBubblesEnabled: false,
+        musicAmbient: false,
       }));
       emitPhrase(randomPick(t.phraseWork));
       return;
@@ -1319,6 +1326,7 @@ function App() {
       mode: "break",
       phraseFrequencySec: 170,
       autoHideEnabled: false,
+      cuteBubblesEnabled: true,
       musicAmbient: false,
     }));
     emitPhrase(randomPick(t.phraseBreak));
@@ -1375,7 +1383,7 @@ function App() {
   return (
     <div className={`app-stage ${isWebPreviewRuntime ? "web-runtime" : "widget-runtime"}`}>
       <main
-        className={`glass-shell theme-${settings.themePreset} ${!showPanel ? "mascot-only" : ""} ${focusRunning ? "focus-running" : ""} ${dormant ? "dormant" : ""} ${settings.ultraMinimal ? "ultra-minimal" : ""} ${settings.dragAnywhereEnabled ? "drag-anywhere" : ""} ${showOnboarding ? "onboarding-active" : ""}`}
+        className={`glass-shell theme-${settings.themePreset} ${!showPanel && !showOnboarding ? "mascot-only" : ""} ${focusRunning ? "focus-running" : ""} ${dormant ? "dormant" : ""} ${settings.ultraMinimal ? "ultra-minimal" : ""} ${settings.dragAnywhereEnabled ? "drag-anywhere" : ""} ${showOnboarding ? "onboarding-active" : ""}`}
         style={{
           opacity: shellOpacity,
           ["--accent-hue" as string]: `${activeHue}`,

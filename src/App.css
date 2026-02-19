@@ -298,6 +298,130 @@ body {
   background: radial-gradient(circle at 50% 22%, #fff0ea 0%, #ffe1d7 62%, #f4cdc1 100%);
 }
 
+.anime-avatar.rich-beta.anime-90s {
+  width: min(176px, 88%);
+  filter:
+    drop-shadow(0 7px 14px rgba(28, 52, 83, 0.17))
+    drop-shadow(0 0 calc(6px + var(--music-energy, 0) * 10px) hsla(198, 58%, 72%, 0.2));
+}
+
+.anime-avatar.rich-beta.anime-90s .pet-ear {
+  display: none;
+}
+
+.anime-avatar.rich-beta.anime-90s .anime-hair {
+  inset: 4% 10% 26%;
+  border-radius: 52% 52% 44% 44%;
+  background:
+    radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.26), transparent 36%),
+    linear-gradient(180deg, #4f4a7a 0%, #3a385e 54%, #2f2f4b 100%);
+  border: 1px solid rgba(52, 50, 84, 0.46);
+  box-shadow: inset 0 -8px 0 rgba(255, 255, 255, 0.07);
+}
+
+.anime-bangs {
+  position: absolute;
+  inset: 18% 21% 46%;
+  border-radius: 44% 44% 54% 54%;
+  background:
+    radial-gradient(circle at 70% 22%, rgba(255, 255, 255, 0.24), transparent 34%),
+    linear-gradient(180deg, rgba(106, 102, 152, 0.95), rgba(71, 70, 112, 0.95));
+  clip-path: polygon(0 0, 100% 0, 92% 74%, 76% 100%, 60% 70%, 42% 100%, 24% 68%, 8% 90%);
+  z-index: 1;
+}
+
+.anime-ribbon {
+  position: absolute;
+  top: 10%;
+  right: 17%;
+  width: 22%;
+  height: 16%;
+  z-index: 2;
+}
+
+.anime-ribbon::before,
+.anime-ribbon::after {
+  content: "";
+  position: absolute;
+  width: 48%;
+  height: 100%;
+  border-radius: 62% 38% 58% 42%;
+  background: linear-gradient(180deg, #ff82bf, #e163a0);
+  border: 1px solid rgba(171, 70, 118, 0.44);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.anime-ribbon::before {
+  left: 0;
+  transform: rotate(-16deg);
+}
+
+.anime-ribbon::after {
+  right: 0;
+  transform: rotate(16deg) scaleX(-1);
+}
+
+.anime-avatar.rich-beta.anime-90s .anime-face {
+  inset: 24% 19% 10%;
+  border-radius: 44% 44% 48% 48%;
+  background:
+    radial-gradient(circle at 50% 20%, #ffece8 0%, #ffd9d3 54%, #f6c3bf 100%);
+  border: 1px solid rgba(170, 115, 105, 0.38);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -8px 16px rgba(186, 122, 113, 0.2);
+}
+
+.anime-avatar.rich-beta.anime-90s .anime-eye {
+  top: 37%;
+  width: 20%;
+  height: 22%;
+  border-radius: 58% 58% 50% 50%;
+  border-color: rgba(79, 69, 106, 0.42);
+  background:
+    radial-gradient(circle at 36% 24%, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.2) 34%, rgba(169, 194, 246, 0.78) 58%, rgba(108, 125, 196, 0.94) 100%);
+}
+
+.anime-avatar.rich-beta.anime-90s .anime-eye::before {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 10%;
+  height: 16%;
+  border-radius: 999px;
+  background: rgba(64, 57, 92, 0.26);
+}
+
+.anime-avatar.rich-beta.anime-90s .anime-pupil {
+  top: 44%;
+  left: 50%;
+  width: 34%;
+  height: 36%;
+  background:
+    radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.18) 34%, rgba(52, 48, 82, 0.92) 74%);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.anime-avatar.rich-beta.anime-90s .anime-mouth {
+  top: 64%;
+  width: 14%;
+  height: 6%;
+  border-radius: 999px 999px 999px 999px;
+  background: linear-gradient(180deg, #bd6782, #a95974);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.anime-avatar.rich-beta.anime-90s .anime-cheek {
+  top: 60%;
+  width: 14%;
+  height: 7%;
+  opacity: 0.3;
+  background: radial-gradient(circle, rgba(255, 178, 193, 0.8), rgba(255, 176, 192, 0.08) 74%);
+}
+
 .anime-hair {
   position: absolute;
   inset: 6% 12% 30%;

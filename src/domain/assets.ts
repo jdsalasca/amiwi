@@ -50,6 +50,13 @@ export const assetByAvatarMood: Record<AvatarStyle, Record<Mood, string>> = {
     break: "/avatars/cloud/break.svg",
     celebrate: "/avatars/cloud/celebrate.svg",
   },
+  anime90s: {
+    happy: "/avatars/cloud/happy.svg",
+    focus: "/avatars/cloud/focus.svg",
+    tired: "/avatars/cloud/tired.svg",
+    break: "/avatars/cloud/break.svg",
+    celebrate: "/avatars/cloud/celebrate.svg",
+  },
   cat_beta: {
     happy: "/avatars/cat/happy.svg",
     focus: "/avatars/cat/focus.svg",

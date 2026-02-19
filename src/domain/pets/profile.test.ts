@@ -12,6 +12,11 @@ describe("pet profile resolver", () => {
     expect(profile.getRichTheme()).toEqual({ speciesClass: "bunny-beta", earShape: "bunny" });
   });
 
+  it("returns anime 90s theme when selected", () => {
+    const profile = resolvePetProfile("anime90s");
+    expect(profile.getRichTheme()).toEqual({ speciesClass: "anime-90s", earShape: "cat" });
+  });
+
   it("returns default profile for base avatars", () => {
     const profile = resolvePetProfile("cat");
     expect(profile.getRichTheme()).toBeNull();

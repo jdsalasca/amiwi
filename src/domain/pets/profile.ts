@@ -18,7 +18,7 @@ export type PetProfileContext = {
 };
 
 export type RichPetTheme = {
-  speciesClass: "cat-beta" | "bunny-beta";
+  speciesClass: "cat-beta" | "bunny-beta" | "anime-90s";
   earShape: "cat" | "bunny";
 };
 
@@ -122,9 +122,40 @@ class BunnyBetaProfile extends PetProfile {
   }
 }
 
+class Anime90sProfile extends PetProfile {
+  getBubbleIcons(ctx: PetProfileContext): readonly string[] {
+    const base = ["🌙", "✨", "💫", "🪽", "🫧", "💗", "📼", "🎧"];
+    if (ctx.isMusicActive) {
+      return [...base, "🎵", "🎶", "💿"];
+    }
+    if (ctx.focusRunning && ctx.focusPhase === "focus") {
+      return [...base, "📘", "🖊️", "☕"];
+    }
+    return base;
+  }
+
+  getMemoryPhrase(event: PetMemoryEventType, ctx: PetProfileContext): string | null {
+    if (event === "petting") {
+      return ctx.language === "es" ? "kyaa... me hiciste sonreir" : "kyaa... you made me smile";
+    }
+    if (event === "shake") {
+      return ctx.language === "es" ? "ay! mi moño noventero" : "ah! my 90s bow";
+    }
+    if (event === "focus_start") {
+      return ctx.language === "es" ? "modo magical focus activado" : "magical focus mode on";
+    }
+    return null;
+  }
+
+  override getRichTheme(): RichPetTheme {
+    return { speciesClass: "anime-90s", earShape: "cat" };
+  }
+}
+
 const DEFAULT = new DefaultPetProfile("blob", "Default");
 const CAT_BETA = new CatBetaProfile("cat_beta", "Cat Beta");
 const BUNNY_BETA = new BunnyBetaProfile("bunny_beta", "Bunny Beta");
+const ANIME_90S = new Anime90sProfile("anime90s", "Anime 90s");
 
 export function resolvePetProfile(style: AvatarStyle): PetProfile {
   if (style === "cat_beta") {
@@ -133,9 +164,11 @@ export function resolvePetProfile(style: AvatarStyle): PetProfile {
   if (style === "bunny_beta") {
     return BUNNY_BETA;
   }
+  if (style === "anime90s") {
+    return ANIME_90S;
+  }
   if (style === "anime") {
     return CAT_BETA;
   }
   return DEFAULT;
 }
-

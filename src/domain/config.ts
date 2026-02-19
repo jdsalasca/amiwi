@@ -247,7 +247,7 @@ export const copy = {
 
 export const defaultSettings: Settings = {
   language: "es",
-  avatarStyle: "cat",
+  avatarStyle: "anime90s",
   phraseFrequencySec: 140,
   opacity: 0.96,
   size: 1,

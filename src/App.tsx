@@ -74,7 +74,6 @@ function App() {
   const [cuteBubbles, setCuteBubbles] = useState<CuteBubble[]>([]);
   const [mascotDraggingVisual, setMascotDraggingVisual] = useState(false);
   const [mascotHovered, setMascotHovered] = useState(false);
-  const [hudActive, setHudActive] = useState(false);
   const [petBond, setPetBond] = useState<number>(() => {
     return clamp(loadPetBond(58), 0, 100);
   });
@@ -84,7 +83,6 @@ function App() {
   const [remainingSeconds, setRemainingSeconds] = useState(durations.focusSec);
 
   const hideTimerRef = useRef<number | null>(null);
-  const hudHideTimerRef = useRef<number | null>(null);
   const pollingRef = useRef(false);
   const interactionThrottleRef = useRef(0);
   const windowDragUntilRef = useRef(0);
@@ -947,15 +945,6 @@ function App() {
     if (settings.autoHideEnabled && !showPanel) {
       hideTimerRef.current = window.setTimeout(() => setDormant(true), settings.autoHideSeconds * 1000);
     }
-    if (!showPanel) {
-      setHudActive(true);
-      if (hudHideTimerRef.current !== null) {
-        window.clearTimeout(hudHideTimerRef.current);
-      }
-      hudHideTimerRef.current = window.setTimeout(() => setHudActive(false), 2200);
-    } else {
-      setHudActive(true);
-    }
   }, [dormant, settings.autoHideEnabled, settings.autoHideSeconds, showPanel]);
 
   useEffect(() => {
@@ -963,9 +952,6 @@ function App() {
     return () => {
       if (hideTimerRef.current !== null) {
         window.clearTimeout(hideTimerRef.current);
-      }
-      if (hudHideTimerRef.current !== null) {
-        window.clearTimeout(hudHideTimerRef.current);
       }
     };
   }, [registerInteraction]);
@@ -1308,7 +1294,7 @@ function App() {
       setSettings((prev) => ({
         ...prev,
         themePreset: "ocean",
-        avatarStyle: "fox",
+        avatarStyle: "anime90s",
         mode: "study",
         phraseFrequencySec: 100,
         autoHideEnabled: true,
@@ -1323,7 +1309,7 @@ function App() {
       setSettings((prev) => ({
         ...prev,
         themePreset: "mint",
-        avatarStyle: "cloud",
+        avatarStyle: "anime90s",
         mode: "work",
         phraseFrequencySec: 160,
         autoHideEnabled: true,
@@ -1337,7 +1323,7 @@ function App() {
     setSettings((prev) => ({
       ...prev,
       themePreset: "rose",
-      avatarStyle: "cat",
+      avatarStyle: "anime90s",
       mode: "break",
       phraseFrequencySec: 210,
       autoHideEnabled: false,
@@ -1394,11 +1380,11 @@ function App() {
   };
   const shellOpacity = showOnboarding ? 1 : settings.opacity;
   const isWebPreviewRuntime = !tauriWindowAvailable;
-  const showPhraseBubble = !showOnboarding && (showPanel || mascotHovered || hudActive || focusRunning);
-  const showTelemetryBubbles = !showOnboarding && !showPanel && (mascotHovered || hudActive);
-  const showActionDock = !showOnboarding && !showPanel && bubbleActions.length > 0 && (mascotHovered || hudActive || focusRunning || pendingUpdate !== null);
-  const showTimerHud = settings.showTimerBubble && !showOnboarding && (showPanel || mascotHovered || hudActive || focusRunning);
-  const showMusicHud = isMusicActive && settings.musicAmbient && !showOnboarding && (showPanel || mascotHovered || hudActive);
+  const showPhraseBubble = !showOnboarding && (showPanel || mascotHovered || focusRunning);
+  const showTelemetryBubbles = !showOnboarding && !showPanel && mascotHovered;
+  const showActionDock = !showOnboarding && !showPanel && bubbleActions.length > 0 && (mascotHovered || focusRunning || pendingUpdate !== null);
+  const showTimerHud = settings.showTimerBubble && !showOnboarding && (showPanel || mascotHovered || focusRunning);
+  const showMusicHud = isMusicActive && settings.musicAmbient && !showOnboarding && (showPanel || mascotHovered);
 
   return (
     <div className={`app-stage ${isWebPreviewRuntime ? "web-runtime" : "widget-runtime"}`}>
@@ -1457,6 +1443,8 @@ function App() {
                 <div className={`pet-ear left ${richTheme?.earShape ?? "cat"}`} />
                 <div className={`pet-ear right ${richTheme?.earShape ?? "cat"}`} />
                 <div className="anime-hair" />
+                {richTheme?.speciesClass === "anime-90s" && <div className="anime-bangs" />}
+                {richTheme?.speciesClass === "anime-90s" && <div className="anime-ribbon" />}
                 <div className="anime-face">
                   <div className="anime-eye left" style={{ ["--eye-x" as string]: `${animeEyeX.toFixed(2)}px`, ["--eye-y" as string]: `${animeEyeY.toFixed(2)}px` }}>
                     <span className={`anime-pupil ${animeBlinking ? "blink" : ""}`} />
@@ -1669,6 +1657,7 @@ function App() {
               <option value="cat">Cat</option>
               <option value="bunny">Bunny</option>
               <option value="fox">Fox</option>
+              <option value="anime90s">Anime 90s</option>
               <option value="cat_beta">Cat (beta)</option>
               <option value="bunny_beta">Bunny (beta)</option>
               <option value="anime">Anime Legacy (beta)</option>

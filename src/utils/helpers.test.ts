@@ -37,6 +37,7 @@ describe("helpers", () => {
         phraseFrequencySec: 999,
         opacity: 0.1,
         customFocusMin: 200,
+        avatarStyle: "cloud",
         bubbleModules: {
           focus: false,
           feed: false,
@@ -51,6 +52,7 @@ describe("helpers", () => {
     expect(loaded.phraseFrequencySec).toBe(300);
     expect(loaded.opacity).toBe(0.55);
     expect(loaded.customFocusMin).toBe(120);
+    expect(loaded.avatarStyle).toBe(defaultSettings.avatarStyle);
     expect(loaded.bubbleModules).toEqual(defaultSettings.bubbleModules);
     expect(loaded.snapToEdgeEnabled).toBe(false);
   });

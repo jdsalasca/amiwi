@@ -2,6 +2,7 @@ import { defaultSettings, STORAGE_KEY } from "../domain/config";
 import type { Settings } from "../domain/types";
 
 const SETTINGS_SCHEMA_VERSION = 2;
+const ALLOWED_AVATAR_STYLES = new Set<Settings["avatarStyle"]>(["mochi", "cat_beta", "anime90s"]);
 
 type StoredSettingsEnvelope = {
   version: number;
@@ -64,9 +65,13 @@ export function loadSettings(): Settings {
       ...parsed.bubbleModules,
     };
     const hasAnyBubble = Object.values(mergedBubbleModules).some(Boolean);
+    const avatarStyle = ALLOWED_AVATAR_STYLES.has(parsed.avatarStyle as Settings["avatarStyle"])
+      ? (parsed.avatarStyle as Settings["avatarStyle"])
+      : defaultSettings.avatarStyle;
     return {
       ...defaultSettings,
       ...parsed,
+      avatarStyle,
       // Keep free movement stable across upgrades; avoid restoring stale "anchoring" behavior.
       snapToEdgeEnabled: false,
       clickThroughPermanent: false,

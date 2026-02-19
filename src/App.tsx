@@ -223,7 +223,6 @@ function App() {
     return t.danceIdle;
   }, [animeDanceProfile, t.danceCalm, t.danceGroove, t.danceHype, t.danceIdle]);
   const petBondTone = petBond >= 82 ? "spark" : petBond >= 55 ? "warm" : "soft";
-  const petBondEmoji = petBond >= 82 ? "💖" : petBond >= 55 ? "💛" : "🤍";
   const bondMilestones = useMemo(() => [20, 40, 60, 80, 95] as const, []);
   const nextBondMilestone = useMemo(
     () => bondMilestones.find((value) => petBond < value) ?? null,
@@ -381,7 +380,7 @@ function App() {
         ultraMinimal: false,
         opacity: Math.max(prev.opacity, 0.92),
         size: Math.max(prev.size, 1),
-        avatarStyle: prev.avatarStyle === "anime90s" ? "mochi" : prev.avatarStyle,
+        avatarStyle: prev.avatarStyle,
         cuteBubblesEnabled: false,
         musicAmbient: false,
         showTimerBubble: true,
@@ -394,13 +393,6 @@ function App() {
       setOnboardingStep(0);
     }
   }, []);
-
-  useEffect(() => {
-    if (settings.avatarStyle !== "anime90s") {
-      return;
-    }
-    setSettings((prev) => ({ ...prev, avatarStyle: "mochi" }));
-  }, [settings.avatarStyle]);
 
   useEffect(() => {
     const appWindow = getAppWindow();
@@ -647,7 +639,7 @@ function App() {
       return settings.language === "es" ? "bien hecho, cerraste un bloque" : "nice, you closed a full block";
     }
     if (latest.type === "music_on") {
-      return settings.language === "es" ? "esa cancion me puso feliz 🎶" : "that song made me happy 🎶";
+      return settings.language === "es" ? "esa cancion me puso feliz" : "that song made me happy";
     }
     if (latest.type === "music_off") {
       return settings.language === "es" ? "silencio suave... seguimos contigo" : "soft silence... I am still with you";
@@ -1316,14 +1308,14 @@ function App() {
 
   const bubbleActions: BubbleAction[] = useMemo(() => {
     const actions: BubbleAction[] = [
-      { id: "focus", icon: focusRunning ? "■" : "▶", label: t.bubbleFocus, onClick: quickStartFocus },
-      { id: "feed", icon: "❤", label: t.bubblePet, onClick: petPetting, tone: "success" },
-      { id: "settings", icon: "⚙", label: t.bubbleSettings, onClick: () => setShowPanel(true) },
+      { id: "focus", icon: focusRunning ? "||" : ">", label: t.bubbleFocus, onClick: quickStartFocus },
+      { id: "feed", icon: "+", label: t.bubblePet, onClick: petPetting, tone: "success" },
+      { id: "settings", icon: "=", label: t.bubbleSettings, onClick: () => setShowPanel(true) },
     ];
     if (pendingUpdate) {
       actions.unshift({
         id: "update",
-        icon: updatingNow ? "…" : "↟",
+        icon: updatingNow ? "..." : "UP",
         label: `${t.updateNow} v${pendingUpdate.version}`,
         onClick: () => void installPendingUpdate(),
         pulse: !updatingNow,
@@ -1396,7 +1388,7 @@ function App() {
   }, [applyExperienceProfile, recommendedProfileByIntent]);
 
   const avatarAsset = useMemo(() => resolveAsset(assetByAvatarMood[settings.avatarStyle][mood]), [settings.avatarStyle, mood]);
-  const fallbackAvatarAsset = useMemo(() => resolveAsset(assetByAvatarMood.cloud.happy), []);
+  const fallbackAvatarAsset = useMemo(() => resolveAsset(assetByAvatarMood.mochi.happy), []);
 
   useEffect(() => {
     setAvatarRenderState("loading");
@@ -1462,11 +1454,11 @@ function App() {
             <small>{t.subtitle}</small>
           </div>
           <div className="window-controls">
-            <button type="button" className="chip" onClick={() => setShowPanel((prev) => !prev)}>⚙</button>
+            <button type="button" className="chip" onClick={() => setShowPanel((prev) => !prev)}>{settings.language === "es" ? "Menu" : "Menu"}</button>
             {tauriWindowAvailable && (
               <>
                 <button type="button" className="win" onClick={() => { const appWindow = getAppWindow(); if (appWindow) { void appWindow.minimize(); } }}>_</button>
-                <button type="button" className="win close" onClick={() => { const appWindow = getAppWindow(); if (appWindow) { void appWindow.close(); } }}>✕</button>
+                <button type="button" className="win close" onClick={() => { const appWindow = getAppWindow(); if (appWindow) { void appWindow.close(); } }}>X</button>
               </>
             )}
           </div>
@@ -1476,7 +1468,7 @@ function App() {
       <section ref={widgetBodyRef} className="widget-body" style={{ transform: `scale(${settings.size})` }}>
         {showCoachTip && !showPanel && !showOnboarding && !focusRunning && (
           <div className="coach-tip">
-            <span>{settings.language === "es" ? "Doble clic: foco  •  Clic derecho: ajustes" : "Double click: focus  •  Right click: settings"}</span>
+            <span>{settings.language === "es" ? "Doble clic: foco | Clic derecho: ajustes" : "Double click: focus | Right click: settings"}</span>
             <button
               type="button"
               className="coach-dismiss"
@@ -1558,9 +1550,7 @@ function App() {
         </div>
 
         {(affectionPulse || mascotHovered) && (
-          <div className={`affection-pop ${mascotHovered ? "steady" : ""}`} style={{ left: `${clamp(mascotCenterX + 36, 22, stageWidth - 22)}px`, top: `${clamp(position.y - 8, 8, stageHeight - 20)}px` }}>
-            ♡
-          </div>
+          <div className={`affection-pop ${mascotHovered ? "steady" : ""}`} style={{ left: `${clamp(mascotCenterX + 36, 22, stageWidth - 22)}px`, top: `${clamp(position.y - 8, 8, stageHeight - 20)}px` }} aria-hidden="true" />
         )}
 
         {settings.cuteBubblesEnabled && cuteBubbles.map((bubble) => (
@@ -1590,7 +1580,7 @@ function App() {
         {showTelemetryBubbles && (
           <>
             <div className={`bond-bubble ${petBondTone}`} style={{ left: `${clamp(mascotCenterX - 58, 24, stageWidth - 24)}px`, top: `${clamp(position.y + 8, 10, stageHeight - 20)}px` }}>
-              {petBondEmoji} {t.bondLabel}: {Math.round(petBond)}{showInternalSignals ? ` · ${bondRankLabel}` : ""}
+              {t.bondLabel}: {Math.round(petBond)}{showInternalSignals ? ` - ${bondRankLabel}` : ""}
             </div>
             {latestMemoryLabel && (
               <div className="memory-bubble" style={{ left: `${clamp(mascotCenterX - 44, 24, stageWidth - 24)}px`, top: `${clamp(position.y + 24, 20, stageHeight - 12)}px` }}>
@@ -1723,17 +1713,9 @@ function App() {
           <label>
             {t.avatar}
             <select value={settings.avatarStyle} onChange={(event) => update("avatarStyle", event.currentTarget.value as Settings["avatarStyle"])}>
-              <option value="cloud">Cloud</option>
               <option value="mochi">Mochi</option>
-              <option value="pixel">Pixel</option>
-              <option value="blob">Blob</option>
-              <option value="cat">Cat</option>
-              <option value="bunny">Bunny</option>
-              <option value="fox">Fox</option>
+              <option value="cat_beta">Cat Pro</option>
               <option value="anime90s">Anime 90s</option>
-              <option value="cat_beta">Cat (beta)</option>
-              <option value="bunny_beta">Bunny (beta)</option>
-              <option value="anime">Anime Legacy (beta)</option>
             </select>
           </label>
 

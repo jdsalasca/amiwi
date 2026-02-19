@@ -18,8 +18,8 @@ export type PetProfileContext = {
 };
 
 export type RichPetTheme = {
-  speciesClass: "cat-beta" | "bunny-beta" | "anime-90s";
-  earShape: "cat" | "bunny";
+  speciesClass: "cat-beta" | "anime-90s";
+  earShape: "cat";
 };
 
 export abstract class PetProfile {
@@ -37,18 +37,18 @@ export abstract class PetProfile {
 class DefaultPetProfile extends PetProfile {
   getBubbleIcons(ctx: PetProfileContext): readonly string[] {
     if (ctx.isMusicActive) {
-      return ["🫧", "🎵", "🎶", "✨", "💗", "🌟", "🧸"];
+      return [".", "*", "+", "~", ".", "*", "+"];
     }
     if (ctx.focusRunning && ctx.focusPhase === "focus") {
-      return ["📘", "📚", "✏️", "✨", "🫧", "🌟", "🐾"];
+      return [".", "-", "+", "*", ".", "-", "+"];
     }
     if (ctx.mode === "work") {
-      return ["☕", "✅", "📘", "🫧", "✨", "🐾"];
+      return [".", "+", "-", ".", "*", "+"];
     }
     if (ctx.mode === "break") {
-      return ["💗", "🌸", "🫧", "⭐", "🧸", "🐥"];
+      return ["*", ".", "~", "+", ".", "*"];
     }
-    return ["💗", "🫧", "⭐", "📘", "🐾", "🌸", "✨", "🧸"];
+    return [".", "*", "+", "~", ".", "*", "+", "-"];
   }
 
   getMemoryPhrase(event: PetMemoryEventType, ctx: PetProfileContext): string | null {
@@ -64,19 +64,19 @@ class DefaultPetProfile extends PetProfile {
 
 class CatBetaProfile extends PetProfile {
   getBubbleIcons(ctx: PetProfileContext): readonly string[] {
-    const base = ["🐾", "🧶", "💗", "✨", "⭐", "🫧", "📘", "🧸"];
+    const base = [".", "*", "+", "~", ".", "*", "+", "-"];
     if (ctx.isMusicActive) {
-      return [...base, "🎵", "🎶"];
+      return [...base, "~", "."];
     }
     if (ctx.focusRunning && ctx.focusPhase === "focus") {
-      return [...base, "📚", "✏️", "☕"];
+      return [...base, "-", "+", "."];
     }
     return base;
   }
 
   getMemoryPhrase(event: PetMemoryEventType, ctx: PetProfileContext): string | null {
     if (event === "petting") {
-      return ctx.language === "es" ? "mrrr... eso estuvo tierno" : "mrrr... that felt sweet";
+      return ctx.language === "es" ? "eso estuvo tierno" : "that felt sweet";
     }
     if (event === "shake") {
       return ctx.language === "es" ? "miau! casi salgo volando" : "meow! I almost flew away";
@@ -92,51 +92,21 @@ class CatBetaProfile extends PetProfile {
   }
 }
 
-class BunnyBetaProfile extends PetProfile {
-  getBubbleIcons(ctx: PetProfileContext): readonly string[] {
-    const base = ["🐇", "🥕", "💗", "🌸", "🫧", "✨", "📘", "⭐"];
-    if (ctx.isMusicActive) {
-      return [...base, "🎵", "🎶"];
-    }
-    if (ctx.mode === "break") {
-      return [...base, "🧸", "🌼"];
-    }
-    return base;
-  }
-
-  getMemoryPhrase(event: PetMemoryEventType, ctx: PetProfileContext): string | null {
-    if (event === "petting") {
-      return ctx.language === "es" ? "saltito feliz! gracias por mimarme" : "happy hop! thanks for petting me";
-    }
-    if (event === "shake") {
-      return ctx.language === "es" ? "mis orejitas hicieron boing" : "my ears went boing";
-    }
-    if (event === "focus_start") {
-      return ctx.language === "es" ? "hop hop, acompaño tu foco" : "hop hop, I will guard your focus";
-    }
-    return null;
-  }
-
-  override getRichTheme(): RichPetTheme {
-    return { speciesClass: "bunny-beta", earShape: "bunny" };
-  }
-}
-
 class Anime90sProfile extends PetProfile {
   getBubbleIcons(ctx: PetProfileContext): readonly string[] {
-    const base = ["🌙", "✨", "💫", "🪽", "🫧", "💗", "📼", "🎧"];
+    const base = [".", "~", "*", "+", ".", "~", "*", "+"];
     if (ctx.isMusicActive) {
-      return [...base, "🎵", "🎶", "💿"];
+      return [...base, "~", ".", "*"];
     }
     if (ctx.focusRunning && ctx.focusPhase === "focus") {
-      return [...base, "📘", "🖊️", "☕"];
+      return [...base, "-", "+", "."];
     }
     return base;
   }
 
   getMemoryPhrase(event: PetMemoryEventType, ctx: PetProfileContext): string | null {
     if (event === "petting") {
-      return ctx.language === "es" ? "kyaa... me hiciste sonreir" : "kyaa... you made me smile";
+      return ctx.language === "es" ? "me hiciste sonreir" : "you made me smile";
     }
     if (event === "shake") {
       return ctx.language === "es" ? "ay! mi moño noventero" : "ah! my 90s bow";
@@ -152,23 +122,16 @@ class Anime90sProfile extends PetProfile {
   }
 }
 
-const DEFAULT = new DefaultPetProfile("blob", "Default");
+const DEFAULT = new DefaultPetProfile("mochi", "Mochi");
 const CAT_BETA = new CatBetaProfile("cat_beta", "Cat Beta");
-const BUNNY_BETA = new BunnyBetaProfile("bunny_beta", "Bunny Beta");
 const ANIME_90S = new Anime90sProfile("anime90s", "Anime 90s");
 
 export function resolvePetProfile(style: AvatarStyle): PetProfile {
   if (style === "cat_beta") {
     return CAT_BETA;
   }
-  if (style === "bunny_beta") {
-    return BUNNY_BETA;
-  }
   if (style === "anime90s") {
     return ANIME_90S;
-  }
-  if (style === "anime") {
-    return CAT_BETA;
   }
   return DEFAULT;
 }

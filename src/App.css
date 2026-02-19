@@ -718,9 +718,12 @@ body {
   position: absolute;
   transform: translate(-50%, -50%);
   z-index: 6;
-  font-size: 0.96rem;
-  color: #d56f94;
-  text-shadow: 0 3px 8px rgba(204, 98, 146, 0.32);
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.95), rgba(255, 214, 232, 0.88) 40%, rgba(233, 149, 184, 0.86) 100%);
+  box-shadow: 0 3px 10px rgba(204, 98, 146, 0.34);
   animation: affectionPop 920ms ease-out forwards;
   pointer-events: none;
 }

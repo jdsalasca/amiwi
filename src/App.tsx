@@ -1482,7 +1482,7 @@ function App() {
           data-tauri-drag-region
         >
           <div className="mascot-hitbox" aria-hidden="true" />
-          <div className={`mascot-shell ${mascotDraggingVisual ? "dragging" : ""}`} style={{ width: `${mascotWidth}px`, height: `${mascotHeight}px` }}>
+          <div className={`mascot-shell mood-${mood} ${mascotDraggingVisual ? "dragging" : ""}`} style={{ width: `${mascotWidth}px`, height: `${mascotHeight}px` }}>
             {isRichPetAvatar ? (
               <div
                 className={`anime-avatar rich-beta ${richTheme?.speciesClass ?? "cat-beta"} step-${animeStepFrame} dance-${animeDanceProfile} ${mascotDraggingVisual ? "dragging" : ""} ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
@@ -1511,7 +1511,7 @@ function App() {
             ) : (
               <>
                 <img
-                  className={`avatar ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
+                  className={`avatar mood-${mood} ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
                   src={avatarAsset}
                   alt={`${settings.avatarStyle}-${mood}`}
                   loading="eager"

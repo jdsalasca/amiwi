@@ -5,8 +5,8 @@
       <stop offset="100%" stop-color="#ffd9bf"/>
     </radialGradient>
     <radialGradient id="eyeIris" cx="40%" cy="35%" r="70%">
-      <stop offset="0%" stop-color="#8ec2ff"/>
-      <stop offset="100%" stop-color="#496ea1"/>
+      <stop offset="0%" stop-color="#97caff"/>
+      <stop offset="100%" stop-color="#4b73a8"/>
     </radialGradient>
   </defs>
 
@@ -14,21 +14,18 @@
     <path d="M74 80 L98 34 L121 78 Z" fill="#ffe5d3" stroke="#dbb39a" stroke-width="4" stroke-linejoin="round"/>
     <path d="M166 80 L142 34 L119 78 Z" fill="#ffe5d3" stroke="#dbb39a" stroke-width="4" stroke-linejoin="round"/>
     <circle cx="120" cy="124" r="62" fill="url(#head)" stroke="#ddb59d" stroke-width="4"/>
-    <ellipse cx="120" cy="98" rx="37" ry="18" fill="#ffffff" opacity="0.22"/>
 
-    <path d="M83 104 Q95 98 107 102" fill="none" stroke="#5676a3" stroke-width="4" stroke-linecap="round"/>
-    <path d="M133 102 Q145 98 157 104" fill="none" stroke="#5676a3" stroke-width="4" stroke-linecap="round"/>
+    <path d="M82 102 Q95 92 108 99" fill="none" stroke="#54749f" stroke-width="4" stroke-linecap="round"/>
+    <path d="M132 99 Q145 92 158 102" fill="none" stroke="#54749f" stroke-width="4" stroke-linecap="round"/>
 
     <ellipse cx="95" cy="118" rx="11" ry="12" fill="#2d4465"/>
     <ellipse cx="145" cy="118" rx="11" ry="12" fill="#2d4465"/>
-    <ellipse cx="95" cy="120" rx="7.5" ry="8.5" fill="url(#eyeIris)"/>
-    <ellipse cx="145" cy="120" rx="7.5" ry="8.5" fill="url(#eyeIris)"/>
+    <ellipse cx="95" cy="120" rx="7.6" ry="8.6" fill="url(#eyeIris)"/>
+    <ellipse cx="145" cy="120" rx="7.6" ry="8.6" fill="url(#eyeIris)"/>
     <circle cx="92" cy="116" r="2.4" fill="#fff"/>
     <circle cx="142" cy="116" r="2.4" fill="#fff"/>
 
-    <ellipse cx="120" cy="133" rx="7" ry="5" fill="#c9828d"/>
-    <path d="M107 145 L133 145" fill="none" stroke="#b96673" stroke-width="4.4" stroke-linecap="round"/>
-    <ellipse cx="84" cy="136" rx="9" ry="5" fill="#ffc7d4" opacity="0.7"/>
-    <ellipse cx="156" cy="136" rx="9" ry="5" fill="#ffc7d4" opacity="0.7"/>
+    <ellipse cx="120" cy="133" rx="6.5" ry="4.8" fill="#c9828d"/>
+    <path d="M108 145 Q120 149 132 145" fill="none" stroke="#b96673" stroke-width="4.2" stroke-linecap="round"/>
   </g>
 </svg>

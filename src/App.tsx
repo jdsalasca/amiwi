@@ -73,6 +73,8 @@ function App() {
   const [avatarRenderState, setAvatarRenderState] = useState<"loading" | "ready" | "failed">("loading");
   const [cuteBubbles, setCuteBubbles] = useState<CuteBubble[]>([]);
   const [mascotDraggingVisual, setMascotDraggingVisual] = useState(false);
+  const [mascotHovered, setMascotHovered] = useState(false);
+  const [hudActive, setHudActive] = useState(false);
   const [petBond, setPetBond] = useState<number>(() => {
     return clamp(loadPetBond(58), 0, 100);
   });
@@ -82,6 +84,7 @@ function App() {
   const [remainingSeconds, setRemainingSeconds] = useState(durations.focusSec);
 
   const hideTimerRef = useRef<number | null>(null);
+  const hudHideTimerRef = useRef<number | null>(null);
   const pollingRef = useRef(false);
   const interactionThrottleRef = useRef(0);
   const windowDragUntilRef = useRef(0);
@@ -944,6 +947,15 @@ function App() {
     if (settings.autoHideEnabled && !showPanel) {
       hideTimerRef.current = window.setTimeout(() => setDormant(true), settings.autoHideSeconds * 1000);
     }
+    if (!showPanel) {
+      setHudActive(true);
+      if (hudHideTimerRef.current !== null) {
+        window.clearTimeout(hudHideTimerRef.current);
+      }
+      hudHideTimerRef.current = window.setTimeout(() => setHudActive(false), 2200);
+    } else {
+      setHudActive(true);
+    }
   }, [dormant, settings.autoHideEnabled, settings.autoHideSeconds, showPanel]);
 
   useEffect(() => {
@@ -951,6 +963,9 @@ function App() {
     return () => {
       if (hideTimerRef.current !== null) {
         window.clearTimeout(hideTimerRef.current);
+      }
+      if (hudHideTimerRef.current !== null) {
+        window.clearTimeout(hudHideTimerRef.current);
       }
     };
   }, [registerInteraction]);
@@ -1295,7 +1310,7 @@ function App() {
         themePreset: "ocean",
         avatarStyle: "fox",
         mode: "study",
-        phraseFrequencySec: 85,
+        phraseFrequencySec: 100,
         autoHideEnabled: true,
         autoHideSeconds: 8,
         cuteBubblesEnabled: false,
@@ -1310,7 +1325,7 @@ function App() {
         themePreset: "mint",
         avatarStyle: "cloud",
         mode: "work",
-        phraseFrequencySec: 130,
+        phraseFrequencySec: 160,
         autoHideEnabled: true,
         autoHideSeconds: 14,
         cuteBubblesEnabled: false,
@@ -1324,7 +1339,7 @@ function App() {
       themePreset: "rose",
       avatarStyle: "cat",
       mode: "break",
-      phraseFrequencySec: 170,
+      phraseFrequencySec: 210,
       autoHideEnabled: false,
       cuteBubblesEnabled: true,
       musicAmbient: false,
@@ -1379,6 +1394,11 @@ function App() {
   };
   const shellOpacity = showOnboarding ? 1 : settings.opacity;
   const isWebPreviewRuntime = !tauriWindowAvailable;
+  const showPhraseBubble = !showOnboarding && (showPanel || mascotHovered || hudActive || focusRunning);
+  const showTelemetryBubbles = !showOnboarding && !showPanel && (mascotHovered || hudActive);
+  const showActionDock = !showOnboarding && !showPanel && bubbleActions.length > 0 && (mascotHovered || hudActive || focusRunning || pendingUpdate !== null);
+  const showTimerHud = settings.showTimerBubble && !showOnboarding && (showPanel || mascotHovered || hudActive || focusRunning);
+  const showMusicHud = isMusicActive && settings.musicAmbient && !showOnboarding && (showPanel || mascotHovered || hudActive);
 
   return (
     <div className={`app-stage ${isWebPreviewRuntime ? "web-runtime" : "widget-runtime"}`}>
@@ -1422,6 +1442,8 @@ function App() {
           className="mascot-draggable"
           style={{ left: `${position.x}px`, top: `${position.y}px`, width: `${mascotWidth}px`, height: `${mascotHeight}px` }}
           onPointerDown={handleMascotPointerDown}
+          onMouseEnter={() => setMascotHovered(true)}
+          onMouseLeave={() => setMascotHovered(false)}
           data-tauri-drag-region
         >
           <div className="mascot-hitbox" aria-hidden="true" />
@@ -1499,11 +1521,13 @@ function App() {
           </span>
         ))}
 
-        <div key={phraseTick} className="floating-phrase" style={{ left: `${mascotCenterX}px`, top: `${phraseY}px` }}>
-          {phrase}
-        </div>
+        {showPhraseBubble && (
+          <div key={phraseTick} className="floating-phrase" style={{ left: `${mascotCenterX}px`, top: `${phraseY}px` }}>
+            {phrase}
+          </div>
+        )}
 
-        {!showPanel && (
+        {showTelemetryBubbles && (
           <>
             <div className={`bond-bubble ${petBondTone}`} style={{ left: `${clamp(mascotCenterX - 58, 24, stageWidth - 24)}px`, top: `${clamp(position.y + 8, 10, stageHeight - 20)}px` }}>
               {petBondEmoji} {t.bondLabel}: {Math.round(petBond)}{showInternalSignals ? ` · ${bondRankLabel}` : ""}
@@ -1521,7 +1545,7 @@ function App() {
           </>
         )}
 
-        {!showPanel && bubbleActions.length > 0 && (
+        {showActionDock && (
           <>
             {pendingUpdate && !updatingNow && (showUpdateTip || hoveringActions) && (
               <div
@@ -1552,7 +1576,7 @@ function App() {
           </>
         )}
 
-        {settings.showTimerBubble && (
+        {showTimerHud && (
           <div className="timer-bubble" style={{ left: `${timerX}px`, top: `${timerY}px` }}>
             {focusRunning ? (focusPhase === "focus" ? "🍅" : "☕") : "⏱"} {formatMMSS(remainingSeconds)}
           </div>
@@ -1560,13 +1584,13 @@ function App() {
 
         {focusRunning && <div className="session-progress">{Math.round(phaseProgress * 100)}%</div>}
 
-        {isMusicActive && settings.musicAmbient && (
+        {showMusicHud && (
           <div className="music-react-bubble" style={{ left: `${musicX}px`, top: `${musicY}px` }}>
             {musicPulsePhrase || "♪"}
           </div>
         )}
 
-        {isRichPetAvatar && isMusicActive && (
+        {isRichPetAvatar && showMusicHud && (
           <div className="dance-profile-bubble" style={{ left: `${musicX}px`, top: `${musicY + 22}px` }}>
             {t.danceProfile}: {danceProfileLabel}
           </div>

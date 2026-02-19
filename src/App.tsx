@@ -76,6 +76,7 @@ function App() {
   const [cuteBubbles, setCuteBubbles] = useState<CuteBubble[]>([]);
   const [mascotDraggingVisual, setMascotDraggingVisual] = useState(false);
   const [mascotHovered, setMascotHovered] = useState(false);
+  const [affectionPulse, setAffectionPulse] = useState(false);
   const [petBond, setPetBond] = useState<number>(() => {
     return clamp(loadPetBond(58), 0, 100);
   });
@@ -92,6 +93,7 @@ function App() {
   const widgetBodyRef = useRef<HTMLElement | null>(null);
   const updaterCheckedRef = useRef(false);
   const dragVisualTimeoutRef = useRef<number | null>(null);
+  const affectionPulseTimeoutRef = useRef<number | null>(null);
   const manualDragRef = useRef({
     active: false,
     appWindowX: 0,
@@ -302,6 +304,17 @@ function App() {
     }, durationMs);
   }, []);
 
+  const triggerAffectionPulse = useCallback((durationMs: number = 980) => {
+    setAffectionPulse(true);
+    if (affectionPulseTimeoutRef.current !== null) {
+      window.clearTimeout(affectionPulseTimeoutRef.current);
+    }
+    affectionPulseTimeoutRef.current = window.setTimeout(() => {
+      setAffectionPulse(false);
+      affectionPulseTimeoutRef.current = null;
+    }, durationMs);
+  }, []);
+
   const spawnCuteBubbleBurst = useCallback((intensity: number = 1) => {
     if (!settings.cuteBubblesEnabled || showPanel) {
       return;
@@ -353,6 +366,9 @@ function App() {
     return () => {
       if (dragVisualTimeoutRef.current !== null) {
         window.clearTimeout(dragVisualTimeoutRef.current);
+      }
+      if (affectionPulseTimeoutRef.current !== null) {
+        window.clearTimeout(affectionPulseTimeoutRef.current);
       }
     };
   }, []);
@@ -1144,6 +1160,7 @@ function App() {
 
   const petPetting = useCallback(() => {
     registerInteraction();
+    triggerAffectionPulse(1200);
     setPetBond((prev) => clamp(prev + 3.2, 0, 100));
     recordPetEvent("petting");
     setMood("celebrate");
@@ -1154,7 +1171,7 @@ function App() {
     window.setTimeout(() => {
       setMood(settings.mode === "study" ? "focus" : settings.mode === "work" ? "happy" : "break");
     }, 900);
-  }, [recordPetEvent, registerInteraction, settings.cuteBubblesEnabled, settings.mode, spawnCuteBubbleBurst, t.pettingPhrase]);
+  }, [recordPetEvent, registerInteraction, settings.cuteBubblesEnabled, settings.mode, spawnCuteBubbleBurst, t.pettingPhrase, triggerAffectionPulse]);
 
   const beginManualWindowDrag = useCallback((screenX: number, screenY: number) => {
     if (showPanel) {
@@ -1477,12 +1494,12 @@ function App() {
           className="mascot-draggable"
           style={{ left: `${position.x}px`, top: `${position.y}px`, width: `${mascotWidth}px`, height: `${mascotHeight}px` }}
           onPointerDown={handleMascotPointerDown}
-          onMouseEnter={() => setMascotHovered(true)}
+          onMouseEnter={() => { setMascotHovered(true); triggerAffectionPulse(1600); }}
           onMouseLeave={() => setMascotHovered(false)}
           data-tauri-drag-region
         >
           <div className="mascot-hitbox" aria-hidden="true" />
-          <div className={`mascot-shell mood-${mood} ${mascotDraggingVisual ? "dragging" : ""}`} style={{ width: `${mascotWidth}px`, height: `${mascotHeight}px` }}>
+          <div className={`mascot-shell mood-${mood} ${mascotHovered ? "hover-love" : ""} ${affectionPulse ? "affection-pulse" : ""} ${mascotDraggingVisual ? "dragging" : ""}`} style={{ width: `${mascotWidth}px`, height: `${mascotHeight}px` }}>
             {isRichPetAvatar ? (
               <div
                 className={`anime-avatar rich-beta ${richTheme?.speciesClass ?? "cat-beta"} step-${animeStepFrame} dance-${animeDanceProfile} ${mascotDraggingVisual ? "dragging" : ""} ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
@@ -1539,6 +1556,12 @@ function App() {
             )}
           </div>
         </div>
+
+        {(affectionPulse || mascotHovered) && (
+          <div className={`affection-pop ${mascotHovered ? "steady" : ""}`} style={{ left: `${clamp(mascotCenterX + 36, 22, stageWidth - 22)}px`, top: `${clamp(position.y - 8, 8, stageHeight - 20)}px` }}>
+            ♡
+          </div>
+        )}
 
         {settings.cuteBubblesEnabled && cuteBubbles.map((bubble) => (
           <span

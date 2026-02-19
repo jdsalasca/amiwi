@@ -878,13 +878,26 @@ function App() {
     let blinkTimer = 0;
     let resetTimer = 0;
     const scheduleBlink = () => {
-      const delay = 1900 + Math.round(Math.random() * 2600);
+      const delay = 1700 + Math.round(Math.random() * 3000);
       blinkTimer = window.setTimeout(() => {
         if (disposed) {
           return;
         }
         setAnimeBlinking(true);
-        resetTimer = window.setTimeout(() => setAnimeBlinking(false), 130);
+        const blinkDuration = 95 + Math.round(Math.random() * 55);
+        resetTimer = window.setTimeout(() => {
+          setAnimeBlinking(false);
+          if (Math.random() < 0.22 && !disposed) {
+            const quickBlinkDelay = 95 + Math.round(Math.random() * 70);
+            resetTimer = window.setTimeout(() => {
+              if (disposed) {
+                return;
+              }
+              setAnimeBlinking(true);
+              resetTimer = window.setTimeout(() => setAnimeBlinking(false), 90);
+            }, quickBlinkDelay);
+          }
+        }, blinkDuration);
         scheduleBlink();
       }, delay);
     };
@@ -1494,7 +1507,7 @@ function App() {
           <div className={`mascot-shell mood-${mood} ${mascotHovered ? "hover-love" : ""} ${affectionPulse ? "affection-pulse" : ""} ${mascotDraggingVisual ? "dragging" : ""}`} style={{ width: `${mascotWidth}px`, height: `${mascotHeight}px` }}>
             {isRichPetAvatar ? (
               <div
-                className={`anime-avatar rich-beta ${richTheme?.speciesClass ?? "cat-beta"} avatar-${settings.avatarStyle} step-${animeStepFrame} dance-${animeDanceProfile} ${mascotDraggingVisual ? "dragging" : ""} ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
+                className={`anime-avatar rich-beta ${richTheme?.speciesClass ?? "cat-beta"} avatar-${settings.avatarStyle} step-${animeStepFrame} dance-${animeDanceProfile} ${mascotDraggingVisual ? "dragging" : ""} ${isMusicActive ? "music-react" : "idle-breathe"} ${focusRunning ? "focus-float" : ""}`}
                 onDoubleClick={quickStartFocus}
                 onContextMenu={openOrCloseSettings}
               >
@@ -1526,7 +1539,7 @@ function App() {
             ) : (
               <>
                 <img
-                  className={`avatar mood-${mood} ${isMusicActive ? "music-react" : ""} ${focusRunning ? "focus-float" : ""}`}
+                  className={`avatar mood-${mood} ${isMusicActive ? "music-react" : "idle-breathe"} ${focusRunning ? "focus-float" : ""}`}
                   src={avatarAsset}
                   alt={`${settings.avatarStyle}-${mood}`}
                   loading="eager"

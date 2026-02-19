@@ -663,6 +663,12 @@ body {
   animation: animeHairBounce 1.1s ease-in-out infinite;
 }
 
+.anime-avatar.idle-breathe {
+  animation:
+    avatarBob 5.4s ease-in-out infinite,
+    idleBreathe 6.2s ease-in-out infinite;
+}
+
 @keyframes animeCalmSway {
   0% { transform: rotate(0deg); }
   25% { transform: rotate(1.2deg); }
@@ -802,6 +808,12 @@ body {
   animation: pulse 1.8s ease-in-out infinite;
 }
 
+.avatar.idle-breathe {
+  animation:
+    avatarBob 5.2s ease-in-out infinite,
+    idleBreathe 6s ease-in-out infinite;
+}
+
 .avatar.focus-float {
   animation: focusFloat 2.6s ease-in-out infinite;
 }
@@ -827,10 +839,40 @@ body {
   animation: avatarCheer 1.8s ease-in-out infinite;
 }
 
+.avatar.idle-breathe.mood-happy {
+  animation:
+    avatarBob 4.8s ease-in-out infinite,
+    idleBreathe 6s ease-in-out infinite;
+}
+
+.avatar.idle-breathe.mood-focus {
+  animation:
+    focusFloat 3.1s ease-in-out infinite,
+    idleBreathe 6.4s ease-in-out infinite;
+}
+
+.avatar.idle-breathe.mood-tired {
+  animation:
+    avatarDrowse 6s ease-in-out infinite,
+    idleBreathe 6.8s ease-in-out infinite;
+}
+
+.avatar.idle-breathe.mood-break {
+  animation:
+    avatarSway 5.4s ease-in-out infinite,
+    idleBreathe 6.2s ease-in-out infinite;
+}
+
 @keyframes avatarBob {
   0% { transform: translateY(0); }
   50% { transform: translateY(-4px); }
   100% { transform: translateY(0); }
+}
+
+@keyframes idleBreathe {
+  0% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-1px) scale(1.018); }
+  100% { transform: translateY(0) scale(1); }
 }
 
 @keyframes affectionPulse {

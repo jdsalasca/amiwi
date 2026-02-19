@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="Mochi celebrate">
+  <g transform="translate(0 2)">
+    <path d="M78 78 L102 34 L122 76" fill="#ffe8d8" stroke="#e0b79f" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M162 78 L138 34 L118 76" fill="#ffe8d8" stroke="#e0b79f" stroke-width="4" stroke-linejoin="round"/>
+    <circle cx="120" cy="124" r="62" fill="#fff0e5" stroke="#e3bea8" stroke-width="4"/>
+    <path d="M84 112 Q94 100 104 112" fill="none" stroke="#4a668f" stroke-width="4" stroke-linecap="round"/>
+    <path d="M136 112 Q146 100 156 112" fill="none" stroke="#4a668f" stroke-width="4" stroke-linecap="round"/>
+    <ellipse cx="120" cy="132" rx="7" ry="5" fill="#d48d97"/>
+    <path d="M100 145 Q120 170 140 145" fill="none" stroke="#b96074" stroke-width="5" stroke-linecap="round"/>
+    <text x="66" y="86" font-size="18" fill="#ff99bd" font-family="Segoe UI Emoji">✦</text>
+    <text x="162" y="82" font-size="18" fill="#80bfff" font-family="Segoe UI Emoji">✦</text>
+  </g>
+</svg>

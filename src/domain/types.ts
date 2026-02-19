@@ -1,7 +1,7 @@
 export type Lang = "es" | "en";
 export type Mode = "study" | "work" | "break";
 export type Mood = "happy" | "focus" | "tired" | "break" | "celebrate";
-export type AvatarStyle = "blob" | "cat" | "bunny" | "fox" | "cloud" | "pixel" | "anime" | "anime90s" | "cat_beta" | "bunny_beta";
+export type AvatarStyle = "blob" | "cat" | "bunny" | "fox" | "cloud" | "pixel" | "mochi" | "anime" | "anime90s" | "cat_beta" | "bunny_beta";
 export type PomodoroPreset = "25-5" | "50-10" | "custom";
 export type FocusPhase = "focus" | "break";
 export type ThemePreset = "ocean" | "mint" | "rose";

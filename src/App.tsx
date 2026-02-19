@@ -363,6 +363,7 @@ function App() {
         ultraMinimal: false,
         opacity: Math.max(prev.opacity, 0.92),
         size: Math.max(prev.size, 1),
+        avatarStyle: prev.avatarStyle === "anime90s" ? "mochi" : prev.avatarStyle,
         cuteBubblesEnabled: false,
         musicAmbient: false,
         showTimerBubble: true,
@@ -375,6 +376,13 @@ function App() {
       setOnboardingStep(0);
     }
   }, []);
+
+  useEffect(() => {
+    if (settings.avatarStyle !== "anime90s") {
+      return;
+    }
+    setSettings((prev) => ({ ...prev, avatarStyle: "mochi" }));
+  }, [settings.avatarStyle]);
 
   useEffect(() => {
     const appWindow = getAppWindow();
@@ -1294,7 +1302,7 @@ function App() {
       setSettings((prev) => ({
         ...prev,
         themePreset: "ocean",
-        avatarStyle: "anime90s",
+        avatarStyle: "mochi",
         mode: "study",
         phraseFrequencySec: 100,
         autoHideEnabled: true,
@@ -1309,7 +1317,7 @@ function App() {
       setSettings((prev) => ({
         ...prev,
         themePreset: "mint",
-        avatarStyle: "anime90s",
+        avatarStyle: "mochi",
         mode: "work",
         phraseFrequencySec: 160,
         autoHideEnabled: true,
@@ -1323,11 +1331,11 @@ function App() {
     setSettings((prev) => ({
       ...prev,
       themePreset: "rose",
-      avatarStyle: "anime90s",
+      avatarStyle: "mochi",
       mode: "break",
       phraseFrequencySec: 210,
       autoHideEnabled: false,
-      cuteBubblesEnabled: true,
+      cuteBubblesEnabled: false,
       musicAmbient: false,
     }));
     emitPhrase(randomPick(t.phraseBreak));
@@ -1652,6 +1660,7 @@ function App() {
             {t.avatar}
             <select value={settings.avatarStyle} onChange={(event) => update("avatarStyle", event.currentTarget.value as Settings["avatarStyle"])}>
               <option value="cloud">Cloud</option>
+              <option value="mochi">Mochi</option>
               <option value="pixel">Pixel</option>
               <option value="blob">Blob</option>
               <option value="cat">Cat</option>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="Mochi break">
+  <g transform="translate(0 2)">
+    <path d="M78 78 L102 34 L122 76" fill="#ffe8d8" stroke="#e0b79f" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M162 78 L138 34 L118 76" fill="#ffe8d8" stroke="#e0b79f" stroke-width="4" stroke-linejoin="round"/>
+    <circle cx="120" cy="124" r="62" fill="#fff0e5" stroke="#e3bea8" stroke-width="4"/>
+    <path d="M86 112 Q95 104 104 112" fill="none" stroke="#4e6d97" stroke-width="4" stroke-linecap="round"/>
+    <path d="M136 112 Q145 104 154 112" fill="none" stroke="#4e6d97" stroke-width="4" stroke-linecap="round"/>
+    <ellipse cx="120" cy="132" rx="7" ry="5" fill="#d48d97"/>
+    <path d="M102 145 Q120 166 138 145" fill="none" stroke="#c06f7f" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="172" cy="90" r="8" fill="#ffd978"/>
+  </g>
+</svg>

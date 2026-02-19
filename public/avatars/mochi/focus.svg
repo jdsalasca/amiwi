@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="Mochi focus">
+  <g transform="translate(0 2)">
+    <path d="M78 78 L102 34 L122 76" fill="#ffe8d8" stroke="#e0b79f" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M162 78 L138 34 L118 76" fill="#ffe8d8" stroke="#e0b79f" stroke-width="4" stroke-linejoin="round"/>
+    <circle cx="120" cy="124" r="62" fill="#fff0e5" stroke="#e3bea8" stroke-width="4"/>
+    <path d="M86 102 Q95 96 104 100" fill="none" stroke="#56739d" stroke-width="4" stroke-linecap="round"/>
+    <path d="M136 100 Q145 96 154 102" fill="none" stroke="#56739d" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="94" cy="116" r="7.5" fill="#355074"/>
+    <circle cx="146" cy="116" r="7.5" fill="#355074"/>
+    <ellipse cx="120" cy="132" rx="7" ry="5" fill="#d48d97"/>
+    <path d="M108 145 Q120 152 132 145" fill="none" stroke="#bd7080" stroke-width="4" stroke-linecap="round"/>
+    <ellipse cx="85" cy="136" rx="9" ry="5" fill="#ffd5df" opacity="0.7"/>
+    <ellipse cx="155" cy="136" rx="9" ry="5" fill="#ffd5df" opacity="0.7"/>
+  </g>
+</svg>

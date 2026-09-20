@@ -1,40 +1,54 @@
 # Amiwi
 
-Amiwi is a desktop companion pet built with Tauri + React + TypeScript.
+Amiwi is a desktop companion pet: a tiny creature that lives on your screen, blinks, follows your cursor, dances when music plays, and reacts when you drag or shake it.
 
-Goal: create a living pet experience on desktop with strong user interaction, expressive animation, and minimal friction.
+Built with Tauri 2 + React 19 + TypeScript. No accounts, no cloud, no noise — just a pet.
 
-## Current product focus
-- Living pet behavior: blink, eye tracking, mouth movement, dance profiles, drag reactions, shake gestures.
+## What it does today
+
+- Living behavior: blinking, eye tracking, mouth movement, dance profiles, drag and shake reactions.
 - Liquid-glass micro-widget UX with bubble actions and contextual feedback.
-- Stable desktop behavior on Windows/macOS: draggable, update-ready, and monitor-safe positioning.
+- Bond system: the more time you spend with it, the more it says back.
+- Adapts to focus mode and system music.
+- Stable on Windows and macOS: draggable, auto-updater, monitor-safe positioning.
+
+## Install
+
+Download the latest build from [Releases](https://github.com/jdsalasca/amiwi/releases).
 
 ## Run locally
+
 ```bash
 npm install
 npm run tauri dev
 ```
 
 ## Build
+
 ```bash
 npm run tauri build
 ```
 
+## Tests
+
+```bash
+npm run test:run
+```
+
 ## Project structure
+
 - `src/`: React app, UI logic, pet interactions.
-- `src-tauri/`: Tauri backend/config, native packaging and updater.
+- `src-tauri/`: Tauri backend, native packaging and updater.
 - `public/avatars/`: avatar assets.
 - `scripts/`: install helpers.
-- `docs/`: product docs and archived historical notes.
+- `docs/`: product vision, backlog, and archived release notes.
 
 ## Docs
-- `INSTALL.md`: installation guide.
-- `docs/README.md`: docs index.
-- `docs/PRODUCT_VISION.md`: product direction and interaction roadmap.
-- `docs/archive/`: previous plans, requirements, and release notes.
 
-## Core interaction loop (now)
-1. User interacts with pet (`mimar`, drag, shake, focus start).
-2. Pet reacts visually (bubble bursts, emotes, motion, dance profile).
-3. Bond and contextual phrases reinforce user-pet connection.
-4. Ambient behavior adapts to system music + focus mode.
+- `INSTALL.md`: installation guide.
+- `docs/PRODUCT_VISION.md`: where Amiwi is going.
+- `docs/README.md`: docs index.
+
+## License
+
+MIT — see [LICENSE](./LICENSE).
